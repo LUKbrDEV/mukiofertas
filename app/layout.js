@@ -18,6 +18,9 @@ const fonteTexto = Figtree({
 export const metadata = {
   title: "MukiOfertas - As melhores ofertas e promoções",
   description: "Ofertas, cupons e promoções relâmpago das maiores lojas do Brasil.",
+   other: {
+    lomadee: "2324685",
+  },
 };
 
 export default function RootLayout({ children }) {
