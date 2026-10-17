@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import CardOferta from "../../../components/CardOferta";
+import ListaOfertas from "../../../components/ListaOfertas";
 import { categorias } from "../../../data/ofertas";
-import { supabase } from "../../../lib/supabase";
+import { buscarOfertas } from "../../../lib/ofertas";
 
 export const revalidate = 60;
 
@@ -10,23 +10,16 @@ export default async function PaginaCategoria({ params }) {
   const categoria = categorias.find((c) => c.slug === slug);
   if (!categoria) notFound();
 
-  const { data: lista = [] } = await supabase
-    .from("ofertas")
-    .select("*")
-    .eq("categoria", slug)
-    .eq("ativa", true)
-    .order("atualizado_em", { ascending: false });
+  const ofertas = await buscarOfertas({ categoria: slug });
 
   return (
-    <section>
-      <h2>{categoria.emoji} {categoria.nome}</h2>
-      {lista.length === 0 ? (
-        <p>Nenhuma oferta nesta categoria por enquanto.</p>
-      ) : (
-        <div className="grade">
-          {lista.map((o) => <CardOferta key={o.id} oferta={o} />)}
-        </div>
-      )}
-    </section>
+    <>
+      <h1 className="titulo-pagina">{categoria.nome}</h1>
+      <p className="subtitulo-pagina">Ofertas mais recentes nesta categoria</p>
+      <ListaOfertas
+        ofertas={ofertas}
+        vazio="Nenhuma oferta nesta categoria agora. Novas ofertas aparecem assim que forem encontradas."
+      />
+    </>
   );
 }
