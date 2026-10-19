@@ -6,17 +6,20 @@ import {
   tempoAtras,
 } from "../lib/ofertas";
 
-export default function CardOferta({ oferta }) {
+// previa = true: usado na prévia do painel admin (links desativados)
+export default function CardOferta({ oferta, previa = false }) {
   const desconto = calcularDesconto(oferta);
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
-  const linkProps = {
-    href: oferta.link,
-    target: "_blank",
-    rel: "sponsored noopener noreferrer",
-  };
+  const linkProps = previa
+    ? { href: "#" }
+    : {
+        href: `/ir/${oferta.id}`,
+        target: "_blank",
+        rel: "sponsored noopener noreferrer",
+      };
 
   return (
-    <article className="oferta">
+    <article className={oferta.destaque ? "oferta oferta--destaque" : "oferta"}>
       <a {...linkProps} className="oferta-img" aria-hidden="true" tabIndex={-1}>
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -29,6 +32,7 @@ export default function CardOferta({ oferta }) {
       <div className="oferta-corpo">
         <div className="oferta-meta">
           <span className="loja">{oferta.loja}</span>
+          {oferta.selo && <span className="selo-chamativo">{oferta.selo}</span>}
           {oferta.relampago && (
             <span className="selo-relampago">
               <IconeRaio tamanho={12} /> Relâmpago
@@ -49,6 +53,11 @@ export default function CardOferta({ oferta }) {
         </div>
         {economia > 0 && (
           <p className="economia">Economia de {formatarPreco(economia)}</p>
+        )}
+        {oferta.cupom && (
+          <p className="cupom">
+            Cupom <strong>{oferta.cupom}</strong>
+          </p>
         )}
       </div>
 

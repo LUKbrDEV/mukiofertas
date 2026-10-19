@@ -1,18 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
-import { buscar as buscarTeste } from "./fontes/teste.mjs";
+import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DESCONTO_MINIMO = 15;    // só publica acima de 15% de desconto
+const DESCONTO_MINIMO = 15; // só publica acima de 15% de desconto
 const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
 
 // Lista das fontes ativas. Novas fontes entram aqui.
-const fontes = [buscarTeste];
+const fontes = [buscarLomadee];
 
-// Classificação simples por palavras-chave
+// Classificação simples por palavras-chave (usada quando a fonte não informa a categoria)
 const palavrasPorCategoria = {
   limpeza: ["detergente", "sabão", "sabao", "desinfetante", "amaciante", "limpeza"],
   tecnologia: ["notebook", "celular", "smartphone", "fone", "monitor", "teclado", "mouse", "tv", "ssd"],
@@ -56,22 +56,40 @@ async function main() {
         categoria,
         relampago: desconto >= DESCONTO_RELAMPAGO,
         ativa: true,
+        origem: "automatica",
         atualizado_em: agora,
       });
     }
 
+    // Ofertas que você ocultou no painel não voltam a aparecer sozinhas
+    let paraGravar = linhas;
     if (linhas.length > 0) {
+      const { data: ocultas } = await supabase
+        .from("ofertas")
+        .select("id_externo")
+        .eq("oculta_manual", true)
+        .in("id_externo", linhas.map((l) => l.id_externo));
+      const bloqueadas = new Set((ocultas ?? []).map((o) => o.id_externo));
+      paraGravar = linhas.filter((l) => !bloqueadas.has(l.id_externo));
+    }
+
+    if (paraGravar.length > 0) {
       const { error } = await supabase
         .from("ofertas")
-        .upsert(linhas, { onConflict: "loja,id_externo" });
+        .upsert(paraGravar, { onConflict: "loja,id_externo" });
       if (error) console.error("Erro ao gravar:", error.message);
-      else publicadas += linhas.length;
+      else publicadas += paraGravar.length;
     }
   }
 
-  // Desativa ofertas que não apareceram nas últimas 48h (provavelmente acabaram)
+  // Desativa ofertas automáticas que não apareceram nas últimas 48h (provavelmente acabaram).
+  // As cadastradas à mão no painel não expiram sozinhas.
   const limite = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  await supabase.from("ofertas").update({ ativa: false }).lt("atualizado_em", limite);
+  await supabase
+    .from("ofertas")
+    .update({ ativa: false })
+    .lt("atualizado_em", limite)
+    .eq("origem", "automatica");
 
   console.log(`Coleta concluída: ${publicadas} ofertas publicadas/atualizadas.`);
 }

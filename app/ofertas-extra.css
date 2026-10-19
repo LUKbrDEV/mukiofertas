@@ -1,0 +1,34 @@
+/* Selos chamativos, cupom e destaque nas ofertas */
+.selo-chamativo {
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--tinta);
+  background: #ffd60a;
+  border-radius: 4px;
+}
+
+.cupom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 10px;
+  font-size: 0.85rem;
+  color: var(--marca-escura);
+  border: 1.5px dashed var(--marca-escura);
+  border-radius: 6px;
+}
+.cupom strong { letter-spacing: 0.04em; }
+
+.oferta--destaque {
+  border-color: var(--marca);
+  box-shadow: 0 0 0 1px var(--marca);
+}
+
+.rodape-admin {
+  margin-left: 12px;
+  text-decoration: underline;
+}

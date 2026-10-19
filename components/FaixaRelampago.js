@@ -15,7 +15,7 @@ export default function FaixaRelampago({ ofertas }) {
           return (
             <a
               key={oferta.id}
-              href={oferta.link}
+              href={`/ir/${oferta.id}`}
               target="_blank"
               rel="sponsored noopener noreferrer"
               className="mini"
