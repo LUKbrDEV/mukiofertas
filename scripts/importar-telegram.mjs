@@ -8,9 +8,8 @@ const supabase = createClient(
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim();
 // Canal de onde as ofertas são lidas. Se não definir TELEGRAM_FONTE, usa o mesmo canal do TELEGRAM_CHAT_ID.
-const FONTE = (process.env.TELEGRAM_FONTE ?? process.env.TELEGRAM_CHAT_ID ?? "").trim();
+const FONTE = (process.env.TELEGRAM_FONTE || process.env.TELEGRAM_CHAT_ID || "").trim();
 
-const VALIDADE_HORAS = 48; // depois disso a oferta importada sai do site (você pode ocultar antes no painel)
 const BUCKET = "imagens";
 
 if (!TOKEN || !FONTE) {
@@ -103,6 +102,7 @@ async function main() {
       ativa: true,
       relampago: false,
       postada_telegram_em: new Date().toISOString(), // já está no canal, o robô não reposta
+      publicada_em: new Date(msg.date * 1000).toISOString(), // o prazo no site conta a partir daqui
       atualizado_em: new Date((msg.edit_date ?? msg.date) * 1000).toISOString(),
     };
 
@@ -143,13 +143,7 @@ async function main() {
     await supabase.from("telegram_estado").upsert({ id: 1, ultimo_update: ultimo });
   }
 
-  // 5) Tira do site as ofertas importadas que passaram da validade
-  const limite = new Date(Date.now() - VALIDADE_HORAS * 3600 * 1000).toISOString();
-  await supabase
-    .from("ofertas")
-    .update({ ativa: false })
-    .eq("origem", "telegram")
-    .lt("atualizado_em", limite);
+  // O prazo de permanência no site (5 dias) é aplicado pelo coletar.mjs, para todas as ofertas.
 
   console.log(
     `Telegram: ${lidas} atualizações lidas, ${mensagens.size} do canal, ${paraGravar.length} ofertas importadas.`

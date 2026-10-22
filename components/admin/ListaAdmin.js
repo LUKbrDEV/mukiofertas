@@ -5,6 +5,8 @@ import { supabase } from "../../lib/supabase";
 import { categorias } from "../../data/ofertas";
 import { calcularDesconto, formatarPreco } from "../../lib/ofertas";
 
+const DIAS_NO_SITE = 5; // o mesmo valor do scripts/coletar.mjs
+
 const nomeCategoria = (slug) => categorias.find((c) => c.slug === slug)?.nome ?? slug;
 
 export default function ListaAdmin({ aoEditar }) {
@@ -37,10 +39,12 @@ export default function ListaAdmin({ aoEditar }) {
   }
 
   const ocultar = (o) => atualizar(o.id, { ativa: false, oculta_manual: true });
+  // Reativar conta como uma nova publicação: a oferta ganha mais DIAS_NO_SITE dias no site
   const reativar = (o) =>
     atualizar(o.id, {
       ativa: true,
       oculta_manual: false,
+      publicada_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),
     });
   const reenviar = (o) =>
@@ -99,6 +103,9 @@ export default function ListaAdmin({ aoEditar }) {
         {filtradas.map((o) => {
           const desconto = calcularDesconto(o);
           const apagavel = o.origem === "manual" || o.origem === "telegram";
+          const diasRestantes = o.publicada_em
+            ? Math.ceil((new Date(o.publicada_em).getTime() + DIAS_NO_SITE * 86400000 - Date.now()) / 86400000)
+            : null;
           return (
             <div key={o.id} className={o.ativa ? "adm-linha" : "adm-linha adm-linha--oculta"}>
               <div className="adm-linha-info">
@@ -116,6 +123,13 @@ export default function ListaAdmin({ aoEditar }) {
                     {o.origem === "manual" ? "Manual" : o.origem === "telegram" ? "Telegram" : "Automática"}
                   </span>
                   {!o.ativa && <span className="adm-etiqueta adm-etiqueta--cinza">Oculta</span>}
+                  {o.ativa && diasRestantes !== null && (
+                    <span className="adm-etiqueta">
+                      {diasRestantes > 0
+                        ? `Sai do site em ${diasRestantes} ${diasRestantes === 1 ? "dia" : "dias"}`
+                        : "Sai do site no próximo ciclo"}
+                    </span>
+                  )}
                   {o.relampago && <span className="adm-etiqueta adm-etiqueta--laranja">Relâmpago</span>}
                   {o.destaque && <span className="adm-etiqueta adm-etiqueta--laranja">Destaque</span>}
                   {o.selo && <span className="adm-etiqueta adm-etiqueta--amarela">{o.selo}</span>}

@@ -8,6 +8,7 @@ const supabase = createClient(
 
 const DESCONTO_MINIMO = 15; // só publica acima de 15% de desconto
 const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
+const DIAS_NO_SITE = 5; // depois desse tempo, a oferta sai do site automaticamente
 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];
@@ -30,6 +31,7 @@ function classificar(titulo) {
 
 async function main() {
   const agora = new Date().toISOString();
+  const limiteSite = new Date(Date.now() - DIAS_NO_SITE * 24 * 60 * 60 * 1000);
   let publicadas = 0;
 
   for (const buscar of fontes) {
@@ -61,15 +63,20 @@ async function main() {
       });
     }
 
-    // Ofertas que você ocultou no painel não voltam a aparecer sozinhas
+    // Não reativa ofertas que você ocultou no painel nem as que já passaram do prazo no site
     let paraGravar = linhas;
     if (linhas.length > 0) {
-      const { data: ocultas } = await supabase
+      const { data: existentes } = await supabase
         .from("ofertas")
-        .select("id_externo")
-        .eq("oculta_manual", true)
+        .select("id_externo, oculta_manual, publicada_em")
         .in("id_externo", linhas.map((l) => l.id_externo));
-      const bloqueadas = new Set((ocultas ?? []).map((o) => o.id_externo));
+      const bloqueadas = new Set(
+        (existentes ?? [])
+          .filter(
+            (o) => o.oculta_manual || (o.publicada_em && new Date(o.publicada_em) < limiteSite)
+          )
+          .map((o) => o.id_externo)
+      );
       paraGravar = linhas.filter((l) => !bloqueadas.has(l.id_externo));
     }
 
@@ -90,6 +97,14 @@ async function main() {
     .update({ ativa: false })
     .lt("atualizado_em", limite)
     .eq("origem", "automatica");
+
+  // Tira do site, de qualquer origem, as ofertas publicadas há mais de DIAS_NO_SITE dias
+  const { error: erroPrazo } = await supabase
+    .from("ofertas")
+    .update({ ativa: false })
+    .eq("ativa", true)
+    .lt("publicada_em", limiteSite.toISOString());
+  if (erroPrazo) console.error("Erro ao aplicar o prazo das ofertas:", erroPrazo.message);
 
   console.log(`Coleta concluída: ${publicadas} ofertas publicadas/atualizadas.`);
 }
