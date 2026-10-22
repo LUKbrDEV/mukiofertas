@@ -68,7 +68,7 @@ function Campo({ rotulo, dica, children }) {
 
 export default function FormOferta({ oferta, aoSalvar }) {
   const editando = Boolean(oferta);
-  const automatica = editando && (oferta.origem ?? "automatica") !== "manual";
+  const automatica = editando && (oferta.origem ?? "automatica") === "automatica";
 
   const [f, setF] = useState(() => iniciar(oferta));
   const [erro, setErro] = useState("");

@@ -84,7 +84,8 @@ export default function ListaAdmin({ aoEditar }) {
         <select className="adm-input" value={origem} onChange={(e) => setOrigem(e.target.value)}>
           <option value="todas">Qualquer origem</option>
           <option value="manual">Cadastradas à mão</option>
-          <option value="automatica">Automáticas</option>
+          <option value="automatica">Automáticas (robô)</option>
+          <option value="telegram">Importadas do Telegram</option>
         </select>
       </div>
 
@@ -97,7 +98,7 @@ export default function ListaAdmin({ aoEditar }) {
       <div className="adm-lista">
         {filtradas.map((o) => {
           const desconto = calcularDesconto(o);
-          const manual = o.origem === "manual";
+          const apagavel = o.origem === "manual" || o.origem === "telegram";
           return (
             <div key={o.id} className={o.ativa ? "adm-linha" : "adm-linha adm-linha--oculta"}>
               <div className="adm-linha-info">
@@ -111,7 +112,9 @@ export default function ListaAdmin({ aoEditar }) {
                   </span>
                 </div>
                 <div className="adm-etiquetas">
-                  <span className="adm-etiqueta">{manual ? "Manual" : "Automática"}</span>
+                  <span className="adm-etiqueta">
+                    {o.origem === "manual" ? "Manual" : o.origem === "telegram" ? "Telegram" : "Automática"}
+                  </span>
                   {!o.ativa && <span className="adm-etiqueta adm-etiqueta--cinza">Oculta</span>}
                   {o.relampago && <span className="adm-etiqueta adm-etiqueta--laranja">Relâmpago</span>}
                   {o.destaque && <span className="adm-etiqueta adm-etiqueta--laranja">Destaque</span>}
@@ -151,7 +154,7 @@ export default function ListaAdmin({ aoEditar }) {
                     Reativar
                   </button>
                 )}
-                {manual && (
+                {apagavel && (
                   <button className="adm-btn adm-btn--perigo" onClick={() => apagar(o)}>
                     Apagar
                   </button>

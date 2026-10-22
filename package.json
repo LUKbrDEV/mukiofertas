@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "importar": "node --env-file=.env.local scripts/importar-telegram.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
