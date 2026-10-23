@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { salvarOferta } from "../../../lib/salvar-oferta";
+import { imagemDoTelegram } from "../../../lib/imagem";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export async function POST(req) {
   const completo = [texto, ...linksOcultos, ...linksBotoes].join("\n");
   if (!completo.trim()) return NextResponse.json({ ok: true, motivo: "sem_texto" });
 
-  const resultado = await salvarOferta(completo, "telegram");
+    const imagem = await imagemDoTelegram(msg.photo);
+  const resultado = await salvarOferta(completo, "telegram", { imagem });
   return NextResponse.json(resultado);
 }
