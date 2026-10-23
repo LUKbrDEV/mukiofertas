@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     .trim();
 
   const { data: existing } = await supabase
-    .from("offers")
+    .from("ofertas")
     .select("id")
     .eq("original_link", link)
     .maybeSingle();
@@ -73,13 +73,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await supabase
-    .from("offers")
+    .from("ofertas")
     .insert({
       title,
       price,
       original_link: link,
       affiliate_link: link,
-      status: "pending",
+      status: "pendente",
     });
 
   if (error) {
