@@ -38,7 +38,20 @@ function numero(valor) {
   return Number(texto.includes(",") ? texto.replace(/\./g, "").replace(",", ".") : texto);
 }
 
-function iniciar(oferta) {
+function iniciar(oferta, sugestao) {
+  if (!oferta && sugestao) {
+    return {
+      ...vazio,
+      titulo: sugestao.titulo,
+      loja: sugestao.loja,
+      categoria: sugestao.categoria,
+      preco_atual: String(sugestao.preco_atual),
+      preco_antigo: sugestao.preco_antigo ? String(sugestao.preco_antigo) : "",
+      link: sugestao.link,
+      cupom: sugestao.cupom ?? "",
+      telegram: false,
+    };
+  }
   if (!oferta) return vazio;
   return {
     titulo: oferta.titulo ?? "",
@@ -66,11 +79,11 @@ function Campo({ rotulo, dica, children }) {
   );
 }
 
-export default function FormOferta({ oferta, aoSalvar }) {
+export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
   const editando = Boolean(oferta);
-  const automatica = editando && (oferta.origem ?? "automatica") === "automatica";
+  const automatica = editando && (oferta.origem ?? "automatica") !== "manual";
 
-  const [f, setF] = useState(() => iniciar(oferta));
+  const [f, setF] = useState(() => iniciar(oferta, sugestao));
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -131,14 +144,26 @@ export default function FormOferta({ oferta, aoSalvar }) {
       if (f.telegram) dados.postada_telegram_em = null;
       resposta = await supabase.from("ofertas").update(dados).eq("id", oferta.id);
     } else {
-      resposta = await supabase.from("ofertas").insert({
-        ...dados,
-        id_externo: `manual-${crypto.randomUUID()}`,
-        origem: "manual",
-        ativa: true,
-        // desmarcado = marca como já postada, para o robô não enviar ao Telegram
-        postada_telegram_em: f.telegram ? null : new Date().toISOString(),
-      });
+      resposta = await supabase
+        .from("ofertas")
+        .insert({
+          ...dados,
+          id_externo: `${sugestao ? "comunidade" : "manual"}-${crypto.randomUUID()}`,
+          origem: sugestao ? "comunidade" : "manual",
+          autor: sugestao ? sugestao.usuario : null,
+          ativa: true,
+          // desmarcado = marca como já postada, para o robô não enviar ao Telegram
+          postada_telegram_em: f.telegram ? null : new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (!resposta.error && sugestao) {
+        await supabase
+          .from("sugestoes")
+          .update({ status: "aprovada", oferta_id: resposta.data.id })
+          .eq("id", sugestao.id);
+      }
     }
 
     setSalvando(false);
@@ -148,12 +173,21 @@ export default function FormOferta({ oferta, aoSalvar }) {
 
   return (
     <>
-      <h1>{editando ? "Editar oferta" : "Nova oferta"}</h1>
+      <h1>{editando ? "Editar oferta" : sugestao ? "Publicar sugestão da comunidade" : "Nova oferta"}</h1>
       <p className="adm-sub">
         {editando
           ? "Altere os campos e salve."
-          : "Cadastre um produto com o seu link de afiliado. A prévia mostra como ele aparece no site."}
+          : sugestao
+            ? "Revise os dados. Se puder, troque o link pelo seu link de afiliado antes de publicar."
+            : "Cadastre um produto com o seu link de afiliado. A prévia mostra como ele aparece no site."}
       </p>
+
+      {sugestao && (
+        <p className="adm-aviso">
+          Enviada por <strong>{sugestao.usuario}</strong> ({sugestao.email}). O nome de usuário
+          aparece publicamente na promoção; o e-mail não.
+        </p>
+      )}
 
       {automatica && (
         <p className="adm-aviso">
@@ -315,7 +349,7 @@ export default function FormOferta({ oferta, aoSalvar }) {
 
           <div className="adm-botoes-form">
             <button className="adm-btn adm-btn--primario" disabled={salvando}>
-              {salvando ? "Salvando..." : editando ? "Salvar alterações" : "Cadastrar oferta"}
+              {salvando ? "Salvando..." : editando ? "Salvar alterações" : sugestao ? "Publicar promoção" : "Cadastrar oferta"}
             </button>
           </div>
         </form>

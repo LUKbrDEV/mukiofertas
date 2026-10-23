@@ -236,10 +236,7 @@
 .adm-opcoes label { display: flex; gap: 8px; align-items: center; }
 .adm-previa { position: sticky; top: 20px; }
 .adm-previa-card { margin-top: 8px; pointer-events: none; }
-.adm-previa-card .oferta { grid-template-columns: 88px minmax(0, 1fr); }
-.adm-previa-card .oferta-acao { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
-.adm-previa-card .oferta-acao .botao { flex: 1; margin-left: 12px; }
-.adm-previa-card .oferta-img { width: 88px; height: 88px; }
+.adm-previa-card .cartao { max-width: 300px; }
 
 /* Login */
 .adm-login { display: grid; min-height: 100vh; place-items: center; padding: 20px; }
@@ -274,3 +271,8 @@
 @media (max-width: 539px) {
   .adm-duas-colunas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Comunidade e cupons */
+.adm-form-simples { display: grid; gap: 12px; margin-bottom: 20px; padding: 18px; background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; }
+.adm-linha-link { font-size: 0.85rem; color: var(--tinta-suave); overflow-wrap: anywhere; }
+.adm-linha-link a { text-decoration: underline; }

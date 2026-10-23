@@ -4,12 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
 
-// Moldura do site público (cabeçalho, categorias, lateral e rodapé).
-// Nas páginas do /admin, a moldura some e o painel usa a tela inteira.
+const SECOES = [
+  {
+    href: "/",
+    nome: "Ofertas",
+    ativa: (p) => !p.startsWith("/cupons") && !p.startsWith("/comunidade"),
+  },
+  { href: "/cupons", nome: "Cupons", ativa: (p) => p.startsWith("/cupons") },
+  {
+    href: "/comunidade",
+    nome: "Promoções da Comunidade",
+    ativa: (p) => p.startsWith("/comunidade"),
+  },
+];
+
+// Moldura do site público. Nas páginas do /admin ela some e o painel usa a tela inteira.
 export default function Casca({ categorias, telegram, children }) {
   const pathname = usePathname();
 
   if (pathname.startsWith("/admin")) return <>{children}</>;
+
+  const emOfertas = SECOES[0].ativa(pathname);
 
   return (
     <>
@@ -34,19 +49,42 @@ export default function Casca({ categorias, telegram, children }) {
               aria-label="Buscar ofertas e produtos"
             />
           </form>
+
+          <Link href="/comunidade/enviar" className="topo-cta">
+            Enviar promoção
+          </Link>
         </div>
       </header>
 
-      <nav className="categorias" aria-label="Categorias">
-        <div className="categorias-interno">
-          <LinkAtivo href="/" className="chip">Todas</LinkAtivo>
-          {categorias.map((cat) => (
-            <LinkAtivo key={cat.slug} href={`/categoria/${cat.slug}`} className="chip">
-              {cat.nome}
-            </LinkAtivo>
+      <nav className="secoes" aria-label="Seções do site">
+        <div className="secoes-interno">
+          {SECOES.map((secao) => (
+            <Link
+              key={secao.href}
+              href={secao.href}
+              className="secao-aba"
+              aria-current={secao.ativa(pathname) ? "page" : undefined}
+            >
+              {secao.nome}
+            </Link>
           ))}
         </div>
       </nav>
+
+      {emOfertas && (
+        <nav className="categorias" aria-label="Categorias">
+          <div className="categorias-interno">
+            <LinkAtivo href="/" tambem={["/maiores-descontos", "/relampago"]} className="chip">
+              Todas
+            </LinkAtivo>
+            {categorias.map((cat) => (
+              <LinkAtivo key={cat.slug} href={`/categoria/${cat.slug}`} className="chip">
+                {cat.nome}
+              </LinkAtivo>
+            ))}
+          </div>
+        </nav>
+      )}
 
       <div className="pagina">
         <main>{children}</main>
@@ -62,6 +100,13 @@ export default function Casca({ categorias, telegram, children }) {
             </section>
           )}
           <section className="caixa">
+            <h2>Achou uma promoção?</h2>
+            <p>Envie para a comunidade. Cada promoção é revisada antes de aparecer.</p>
+            <Link href="/comunidade/enviar" className="botao">
+              Enviar promoção
+            </Link>
+          </section>
+          <section className="caixa">
             <h2>Antes de comprar</h2>
             <p>Preço e estoque mudam rápido. Confira o valor final no site da loja.</p>
           </section>
@@ -70,7 +115,9 @@ export default function Casca({ categorias, telegram, children }) {
 
       <footer className="rodape">
         O MukiOfertas pode receber comissão pelas compras feitas através dos links.
-        <Link href="/admin" className="rodape-admin">Acesso admin</Link>
+        <Link href="/admin" className="rodape-admin">
+          Acesso admin
+        </Link>
       </footer>
     </>
   );

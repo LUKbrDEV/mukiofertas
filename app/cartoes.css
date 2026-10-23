@@ -1,0 +1,228 @@
+/* Novo layout: navegação por seções, abas de lojas e vitrine em cards */
+
+/* Botão de enviar promoção no cabeçalho */
+.topo-cta {
+  padding: 9px 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--marca-escura);
+  border-radius: 999px;
+}
+.topo-cta:hover { background: #b93608; }
+@media (max-width: 639px) { .topo-cta { display: none; } }
+
+/* Seções: Ofertas, Cupons, Comunidade */
+.secoes { background: var(--superficie); border-bottom: 1px solid var(--linha); }
+.secoes-interno {
+  display: flex;
+  gap: 26px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.secoes-interno::-webkit-scrollbar { display: none; }
+.secao-aba {
+  flex: none;
+  padding: 12px 2px;
+  font-weight: 700;
+  color: var(--tinta-suave);
+  border-bottom: 3px solid transparent;
+}
+.secao-aba:hover { color: var(--tinta); }
+.secao-aba[aria-current="page"] { color: var(--tinta); border-bottom-color: var(--marca); }
+
+/* Abas de lojas */
+.lojas-abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.loja-aba {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.loja-aba span { font-size: 0.78rem; font-weight: 600; color: var(--tinta-suave); }
+.loja-aba:hover { border-color: var(--tinta-suave); }
+.loja-aba[aria-current="page"] { color: #fff; background: var(--marca-escura); border-color: var(--marca-escura); }
+.loja-aba[aria-current="page"] span { color: #ffe3d4; }
+
+/* Vitrine em cards */
+.grade-cartoes {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.cartao {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 14px;
+}
+.cartao:hover { border-color: var(--tinta-suave); }
+.cartao--destaque,
+.cartao--destaque:hover { border-color: var(--marca); box-shadow: 0 0 0 1px var(--marca); }
+
+.cartao-img {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: #fff;
+  border-bottom: 1px solid var(--linha);
+}
+.cartao-img img { max-width: 86%; max-height: 86%; object-fit: contain; }
+.cartao-img .desconto { position: absolute; top: 10px; left: 10px; }
+.cartao-selo { position: absolute; bottom: 10px; left: 10px; }
+
+.cartao-corpo { display: flex; flex: 1; flex-direction: column; gap: 6px; padding: 14px; }
+.cartao-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-size: 0.82rem;
+  color: var(--tinta-suave);
+}
+.cartao-titulo {
+  min-height: 4.05em;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cartao-titulo a:hover { text-decoration: underline; }
+.cartao-precos { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-top: auto; padding-top: 4px; }
+.cartao-rodape { display: flex; justify-content: space-between; gap: 8px; font-size: 0.78rem; color: var(--tinta-suave); }
+.cartao-autor {
+  max-width: 60%;
+  overflow: hidden;
+  font-weight: 700;
+  color: var(--tinta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cartao-botao { margin: 0 14px 14px; }
+
+@media (max-width: 639px) {
+  .grade-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cartao-corpo { padding: 10px; }
+  .cartao-titulo { font-size: 0.92rem; }
+  .cartao .preco-atual { font-size: 1.25rem; }
+  .cartao-botao { margin: 0 10px 10px; padding: 9px 10px; font-size: 0.9rem; }
+  .cartao-img .desconto { top: 8px; left: 8px; font-size: 1rem; }
+}
+
+/* Cupons */
+.grade-cupons {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.cartao-cupom {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 14px;
+}
+.cartao-cupom h3 { font-size: 1rem; font-weight: 600; }
+.cupom-codigo {
+  display: flex;
+  overflow: hidden;
+  border: 2px dashed var(--marca-escura);
+  border-radius: 8px;
+}
+.cupom-codigo code {
+  flex: 1;
+  padding: 10px 12px;
+  font-family: var(--fonte-titulo), ui-monospace, monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--marca-escura);
+  overflow-wrap: anywhere;
+}
+.cupom-codigo button {
+  padding: 0 16px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: var(--marca-escura);
+  border: 0;
+  cursor: pointer;
+}
+.cupom-codigo button:hover { background: #b93608; }
+.cupom-validade { font-size: 0.85rem; color: var(--tinta-suave); }
+
+.secao { margin-top: 8px; }
+.titulo-secao {
+  margin-bottom: 12px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.cabecalho-secao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* Formulário público (Promoções da Comunidade) */
+.formulario {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+  padding: 20px;
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 14px;
+}
+.formulario h2 { font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: 1.3rem; }
+.formulario p { color: var(--tinta-suave); }
+.formulario .campo { display: grid; gap: 6px; }
+.formulario .rotulo { font-size: 0.9rem; font-weight: 700; }
+.formulario .dica { font-size: 0.82rem; color: var(--tinta-suave); }
+.formulario input,
+.formulario select {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--superficie);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.formulario .duas { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 539px) { .formulario .duas { grid-template-columns: minmax(0, 1fr); } }
+.formulario .aceite { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; }
+.formulario .aceite input { width: auto; margin-top: 4px; }
+.formulario .erro { font-weight: 600; color: var(--nivel-alto); }
+.armadilha { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+button.botao { font-family: inherit; font-size: 1rem; border: 0; cursor: pointer; }
+button.botao:disabled { opacity: 0.6; cursor: default; }

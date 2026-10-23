@@ -10,7 +10,7 @@ export default function ListaOfertas({ ofertas, vazio }) {
   }
 
   return (
-    <div className="lista">
+    <div className="grade-cartoes">
       {ofertas.map((oferta) => (
         <CardOferta key={oferta.id} oferta={oferta} />
       ))}

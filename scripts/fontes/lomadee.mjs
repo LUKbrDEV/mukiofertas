@@ -58,9 +58,11 @@ async function chamar(caminho, opcoes = {}) {
   return resposta.json();
 }
 
+// friopecas.com.br vira "Friopecas" (aparece nas abas de lojas do site)
 function nomeDaLoja(url) {
   try {
-    return new URL(url).hostname.replace(/^www\./, "");
+    const nome = new URL(url).hostname.replace(/^www\./, "").split(".")[0];
+    return nome.charAt(0).toUpperCase() + nome.slice(1);
   } catch {
     return "Loja parceira";
   }

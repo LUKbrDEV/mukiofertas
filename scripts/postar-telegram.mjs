@@ -97,9 +97,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Ofertas cadastradas à mão no painel sempre passam; as automáticas precisam do desconto mínimo
+  // Ofertas cadastradas à mão (ou aprovadas da comunidade) sempre passam; as automáticas precisam do desconto mínimo
   const pendentes = (data ?? [])
-    .filter((o) => o.origem === "manual" || descontoDe(o) >= DESCONTO_MINIMO_TELEGRAM)
+    .filter((o) => ["manual", "comunidade"].includes(o.origem) || descontoDe(o) >= DESCONTO_MINIMO_TELEGRAM)
     .slice(0, LIMITE_POR_EXECUCAO);
 
   let enviadas = 0;

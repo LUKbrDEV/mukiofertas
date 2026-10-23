@@ -1,6 +1,7 @@
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import "./globals.css";
 import "./ofertas-extra.css";
+import "./cartoes.css";
 import { categorias } from "../data/ofertas";
 import Casca from "../components/Casca";
 

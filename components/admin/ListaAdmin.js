@@ -90,6 +90,7 @@ export default function ListaAdmin({ aoEditar }) {
           <option value="manual">Cadastradas à mão</option>
           <option value="automatica">Automáticas (robô)</option>
           <option value="telegram">Importadas do Telegram</option>
+          <option value="comunidade">Da comunidade</option>
         </select>
       </div>
 
@@ -102,7 +103,7 @@ export default function ListaAdmin({ aoEditar }) {
       <div className="adm-lista">
         {filtradas.map((o) => {
           const desconto = calcularDesconto(o);
-          const apagavel = o.origem === "manual" || o.origem === "telegram";
+          const apagavel = ["manual", "telegram", "comunidade"].includes(o.origem);
           const diasRestantes = o.publicada_em
             ? Math.ceil((new Date(o.publicada_em).getTime() + DIAS_NO_SITE * 86400000 - Date.now()) / 86400000)
             : null;
@@ -120,7 +121,7 @@ export default function ListaAdmin({ aoEditar }) {
                 </div>
                 <div className="adm-etiquetas">
                   <span className="adm-etiqueta">
-                    {o.origem === "manual" ? "Manual" : o.origem === "telegram" ? "Telegram" : "Automática"}
+                    {{ manual: "Manual", telegram: "Telegram", comunidade: "Comunidade" }[o.origem] ?? "Automática"}
                   </span>
                   {!o.ativa && <span className="adm-etiqueta adm-etiqueta--cinza">Oculta</span>}
                   {o.ativa && diasRestantes !== null && (

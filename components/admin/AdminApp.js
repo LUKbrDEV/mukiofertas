@@ -6,12 +6,16 @@ import { supabase } from "../../lib/supabase";
 import Resumo from "./Resumo";
 import ListaAdmin from "./ListaAdmin";
 import FormOferta from "./FormOferta";
+import ListaSugestoes from "./ListaSugestoes";
+import AdminCupons from "./AdminCupons";
 import "./admin.css";
 
 const MENU = [
   { id: "resumo", nome: "Resumo" },
   { id: "ofertas", nome: "Ofertas" },
   { id: "form", nome: "Nova oferta" },
+  { id: "comunidade", nome: "Comunidade" },
+  { id: "cupons", nome: "Cupons" },
   { id: "vendas", nome: "Vendas" },
 ];
 
@@ -109,6 +113,7 @@ export default function AdminApp() {
   const [sessao, setSessao] = useState(undefined); // undefined = ainda verificando
   const [aba, setAba] = useState("resumo");
   const [editando, setEditando] = useState(null);
+  const [sugestao, setSugestao] = useState(null); // sugestão da comunidade sendo revisada
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -123,6 +128,7 @@ export default function AdminApp() {
 
   function irPara(id) {
     setEditando(null);
+    setSugestao(null);
     setAba(id);
   }
 
@@ -131,9 +137,17 @@ export default function AdminApp() {
     setAba("form");
   }
 
-  function depoisDeSalvar() {
+  function revisar(s) {
+    setSugestao(s);
     setEditando(null);
-    setAba("ofertas");
+    setAba("form");
+  }
+
+  function depoisDeSalvar() {
+    const veioDaComunidade = Boolean(sugestao);
+    setEditando(null);
+    setSugestao(null);
+    setAba(veioDaComunidade ? "comunidade" : "ofertas");
   }
 
   return (
@@ -151,7 +165,11 @@ export default function AdminApp() {
               className={aba === item.id ? "adm-menu adm-menu--ativo" : "adm-menu"}
               onClick={() => irPara(item.id)}
             >
-              {item.id === "form" && editando ? "Editar oferta" : item.nome}
+              {item.id === "form" && editando
+                ? "Editar oferta"
+                : item.id === "form" && sugestao
+                  ? "Publicar sugestão"
+                  : item.nome}
             </button>
           ))}
         </nav>
@@ -169,11 +187,14 @@ export default function AdminApp() {
         {aba === "ofertas" && <ListaAdmin aoEditar={editar} />}
         {aba === "form" && (
           <FormOferta
-            key={editando?.id ?? "nova"}
+            key={editando ? `e${editando.id}` : sugestao ? `s${sugestao.id}` : "nova"}
             oferta={editando}
+            sugestao={sugestao}
             aoSalvar={depoisDeSalvar}
           />
         )}
+        {aba === "comunidade" && <ListaSugestoes aoRevisar={revisar} />}
+        {aba === "cupons" && <AdminCupons />}
         {aba === "vendas" && <Vendas />}
       </main>
     </div>
