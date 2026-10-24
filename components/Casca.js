@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
+import BotaoConta from "./BotaoConta";
 
 const SECOES = [
   {
@@ -50,9 +51,12 @@ export default function Casca({ categorias, telegram, children }) {
             />
           </form>
 
-          <Link href="/comunidade/enviar" className="topo-cta">
-            Enviar promoção
+          <div className="topo-acoes">
+           <Link href="/comunidade/enviar" className="topo-cta">
+              Enviar promoção
           </Link>
+            <BotaoConta />
+         </div>
         </div>
       </header>
 
@@ -116,7 +120,6 @@ export default function Casca({ categorias, telegram, children }) {
       <footer className="rodape">
         O MukiOfertas pode receber comissão pelas compras feitas através dos links.
         <Link href="/admin" className="rodape-admin">
-          Acesso admin
         </Link>
       </footer>
     </>

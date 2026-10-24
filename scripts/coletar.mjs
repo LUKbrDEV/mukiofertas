@@ -6,9 +6,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DESCONTO_MINIMO = 15; // só publica acima de 15% de desconto
+const DESCONTO_MINIMO = 20; // só publica acima de 20% de desconto
 const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
-const DIAS_NO_SITE = 5; // depois desse tempo, a oferta sai do site automaticamente
+const DIAS_NO_SITE = 5; // depois desse tempo, a oferta fica como "Expirado" no site
 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];
@@ -58,6 +58,7 @@ async function main() {
         categoria,
         relampago: desconto >= DESCONTO_RELAMPAGO,
         ativa: true,
+        expires_at: item.expires_at ?? null, // se a oferta voltou, deixa de estar expirada
         origem: "automatica",
         atualizado_em: agora,
       });
@@ -89,22 +90,18 @@ async function main() {
     }
   }
 
-  // Desativa ofertas automáticas que não apareceram nas últimas 48h (provavelmente acabaram).
-  // As cadastradas à mão no painel não expiram sozinhas.
+  // Ofertas automáticas que não apareceram nas últimas 48h (provavelmente acabaram)
+  // ficam marcadas como expiradas, em vez de saírem do site.
+  // As cadastradas à mão no painel não expiram por aqui.
   const limite = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  await supabase
+  const { error: erroExpirar } = await supabase
     .from("ofertas")
-    .update({ ativa: false })
+    .update({ expires_at: agora })
     .lt("atualizado_em", limite)
-    .eq("origem", "automatica");
-
-  // Tira do site, de qualquer origem, as ofertas publicadas há mais de DIAS_NO_SITE dias
-  const { error: erroPrazo } = await supabase
-    .from("ofertas")
-    .update({ ativa: false })
+    .eq("origem", "automatica")
     .eq("ativa", true)
-    .lt("publicada_em", limiteSite.toISOString());
-  if (erroPrazo) console.error("Erro ao aplicar o prazo das ofertas:", erroPrazo.message);
+    .or(`expires_at.is.null,expires_at.gt.${agora}`);
+  if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
 
   console.log(`Coleta concluída: ${publicadas} ofertas publicadas/atualizadas.`);
 }

@@ -10,17 +10,32 @@ import {
 export default function CardOferta({ oferta, previa = false }) {
   const desconto = calcularDesconto(oferta);
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
-  const linkProps = previa
-    ? { href: "#" }
-    : {
-        href: `/ir/${oferta.id}`,
-        target: "_blank",
-        rel: "sponsored noopener noreferrer",
-      };
+  const expirada = Boolean(oferta.expirada);
+
+  // Foto e título: abrem a página do produto, com os comentários
+  const paginaProps = previa ? { href: "#" } : { href: `/oferta/${oferta.id}` };
+
+  // Botão: vai para a loja (link de afiliado). Em oferta expirada, vai para a página do produto
+  const lojaProps =
+    previa || expirada
+      ? paginaProps
+      : {
+          href: `/ir/${oferta.id}`,
+          target: "_blank",
+          rel: "sponsored noopener noreferrer",
+        };
+
+  const classes = [
+    "cartao",
+    oferta.destaque && !expirada && "cartao--destaque",
+    expirada && "cartao--expirado",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <article className={oferta.destaque ? "cartao cartao--destaque" : "cartao"}>
-      <a {...linkProps} className="cartao-img" aria-hidden="true" tabIndex={-1}>
+    <article className={classes}>
+      <a {...paginaProps} className="cartao-img" aria-hidden="true" tabIndex={-1}>
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={oferta.imagem} alt="" loading="lazy" />
@@ -33,12 +48,13 @@ export default function CardOferta({ oferta, previa = false }) {
           </span>
         )}
         {oferta.selo && <span className="selo-chamativo cartao-selo">{oferta.selo}</span>}
+        {expirada && <span className="tag-expirado">Expirado</span>}
       </a>
 
       <div className="cartao-corpo">
         <div className="cartao-meta">
           <span className="loja">{oferta.loja}</span>
-          {oferta.relampago && (
+          {oferta.relampago && !expirada && (
             <span className="selo-relampago">
               <IconeRaio tamanho={12} /> Relâmpago
             </span>
@@ -46,7 +62,7 @@ export default function CardOferta({ oferta, previa = false }) {
         </div>
 
         <h3 className="cartao-titulo">
-          <a {...linkProps}>{oferta.titulo}</a>
+          <a {...paginaProps}>{oferta.titulo}</a>
         </h3>
 
         <div className="cartao-precos">
@@ -55,8 +71,10 @@ export default function CardOferta({ oferta, previa = false }) {
             <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
           )}
         </div>
-        {economia > 0 && <p className="economia">Economia de {formatarPreco(economia)}</p>}
-        {oferta.cupom && (
+        {economia > 0 && !expirada && (
+          <p className="economia">Economia de {formatarPreco(economia)}</p>
+        )}
+        {oferta.cupom && !expirada && (
           <p className="cupom">
             Cupom <strong>{oferta.cupom}</strong>
           </p>
@@ -65,11 +83,14 @@ export default function CardOferta({ oferta, previa = false }) {
         <p className="cartao-rodape">
           <span>{tempoAtras(oferta.atualizado_em)}</span>
           {oferta.autor && <span className="cartao-autor">por {oferta.autor}</span>}
+          <a {...paginaProps} className="cartao-comentarios">
+            💬 Comentários
+          </a>
         </p>
       </div>
 
-      <a {...linkProps} className="botao cartao-botao">
-        Ver oferta
+      <a {...lojaProps} className="botao cartao-botao">
+        {expirada ? "Ver comentários" : "Ver oferta"}
       </a>
     </article>
   );

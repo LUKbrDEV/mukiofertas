@@ -8,8 +8,7 @@ export const revalidate = 60;
 
 export default async function Home() {
   const [ofertas, lojas] = await Promise.all([buscarOfertas(), buscarLojas()]);
-  const relampagos = ofertas.filter((o) => o.relampago).slice(0, 12);
-
+  const relampagos = ofertas.filter((o) => o.relampago && !o.expirada).slice(0, 12);
   return (
     <>
       <h1 className="so-leitor">Ofertas e promoções</h1>
