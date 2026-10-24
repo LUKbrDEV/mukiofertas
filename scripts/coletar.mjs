@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
+import { classificar } from "../lib/classificar.mjs";
+import { chaveDaOferta } from "../lib/duplicadas.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,26 +15,19 @@ const DIAS_NO_SITE = 5; // depois desse tempo, a oferta fica como "Expirado" no 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];
 
-// Classificação simples por palavras-chave (usada quando a fonte não informa a categoria)
-const palavrasPorCategoria = {
-  limpeza: ["detergente", "sabão", "sabao", "desinfetante", "amaciante", "limpeza"],
-  tecnologia: ["notebook", "celular", "smartphone", "fone", "monitor", "teclado", "mouse", "tv", "ssd"],
-  games: ["gamer", "console", "playstation", "xbox", "controle", "headset"],
-  casa: ["air fryer", "panela", "liquidificador", "cafeteira", "aspirador"],
-};
-
-function classificar(titulo) {
-  const t = titulo.toLowerCase();
-  for (const [categoria, palavras] of Object.entries(palavrasPorCategoria)) {
-    if (palavras.some((p) => t.includes(p))) return categoria;
-  }
-  return null; // sem categoria reconhecida: não publica
-}
-
 async function main() {
   const agora = new Date().toISOString();
   const limiteSite = new Date(Date.now() - DIAS_NO_SITE * 24 * 60 * 60 * 1000);
   let publicadas = 0;
+
+  // Ofertas dos últimos dias, para reconhecer duplicadas (de qualquer fonte)
+  const { data: recentes } = await supabase
+    .from("ofertas")
+    .select("loja, titulo, preco_atual, id_externo")
+    .gte("publicada_em", limiteSite.toISOString())
+    .limit(3000);
+  const donos = new Map(); // chave da oferta -> id_externo de quem já está no site
+  for (const o of recentes ?? []) donos.set(chaveDaOferta(o), o.id_externo);
 
   for (const buscar of fontes) {
     let itens = [];
@@ -51,7 +46,7 @@ async function main() {
       if (desconto < DESCONTO_MINIMO) continue;
 
       const categoria = item.categoria ?? classificar(item.titulo);
-      if (!categoria) continue;
+      if (!categoria) continue; // sem categoria reconhecida: não publica
 
       linhas.push({
         ...item,
@@ -80,6 +75,16 @@ async function main() {
       );
       paraGravar = linhas.filter((l) => !bloqueadas.has(l.id_externo));
     }
+
+    // Pula duplicadas: mesma loja, título e preço de outra oferta que já está no site
+    // (ou que apareceu antes neste mesmo lote). Atualizar a própria oferta continua valendo.
+    paraGravar = paraGravar.filter((l) => {
+      const chave = chaveDaOferta(l);
+      const dono = donos.get(chave);
+      if (dono && dono !== l.id_externo) return false;
+      donos.set(chave, l.id_externo);
+      return true;
+    });
 
     if (paraGravar.length > 0) {
       const { error } = await supabase

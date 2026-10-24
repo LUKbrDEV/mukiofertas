@@ -52,9 +52,6 @@ export default function Casca({ categorias, telegram, children }) {
           </form>
 
           <div className="topo-acoes">
-           <Link href="/comunidade/enviar" className="topo-cta">
-              Enviar promoção
-          </Link>
             <BotaoConta />
          </div>
         </div>
@@ -79,7 +76,7 @@ export default function Casca({ categorias, telegram, children }) {
         <nav className="categorias" aria-label="Categorias">
           <div className="categorias-interno">
             <LinkAtivo href="/" tambem={["/maiores-descontos", "/relampago"]} className="chip">
-              Todas
+              Todas as Ofertas
             </LinkAtivo>
             {categorias.map((cat) => (
               <LinkAtivo key={cat.slug} href={`/categoria/${cat.slug}`} className="chip">
