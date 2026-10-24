@@ -20,7 +20,9 @@ export default function Entrar() {
     setModo(novo);
     setErro("");
     setAviso("");
-    // Depois de entrar, volta para a página onde a pessoa estava (ex.: o produto)
+  }
+
+  // Depois de entrar, volta para a página onde a pessoa estava (ex.: o produto)
   function destino() {
     const voltar = new URLSearchParams(window.location.search).get("voltar");
     return voltar && voltar.startsWith("/") && !voltar.startsWith("//") ? voltar : "/";
@@ -192,5 +194,4 @@ export default function Entrar() {
       </div>
     </main>
   );
-}
 }
