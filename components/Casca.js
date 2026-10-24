@@ -114,10 +114,19 @@ export default function Casca({ categorias, telegram, children }) {
         </aside>
       </div>
 
-      <footer className="rodape">
-        O MukiOfertas pode receber comissão pelas compras feitas através dos links.
-        <Link href="/admin" className="rodape-admin">
-        </Link>
+            <footer className="rodape">
+        <p>
+          O MukiOfertas pode receber comissão pelas compras feitas através dos links, sem custo
+          extra para você. Como Associado da Amazon, ganhamos com compras qualificadas.
+        </p>
+        <nav className="rodape-links" aria-label="Links do rodapé">
+          <Link href="/sobre">Sobre</Link>
+          <Link href="/contato">Contato</Link>
+          <Link href="/privacidade">Política de Privacidade</Link>
+          <Link href="/termos">Termos de Uso</Link>
+          <Link href="/admin" className="rodape-admin">
+          </Link>
+        </nav>
       </footer>
     </>
   );

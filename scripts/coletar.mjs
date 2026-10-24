@@ -10,7 +10,7 @@ const supabase = createClient(
 
 const DESCONTO_MINIMO = 30; // só publica acima de 35% de desconto
 const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
-const DIAS_NO_SITE = 5; // depois desse tempo, a oferta fica como "Expirado" no site
+const DIAS_NO_SITE = 2; // depois desse tempo, a oferta fica como "Expirado" no site
 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];

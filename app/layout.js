@@ -4,6 +4,8 @@ import "./ofertas-extra.css";
 import "./cartoes.css";
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
+import AvisoCookies from "../components/AvisoCookies";
+import { SITE } from "../lib/site";
 
 const fonteTitulo = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -16,9 +18,27 @@ const fonteTexto = Figtree({
   display: "swap",
 });
 
+const TITULO = "MukiOfertas - As melhores ofertas e promoções";
+const DESCRICAO = "Ofertas, cupons e promoções relâmpago das maiores lojas do Brasil.";
+
 export const metadata = {
-  title: "MukiOfertas - As melhores ofertas e promoções",
-  description: "Ofertas, cupons e promoções relâmpago das maiores lojas do Brasil.",
+  metadataBase: new URL(SITE.url),
+  title: TITULO,
+  description: DESCRICAO,
+  openGraph: {
+    type: "website",
+    siteName: SITE.nome,
+    locale: "pt_BR",
+    title: TITULO,
+    description: DESCRICAO,
+    images: [{ url: "/logo-mukiofertas.png", alt: "MukiOfertas" }],
+  },
+  twitter: {
+    card: "summary",
+    title: TITULO,
+    description: DESCRICAO,
+    images: ["/logo-mukiofertas.png"],
+  },
   other: {
     lomadee: "2324685",
     "google-adsense-account": "ca-pub-6000221061047510",
@@ -39,6 +59,7 @@ export default function RootLayout({ children }) {
         <CascaCondicional categorias={categorias} telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}>
           {children}
         </CascaCondicional>
+        <AvisoCookies />
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Comentarios from "../../../components/Comentarios";
 import IconeRaio from "../../../components/IconeRaio";
+import { SITE } from "../../../lib/site";
 import {
   buscarOfertaPorId,
   calcularDesconto,
@@ -15,10 +16,36 @@ export const revalidate = 60;
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const oferta = await buscarOfertaPorId(id);
-  if (!oferta) return { title: "Oferta não encontrada | MukiOfertas" };
+  if (!oferta) {
+    return { title: "Oferta não encontrada | MukiOfertas", robots: { index: false } };
+  }
+
+  const preco = formatarPreco(oferta.preco_atual);
+  const titulo = `${oferta.titulo} por ${preco}`;
+  const descricao = oferta.expirada
+    ? `${oferta.titulo} na ${oferta.loja}. Oferta encerrada. Veja o que a comunidade comentou.`
+    : `${oferta.titulo} por ${preco} na ${oferta.loja}. Veja os comentários da comunidade e aproveite antes que acabe.`;
+  const imagem = oferta.imagem || "/logo-mukiofertas.png";
+
   return {
-    title: `${oferta.titulo} | MukiOfertas`,
-    description: `${oferta.titulo} por ${formatarPreco(oferta.preco_atual)} na ${oferta.loja}. Veja os comentários da comunidade.`,
+    title: `${titulo} | MukiOfertas`,
+    description: descricao,
+    alternates: { canonical: `/oferta/${oferta.id}` },
+    openGraph: {
+      type: "website",
+      siteName: SITE.nome,
+      locale: "pt_BR",
+      title: titulo,
+      description: descricao,
+      url: `/oferta/${oferta.id}`,
+      images: [{ url: imagem, alt: oferta.titulo }],
+    },
+    twitter: {
+      card: "summary",
+      title: titulo,
+      description: descricao,
+      images: [imagem],
+    },
   };
 }
 
@@ -31,8 +58,31 @@ export default async function PaginaOferta({ params }) {
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
   const expirada = oferta.expirada;
 
+  // Dados estruturados para o Google entender que a página é de um produto com preço
+  const dadosEstruturados = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: oferta.titulo,
+    image: oferta.imagem ? [oferta.imagem] : undefined,
+    offers: {
+      "@type": "Offer",
+      url: `${SITE.url}/oferta/${oferta.id}`,
+      priceCurrency: "BRL",
+      price: Number(oferta.preco_atual).toFixed(2),
+      availability: expirada ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: oferta.loja },
+    },
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(dadosEstruturados).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <p className="produto-voltar">
         <Link href="/">← Voltar para as ofertas</Link>
       </p>

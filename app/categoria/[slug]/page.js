@@ -5,6 +5,17 @@ import { buscarOfertas } from "../../../lib/ofertas";
 
 export const revalidate = 60;
 
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const categoria = categorias.find((c) => c.slug === slug);
+  if (!categoria) return {};
+  return {
+    title: `${categoria.nome} em promoção | MukiOfertas`,
+    description: `As melhores promoções de ${categoria.nome} nas maiores lojas do Brasil, atualizadas o dia todo.`,
+    alternates: { canonical: `/categoria/${slug}` },
+  };
+}
+
 export default async function PaginaCategoria({ params }) {
   const { slug } = await params;
   const categoria = categorias.find((c) => c.slug === slug);
