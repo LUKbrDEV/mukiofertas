@@ -8,8 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DESCONTO_MINIMO = 30; // só publica acima de 35% de desconto
-const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
+const DESCONTO_MINIMO = 35; // só publica acima de 35% de desconto
+const DESCONTO_RELAMPAGO = 50; // acima disso, vira "relâmpago"
 const DIAS_NO_SITE = 2; // depois desse tempo, a oferta fica como "Expirado" no site
 
 // Lista das fontes ativas. Novas fontes entram aqui.
