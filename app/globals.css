@@ -51,15 +51,24 @@ img { display: block; }
   align-items: center;
   gap: 20px;
 }
+
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--fonte-titulo), system-ui, sans-serif;
-  font-weight: 800;
-  font-size: 1.55rem;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
+  flex: 0 0 auto;
+  width: 150px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 42px;
+  object-fit: contain;
+  object-position: left center;
+
 }
 .logo svg { color: var(--marca); }
 .logo span { color: var(--marca-escura); }

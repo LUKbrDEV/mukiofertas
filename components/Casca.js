@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
 import BotaoConta from "./BotaoConta";
+import Image from "next/image";
 
 const SECOES = [
   {
@@ -18,7 +19,7 @@ const SECOES = [
     ativa: (p) => p.startsWith("/comunidade"),
   },
 ];
-
+const TAMANHO_LOGO = 56; // tamanho do boneco, em pixels
 // Moldura do site público. Nas páginas do /admin ela some e o painel usa a tela inteira.
 export default function Casca({ categorias, telegram, children }) {
   const pathname = usePathname();
@@ -31,16 +32,41 @@ export default function Casca({ categorias, telegram, children }) {
     <>
       <header className="topo">
         <div className="topo-interno">
-          <Link href="/" className="logo" aria-label="MukiOfertas, página inicial">
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-              <path
-                d="M3 12.5V4a1 1 0 0 1 1-1h8.5a1 1 0 0 1 .7.3l7.5 7.5a1 1 0 0 1 0 1.4l-8.5 8.5a1 1 0 0 1-1.4 0L3.3 13.2a1 1 0 0 1-.3-.7z"
-                fill="currentColor"
-              />
-              <circle cx="8" cy="8" r="1.7" fill="#fff" />
-            </svg>
-            Muki<span>Ofertas</span>
-          </Link>
+          <Link
+  href="/"
+  className="logo"
+  aria-label="MukiOfertas, página inicial"
+  style={{
+    fontSize: "clamp(1.4rem, 4.5vw, 2.1rem)",
+    fontWeight: 800,
+    gap: 1,
+    fontFamily: "var(--fonte-titulo), system-ui, sans-serif",
+    flex: "none",
+    width: "max-content",
+    maxWidth: "none",
+    overflow: "visible",
+    whiteSpace: "nowrap",
+  }}
+>
+  <Image
+    src="/logo-cabecalho.png"
+    alt=""
+    width={TAMANHO_LOGO}
+    height={TAMANHO_LOGO}
+    priority
+    style={{
+      width: TAMANHO_LOGO,
+      height: TAMANHO_LOGO,
+      minWidth: TAMANHO_LOGO,
+      flex: "none",
+      borderRadius: "50%",
+      objectFit: "contain",
+    }}
+  />
+  <span style={{ color: "var(--tinta)", whiteSpace: "nowrap" }}>
+    Muki<span>Ofertas</span>
+  </span>
+</Link>
 
           <form className="busca" action="/busca" role="search">
             <input
