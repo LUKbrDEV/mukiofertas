@@ -1,0 +1,145 @@
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  background: #ffffff;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+.selo {
+  display: inline-block;
+  padding: 7px 16px;
+  margin-bottom: 18px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #e2640f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.logoBox {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(30, 86, 200, 0.28);
+}
+
+.logo {
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fonte-titulo), sans-serif;
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -1px;
+}
+
+.muki {
+  color: #1d4fc4;
+}
+
+.ofertas {
+  color: #ff7a1a;
+}
+
+.chamada {
+  margin: 14px 0 28px;
+  color: #444;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.botao {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  color: #fff;
+  text-decoration: none;
+  text-align: left;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.botao:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.icone {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.texto strong {
+  font-size: 16px;
+}
+
+.texto small {
+  margin-top: 2px;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.seta {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.site {
+  background: linear-gradient(135deg, #ff7a1a, #ff5a1f);
+  animation: pulsar 2.4s ease-in-out infinite;
+}
+.whatsapp {
+  background: linear-gradient(135deg, #2fe27a, #1fb855);
+}
+.telegram {
+  background: linear-gradient(135deg, #2aa9e6, #1d7fc4);
+}
+
+@keyframes pulsar {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.rodape {
+  margin-top: 26px;
+  color: #666;
+  font-size: 13px;
+}

@@ -3,7 +3,7 @@ import "./globals.css";
 import "./ofertas-extra.css";
 import "./cartoes.css";
 import { categorias } from "../data/ofertas";
-import Casca from "../components/Casca";
+import CascaCondicional from "../components/CascaCondicional";
 
 const fonteTitulo = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -28,9 +28,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteTexto.variable}`}>
       <body>
-        <Casca categorias={categorias} telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}>
+        <CascaCondicional categorias={categorias} telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}>
           {children}
-        </Casca>
+        </CascaCondicional>
       </body>
     </html>
   );
