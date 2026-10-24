@@ -1,0 +1,85 @@
+.bio-container {
+  min-height: 100vh;
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.bio-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.logo-area img {
+  border-radius: 20px;
+}
+
+.logo-area h1 {
+  margin-top: 20px;
+  font-size: 32px;
+  color: #111827;
+}
+
+.logo-area p {
+  margin-top: 10px;
+  color: #6b7280;
+}
+
+.buttons {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 58px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 18px;
+  transition: 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-site {
+  background: #2563eb;
+  color: white;
+}
+
+.btn-site:hover {
+  background: #1d4ed8;
+}
+
+.btn-whatsapp {
+  background: #25d366;
+  color: white;
+}
+
+.btn-whatsapp:hover {
+  background: #1ebe5d;
+}
+
+.btn-telegram {
+  background: #229ed9;
+  color: white;
+}
+
+.btn-telegram:hover {
+  background: #1b8ac0;
+}
+
+footer {
+  margin-top: 30px;
+  color: #9ca3af;
+  font-size: 14px;
+}
