@@ -1,72 +1,60 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
 import BotaoConta from "./BotaoConta";
-import Image from "next/image";
+import MenuDepartamentos from "./MenuDepartamentos";
+import { atalhos } from "../data/atalhos";
 
-const SECOES = [
-  {
-    href: "/",
-    nome: "Ofertas",
-    ativa: (p) => !p.startsWith("/cupons") && !p.startsWith("/comunidade"),
-  },
-  { href: "/cupons", nome: "Cupons", ativa: (p) => p.startsWith("/cupons") },
-  {
-    href: "/comunidade",
-    nome: "Promoções da Comunidade",
-    ativa: (p) => p.startsWith("/comunidade"),
-  },
-];
 const TAMANHO_LOGO = 56; // tamanho do boneco, em pixels
+
 // Moldura do site público. Nas páginas do /admin ela some e o painel usa a tela inteira.
-export default function Casca({ categorias, telegram, children }) {
+export default function Casca({ departamentos, telegram, children }) {
   const pathname = usePathname();
 
   if (pathname.startsWith("/admin")) return <>{children}</>;
-
-  const emOfertas = SECOES[0].ativa(pathname);
 
   return (
     <>
       <header className="topo">
         <div className="topo-interno">
           <Link
-  href="/"
-  className="logo"
-  aria-label="MukiOfertas, página inicial"
-  style={{
-    fontSize: "clamp(1.4rem, 4.5vw, 2.1rem)",
-    fontWeight: 800,
-    gap: 1,
-    fontFamily: "var(--fonte-titulo), system-ui, sans-serif",
-    flex: "none",
-    width: "max-content",
-    maxWidth: "none",
-    overflow: "visible",
-    whiteSpace: "nowrap",
-  }}
->
-  <Image
-    src="/logo-cabecalho.png"
-    alt=""
-    width={TAMANHO_LOGO}
-    height={TAMANHO_LOGO}
-    priority
-    style={{
-      width: TAMANHO_LOGO,
-      height: TAMANHO_LOGO,
-      minWidth: TAMANHO_LOGO,
-      flex: "none",
-      borderRadius: "50%",
-      objectFit: "contain",
-    }}
-  />
-  <span style={{ color: "var(--tinta)", whiteSpace: "nowrap" }}>
-    Muki<span>Ofertas</span>
-  </span>
-</Link>
+            href="/"
+            className="logo"
+            aria-label="MukiOfertas, página inicial"
+            style={{
+              fontSize: "clamp(1.4rem, 4.5vw, 2.1rem)",
+              fontWeight: 800,
+              gap: 12,
+              fontFamily: "var(--fonte-titulo), system-ui, sans-serif",
+              flex: "none",
+              width: "max-content",
+              maxWidth: "none",
+              overflow: "visible",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Image
+              src="/logo-cabecalho.png"
+              alt=""
+              width={TAMANHO_LOGO}
+              height={TAMANHO_LOGO}
+              priority
+              style={{
+                width: TAMANHO_LOGO,
+                height: TAMANHO_LOGO,
+                minWidth: TAMANHO_LOGO,
+                flex: "none",
+                borderRadius: "50%",
+                objectFit: "contain",
+              }}
+            />
+            <span style={{ color: "var(--tinta)", whiteSpace: "nowrap" }}>
+              Muki<span>Ofertas</span>
+            </span>
+          </Link>
 
           <form className="busca" action="/busca" role="search">
             <input
@@ -79,39 +67,20 @@ export default function Casca({ categorias, telegram, children }) {
 
           <div className="topo-acoes">
             <BotaoConta />
-         </div>
+          </div>
         </div>
       </header>
 
-      <nav className="secoes" aria-label="Seções do site">
-        <div className="secoes-interno">
-          {SECOES.map((secao) => (
-            <Link
-              key={secao.href}
-              href={secao.href}
-              className="secao-aba"
-              aria-current={secao.ativa(pathname) ? "page" : undefined}
-            >
-              {secao.nome}
-            </Link>
+      <nav className="categorias" aria-label="Departamentos e atalhos">
+        <div className="categorias-interno">
+          <MenuDepartamentos departamentos={departamentos} />
+          {atalhos.map((a) => (
+            <LinkAtivo key={a.href} href={a.href} tambem={a.tambem} className="chip">
+              {a.nome}
+            </LinkAtivo>
           ))}
         </div>
       </nav>
-
-      {emOfertas && (
-        <nav className="categorias" aria-label="Categorias">
-          <div className="categorias-interno">
-            <LinkAtivo href="/" tambem={["/maiores-descontos", "/relampago"]} className="chip">
-              Todas as Ofertas
-            </LinkAtivo>
-            {categorias.map((cat) => (
-              <LinkAtivo key={cat.slug} href={`/categoria/${cat.slug}`} className="chip">
-                {cat.nome}
-              </LinkAtivo>
-            ))}
-          </div>
-        </nav>
-      )}
 
       <div className="pagina">
         <main>{children}</main>
@@ -140,7 +109,7 @@ export default function Casca({ categorias, telegram, children }) {
         </aside>
       </div>
 
-            <footer className="rodape">
+      <footer className="rodape">
         <p>
           O MukiOfertas pode receber comissão pelas compras feitas através dos links, sem custo
           extra para você. Como Associado da Amazon, ganhamos com compras qualificadas.
@@ -151,6 +120,7 @@ export default function Casca({ categorias, telegram, children }) {
           <Link href="/privacidade">Política de Privacidade</Link>
           <Link href="/termos">Termos de Uso</Link>
           <Link href="/admin" className="rodape-admin">
+            Acesso admin
           </Link>
         </nav>
       </footer>

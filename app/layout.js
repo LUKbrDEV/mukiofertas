@@ -5,7 +5,10 @@ import "./cartoes.css";
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
+import { buscarTotaisPorCategoria } from "../lib/ofertas";
 import { SITE } from "../lib/site";
+
+export const revalidate = 300; // o menu Departamentos atualiza os totais a cada 5 minutos
 
 const fonteTitulo = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -45,7 +48,14 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Categorias que têm ofertas no ar, com a quantidade de cada uma
+  const totais = await buscarTotaisPorCategoria();
+  const temTotais = Object.keys(totais).length > 0;
+  const departamentos = categorias
+    .map((c) => ({ ...c, total: totais[c.slug] ?? 0 }))
+    .filter((c) => !temTotais || c.total > 0);
+
   return (
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteTexto.variable}`}>
       <head>
@@ -56,7 +66,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <CascaCondicional categorias={categorias} telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}>
+        <CascaCondicional
+          departamentos={departamentos}
+          telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}
+        >
           {children}
         </CascaCondicional>
         <AvisoCookies />

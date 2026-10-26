@@ -712,3 +712,187 @@ button.botao:disabled { opacity: 0.6; cursor: default; }
 @media (max-width: 639px) {
   .cookies { flex-direction: column; align-items: stretch; }
 }
+/* ===== Botão Departamentos ===== */
+.dep-botao {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #1d4fc4, #2a6df0);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(29, 79, 196, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dep-botao:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 79, 196, 0.4);
+}
+.dep-botao svg { flex: none; }
+
+/* ===== Menu lateral ===== */
+.dep-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(15, 23, 42, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s 0.25s;
+}
+.dep-fundo[data-aberto="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.25s ease;
+}
+
+.dep-painel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 101;
+  width: min(360px, 88vw);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.2);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.28s ease, visibility 0s 0.28s;
+}
+.dep-painel[data-aberto="true"] {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.28s ease;
+}
+
+.dep-topo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #1d4fc4, #2a6df0);
+}
+.dep-topo-titulo {
+  flex: 1;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.dep-fechar {
+  width: 36px;
+  height: 36px;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.dep-fechar:hover { background: rgba(255, 255, 255, 0.3); }
+
+.dep-corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px 24px;
+}
+
+.dep-todas {
+  display: block;
+  padding: 14px 16px;
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(135deg, #ff7a1a, #ff5a1f);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(255, 90, 31, 0.3);
+}
+.dep-todas:hover { filter: brightness(1.05); }
+
+.dep-rotulo {
+  margin: 20px 6px 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+.dep-lista { list-style: none; display: grid; gap: 4px; }
+
+.dep-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+.dep-item:hover { background: #fff1e6; }
+.dep-item[aria-current="page"] { background: #eaf1ff; color: #1d4fc4; }
+
+.dep-emoji {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 1.35rem;
+  background: #f3f5f9;
+  border-radius: 12px;
+}
+.dep-item:hover .dep-emoji { background: #fff; }
+
+.dep-nome { flex: 1; min-width: 0; }
+
+.dep-total {
+  flex: none;
+  min-width: 28px;
+  padding: 2px 9px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+  color: #e2640f;
+  background: #fff1e6;
+  border-radius: 999px;
+}
+.dep-seta { flex: none; font-size: 1.3rem; color: var(--tinta-suave); }
+
+/* ===== Seções da página inicial ===== */
+.secao-titulo {
+  margin: 0 0 4px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.secao-sub { margin-bottom: 14px; color: var(--tinta-suave); }
+.destaques {
+  margin-bottom: 32px;
+  padding: 18px;
+  background: linear-gradient(180deg, #fff7f1, #ffffff);
+  border: 1px solid #ffd9c4;
+  border-radius: 14px;
+}
+/* ===== Departamentos dentro da barra de seções ===== */
+.secoes-interno { align-items: center; }
+.secoes-interno .dep-botao {
+  margin-right: 10px;
+  padding: 8px 16px;
+}
+/* ===== Departamentos dentro da faixa de atalhos ===== */
+.categorias-interno { align-items: center; padding-bottom: 6px; }
+.categorias-interno .dep-botao {
+  margin-right: 6px;
+  padding: 8px 18px;
+}
