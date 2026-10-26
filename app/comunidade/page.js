@@ -10,17 +10,6 @@ export default async function Comunidade() {
 
   return (
     <>
-      <div className="cabecalho-secao">
-        <div>
-          <h1 className="titulo-pagina">Promoções da Comunidade</h1>
-          <p className="subtitulo-pagina">
-            Achados enviados por quem compra. Cada promoção é revisada antes de aparecer.
-          </p>
-        </div>
-        <Link href="/comunidade/enviar" className="botao">
-          Enviar promoção
-        </Link>
-      </div>
 
       <ListaOfertas
         ofertas={ofertas}
