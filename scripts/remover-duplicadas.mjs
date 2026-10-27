@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
+import { DIAS_NO_SITE } from "../lib/prazos.mjs";
 
 const simular = process.argv.includes("--simular");
-const DIAS_NO_SITE = 5;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

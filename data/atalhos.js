@@ -1,11 +1,10 @@
 // Atalhos da faixa do topo (a ordem aqui é a ordem na tela)
 export const atalhos = [
   { href: "/", nome: "🔥 Promoções", tambem: ["/maiores-descontos", "/relampago"] },
-  { href: "/cupons", nome: "🎟️ Cupons" },
-  { href: "/frete-gratis", nome: "🚚 Frete grátis" },
+  { href: "/cupons", nome: "🎟️ Ofertas com cupom" },
   { href: "/hardware", nome: "🖥️ Hardware" },
   { href: "/monitores", nome: "📺 Monitores" },
-  { href: "/comunidade", nome: "👥 Promoções da Comunidade" },
+  { href: "/comunidade", nome: "👥 Comunidade" },
 ];
 
 // Palavras procuradas no título. O _ vale por qualquer letra (assim "vídeo" e "video" casam).

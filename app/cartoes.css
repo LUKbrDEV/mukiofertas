@@ -896,3 +896,205 @@ button.botao:disabled { opacity: 0.6; cursor: default; }
   margin-right: 6px;
   padding: 8px 18px;
 }
+/* ===== Páginas sem barra lateral ===== */
+.pagina.pagina--cheia { grid-template-columns: minmax(0, 1fr); }
+
+/* ===== Linha única com setas ===== */
+.carrossel { position: relative; }
+
+.carrossel-trilho {
+  display: flex;
+  gap: 14px;
+  padding: 4px 2px 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.carrossel-trilho::-webkit-scrollbar { display: none; }
+
+.carrossel-item {
+  flex: none;
+  width: 250px;
+  display: flex;
+  scroll-snap-align: start;
+}
+.carrossel-item > .cartao { width: 100%; }
+
+/* Botão laranja redondo */
+.carrossel-seta {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--marca);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translateY(-50%);
+  box-shadow: 0 6px 16px rgba(255, 90, 31, 0.4);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.carrossel-seta:hover {
+  background: var(--marca-escura);
+  transform: translateY(-50%) scale(1.08);
+}
+.carrossel-seta--esq { left: -8px; }
+.carrossel-seta--dir { right: -8px; }
+.carrossel-seta--esq svg { transform: rotate(180deg); }
+
+/* No celular não precisa das setas: a pessoa arrasta com o dedo */
+@media (hover: none) {
+  .carrossel-seta { display: none; }
+}
+
+/* ===== Cabeçalho da seção com o botão Ver mais ===== */
+.secao-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.botao-ver-mais {
+  flex: none;
+  padding: 8px 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--marca-escura);
+  background: #fff;
+  border: 2px solid var(--marca-escura);
+  border-radius: 999px;
+}
+.botao-ver-mais:hover {
+  color: #fff;
+  background: var(--marca-escura);
+}
+/* ===== Mais procuradas: sem fundo ===== */
+.destaques {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  margin-bottom: 28px;
+}
+/* ===== Cards do carrossel com o mesmo tamanho dos cards da lista ===== */
+.carrossel-trilho { gap: var(--espaco-card, 16px); }
+.carrossel-item { width: var(--largura-card, 232px); }
+
+/* ===== Cards do carrossel: mesmo tamanho em todos ===== */
+.carrossel-item .cartao { width: 100%; }
+
+/* Área da foto sempre com o mesmo formato, e a foto inteira dentro dela */
+.carrossel-item .cartao-img {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 0.9;
+  overflow: hidden;
+  background: #fff;
+}
+.carrossel-item .cartao-img img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+
+/* Título sempre com o espaço de 3 linhas */
+.carrossel-item .cartao-titulo {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 4.4em;
+}
+/* ===== Ofertas expiradas: imagem cinza ===== */
+.cartao--expirado .cartao-img img,
+.produto--expirado .produto-img img {
+  filter: grayscale(1);
+  opacity: 0.75;
+}
+.cartao--expirado .desconto,
+.produto--expirado .desconto {
+  background: #9ca3af;
+  color: #fff;
+}
+.cartao--expirado .desconto::before,
+.produto--expirado .desconto::before {
+  background: #fff;
+}
+/* ===== Cabeçalho azul e fixo ===== */
+:root {
+  --azul-marca: #0045b8;
+  --azul-marca-escuro: #003fae;
+  --laranja-marca: #ff7a03;
+}
+
+html { scroll-padding-top: 140px; }
+
+.cabecalho-fixo {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(180deg, var(--azul-marca) 0%, var(--azul-marca-escuro) 100%);
+  box-shadow: 0 4px 14px rgba(0, 30, 90, 0.28);
+}
+
+/* O cabeçalho e a barra de atalhos deixam de ter fundo e fixação próprios */
+.cabecalho-fixo .topo {
+  position: static;
+  background: transparent;
+  border-bottom: 0;
+}
+.cabecalho-fixo .categorias { background: transparent; border: 0; }
+.cabecalho-fixo .categorias-interno { padding-top: 4px; padding-bottom: 12px; }
+
+/* Busca */
+.cabecalho-fixo .busca input {
+  background: #fff;
+  border-color: transparent;
+}
+
+/* Conta */
+.cabecalho-fixo .topo-nome { color: #fff; }
+.cabecalho-fixo .topo-login {
+  color: #fff;
+  background: var(--laranja-marca);
+  border-color: var(--laranja-marca);
+}
+.cabecalho-fixo .topo-login:hover {
+  background: #e86a00;
+  border-color: #e86a00;
+}
+
+/* Botão Departamentos: laranja para se destacar do azul */
+.cabecalho-fixo .dep-botao {
+  background: linear-gradient(135deg, #ff8a1f, #ff6a00);
+  box-shadow: 0 4px 12px rgba(0, 20, 70, 0.3);
+}
+
+/* Atalhos */
+.cabecalho-fixo .chip {
+  color: var(--tinta);
+  background: #fff;
+  border-color: transparent;
+}
+.cabecalho-fixo .chip:hover { color: var(--azul-marca); }
+.cabecalho-fixo .chip[aria-current="page"] {
+  color: #fff;
+  background: var(--tinta);
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* Menu lateral Departamentos com o mesmo azul */
+.dep-topo { background: linear-gradient(135deg, var(--azul-marca), var(--azul-marca-escuro)); }
+
+/* A barra lateral da comunidade fica abaixo do cabeçalho fixo */
+@media (min-width: 1024px) {
+  .lateral { top: 150px; }
+}

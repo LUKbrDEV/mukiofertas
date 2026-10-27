@@ -2,23 +2,33 @@ import { createClient } from "@supabase/supabase-js";
 import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
+import { limparExpiradas } from "../lib/limpeza.mjs";
+import {
+  DIAS_NO_SITE,
+  DIAS_EXPIRADA_VISIVEL,
+  DIAS_BLOQUEIO_REPUBLICAR,
+  HORAS_ATE_CONFERIR_PRECO,
+  precoMudou,
+} from "../lib/prazos.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DESCONTO_MINIMO = 35; // só publica acima de 35% de desconto
-const DESCONTO_RELAMPAGO = 60; // acima disso, vira "relâmpago"
-const DIAS_NO_SITE = 2; // depois desse tempo, a oferta fica como "Expirado" no site
+const DESCONTO_MINIMO = 20; // só publica acima de 20% de desconto
+const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
+const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];
 
 async function main() {
   const agora = new Date().toISOString();
-  const limiteSite = new Date(Date.now() - DIAS_NO_SITE * 24 * 60 * 60 * 1000);
+  const limiteSite = new Date(Date.now() - DIAS_NO_SITE * DIA_MS);
+  const limiteConferencia = new Date(Date.now() - HORAS_ATE_CONFERIR_PRECO * 60 * 60 * 1000);
   let publicadas = 0;
+  let expiradasPorPreco = 0;
 
   // Ofertas dos últimos dias, para reconhecer duplicadas (de qualquer fonte)
   const { data: recentes } = await supabase
@@ -59,13 +69,30 @@ async function main() {
       });
     }
 
-    // Não reativa ofertas que você ocultou no painel nem as que já passaram do prazo no site
     let paraGravar = linhas;
+    const paraExpirar = [];
+
     if (linhas.length > 0) {
+      const ids = linhas.map((l) => l.id_externo);
+
       const { data: existentes } = await supabase
         .from("ofertas")
-        .select("id_externo, oculta_manual, publicada_em")
-        .in("id_externo", linhas.map((l) => l.id_externo));
+        .select("loja, id_externo, oculta_manual, publicada_em, preco_atual")
+        .in("id_externo", ids);
+
+      // Ofertas que já foram apagadas há pouco tempo não são publicadas de novo
+      const { data: removidas } = await supabase
+        .from("ofertas_removidas")
+        .select("loja, id_externo")
+        .gte("removida_em", new Date(Date.now() - DIAS_BLOQUEIO_REPUBLICAR * DIA_MS).toISOString())
+        .in("id_externo", ids);
+      const removidasSet = new Set((removidas ?? []).map((r) => `${r.loja}|${r.id_externo}`));
+
+      const existentePor = new Map(
+        (existentes ?? []).map((o) => [`${o.loja}|${o.id_externo}`, o])
+      );
+
+      // Não reativa ofertas que você ocultou no painel nem as que já passaram do prazo no site
       const bloqueadas = new Set(
         (existentes ?? [])
           .filter(
@@ -73,7 +100,22 @@ async function main() {
           )
           .map((o) => o.id_externo)
       );
-      paraGravar = linhas.filter((l) => !bloqueadas.has(l.id_externo));
+      paraGravar = linhas.filter(
+        (l) => !bloqueadas.has(l.id_externo) && !removidasSet.has(`${l.loja}|${l.id_externo}`)
+      );
+
+      // Oferta com mais de 1 dia no site cujo preço mudou: fica como Expirada
+      // (o preço antigo é mantido, e o novo preço não é gravado)
+      paraGravar = paraGravar.filter((l) => {
+        const existente = existentePor.get(`${l.loja}|${l.id_externo}`);
+        if (!existente || !existente.publicada_em) return true;
+        const jaPodeConferir = new Date(existente.publicada_em) <= limiteConferencia;
+        if (jaPodeConferir && precoMudou(existente.preco_atual, l.preco_atual)) {
+          paraExpirar.push({ loja: l.loja, id_externo: l.id_externo });
+          return false;
+        }
+        return true;
+      });
     }
 
     // Pula duplicadas: mesma loja, título e preço de outra oferta que já está no site
@@ -93,6 +135,17 @@ async function main() {
       if (error) console.error("Erro ao gravar:", error.message);
       else publicadas += paraGravar.length;
     }
+
+    for (const oferta of paraExpirar) {
+      const { error } = await supabase
+        .from("ofertas")
+        .update({ expires_at: agora })
+        .eq("loja", oferta.loja)
+        .eq("id_externo", oferta.id_externo)
+        .or(`expires_at.is.null,expires_at.gt.${agora}`);
+      if (error) console.error("Erro ao expirar por mudança de preço:", error.message);
+      else expiradasPorPreco++;
+    }
   }
 
   // Ofertas automáticas que não apareceram nas últimas 48h (provavelmente acabaram)
@@ -108,7 +161,14 @@ async function main() {
     .or(`expires_at.is.null,expires_at.gt.${agora}`);
   if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
 
-  console.log(`Coleta concluída: ${publicadas} ofertas publicadas/atualizadas.`);
+  // Apaga as ofertas que já estão expiradas há mais de DIAS_EXPIRADA_VISIVEL dias
+  const limpeza = await limparExpiradas(supabase);
+
+  console.log(
+    `Coleta concluída: ${publicadas} ofertas publicadas/atualizadas, ` +
+      `${expiradasPorPreco} expiradas por mudança de preço, ` +
+      `${limpeza.total} apagadas (expiradas há mais de ${DIAS_EXPIRADA_VISIVEL} dias).`
+  );
 }
 
 main();

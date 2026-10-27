@@ -1,4 +1,6 @@
+import Link from "next/link";
 import ListaOfertas from "../components/ListaOfertas";
+import LinhaOfertas from "../components/LinhaOfertas";
 import FaixaRelampago from "../components/FaixaRelampago";
 import { buscarOfertas, buscarMaisProcuradas } from "../lib/ofertas";
 
@@ -24,11 +26,18 @@ export default async function Home() {
 
       {destaques.length > 0 && (
         <section className="destaques" aria-labelledby="titulo-destaques">
-          <h2 id="titulo-destaques" className="secao-titulo">
-            🔥 Mais procuradas e maiores descontos
-          </h2>
-          <p className="secao-sub">As promoções que estão chamando mais atenção agora.</p>
-          <ListaOfertas ofertas={destaques} />
+          <div className="secao-cabecalho">
+            <div>
+              <h2 id="titulo-destaques" className="secao-titulo">
+                🔥 Mais procuradas e maiores descontos
+              </h2>
+              <p className="secao-sub">As promoções que estão chamando mais atenção agora.</p>
+            </div>
+            <Link href="/mais-procuradas" className="botao-ver-mais">
+              Ver mais →
+            </Link>
+          </div>
+          <LinhaOfertas ofertas={destaques} />
         </section>
       )}
 
