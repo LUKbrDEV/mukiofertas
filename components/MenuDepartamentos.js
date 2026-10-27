@@ -64,10 +64,6 @@ export default function MenuDepartamentos({ departamentos = [] }) {
         </div>
 
         <div className="dep-corpo">
-          <Link href="/" className="dep-todas">
-            🔥 Ver todas as promoções
-          </Link>
-
           <p className="dep-rotulo">Categorias</p>
           <ul className="dep-lista">
             {departamentos.map((d) => (
@@ -111,7 +107,7 @@ export default function MenuDepartamentos({ departamentos = [] }) {
             fill="none"
           />
         </svg>
-                <span>Departamentos</span>
+        <span>Departamentos</span>
       </button>
 
       {montado && createPortal(menu, document.body)}
