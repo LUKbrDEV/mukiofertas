@@ -10,6 +10,7 @@ import {
   formatarPreco,
   tempoAtras,
 } from "../../../lib/ofertas";
+import SobreProduto from "../../../components/SobreProduto";
 
 export const revalidate = 60;
 
@@ -153,6 +154,8 @@ export default async function PaginaOferta({ params }) {
           </p>
         </div>
       </article>
+
+      <SobreProduto oferta={oferta} />
 
       <Comentarios ofertaId={oferta.id} />
     </>
