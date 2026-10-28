@@ -1,11 +1,16 @@
 // Substitua o "export const categorias = [...]" do data/ofertas.js por este bloco.
 // A ordem aqui é a ordem no menu Departamentos (só aparecem as que têm ofertas no ar).
-// ATENÇÃO: confira se o slug de "Outras ofertas" no seu arquivo atual é mesmo "outros";
-// se for outro, troque aqui para o mesmo valor.
+// "pai" = subcategoria: aparece dentro do departamento indicado (ex.: SSD dentro de Hardware).
 
 export const categorias = [
   { slug: "smartphones", nome: "Smartphones", emoji: "📱" },
   { slug: "hardware", nome: "Hardware", emoji: "🧩" },
+  { slug: "processadores", nome: "Processadores", emoji: "⚙️", pai: "hardware" },
+  { slug: "placa-mae", nome: "Placa-mãe", emoji: "🔌", pai: "hardware" },
+  { slug: "ssd", nome: "SSD", emoji: "💾", pai: "hardware" },
+  { slug: "placa-de-video", nome: "Placa de vídeo", emoji: "🎞️", pai: "hardware" },
+  { slug: "memoria-ram", nome: "Memória RAM", emoji: "🧠", pai: "hardware" },
+  { slug: "gabinete", nome: "Gabinetes", emoji: "🗄️" },
   { slug: "perifericos", nome: "Periféricos", emoji: "🖱️" },
   { slug: "computadores", nome: "Computadores", emoji: "🖥️" },
   { slug: "notebooks", nome: "Notebooks e Tablets", emoji: "💻" },
@@ -20,6 +25,9 @@ export const categorias = [
   { slug: "perfumaria", nome: "Perfumaria", emoji: "🧴" },
   { slug: "beleza", nome: "Beleza e Saúde", emoji: "💄" },
   { slug: "moda", nome: "Moda", emoji: "👕" },
+  { slug: "relogios", nome: "Relógios", emoji: "⌚" },
+  { slug: "mochilas", nome: "Mochilas e Malas", emoji: "🎒" },
+  { slug: "livros", nome: "Livros", emoji: "📚" },
   { slug: "esporte", nome: "Esporte e Lazer", emoji: "⚽" },
   { slug: "outros", nome: "Outras ofertas", emoji: "🏷️" },
 ];

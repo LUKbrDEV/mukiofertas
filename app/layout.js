@@ -4,6 +4,7 @@ import "./ofertas-extra.css";
 import "./cartoes.css";
 import "./cards-compactos.css";
 import { categorias } from "../data/ofertas";
+import { montarDepartamentos } from "../lib/departamentos";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
 import { buscarTotaisPorCategoria } from "../lib/ofertas";
@@ -52,10 +53,7 @@ export const metadata = {
 export default async function RootLayout({ children }) {
   // Categorias que têm ofertas no ar, com a quantidade de cada uma
   const totais = await buscarTotaisPorCategoria();
-  const temTotais = Object.keys(totais).length > 0;
-  const departamentos = categorias
-    .map((c) => ({ ...c, total: totais[c.slug] ?? 0 }))
-    .filter((c) => !temTotais || c.total > 0);
+    const departamentos = montarDepartamentos(categorias, totais);
 
   return (
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteTexto.variable}`}>
