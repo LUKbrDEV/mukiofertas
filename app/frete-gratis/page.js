@@ -14,14 +14,7 @@ export default async function FreteGratis() {
 
   return (
     <>
-      <h1 className="titulo-pagina">🚚 Frete grátis</h1>
-      <p className="subtitulo-pagina">
-        Quem não quer economizar no frete? Aqui estão as ofertas com frete grátis nas maiores lojas do Brasil.
-      </p>
-      <ListaOfertas
-        ofertas={ofertas}
-        vazio="Nenhuma oferta com frete grátis agora. Novas ofertas aparecem assim que forem encontradas."
-      />
+      
     </>
   );
 }

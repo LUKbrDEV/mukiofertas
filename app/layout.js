@@ -3,6 +3,7 @@ import "./globals.css";
 import "./ofertas-extra.css";
 import "./cartoes.css";
 import "./cards-compactos.css";
+import "./destaques.css";
 import { categorias } from "../data/ofertas";
 import { montarDepartamentos } from "../lib/departamentos";
 import CascaCondicional from "../components/CascaCondicional";

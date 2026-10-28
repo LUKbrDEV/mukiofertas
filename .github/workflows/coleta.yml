@@ -9,7 +9,7 @@ concurrency:
   group: coleta
   cancel-in-progress: false
 
-jobs:
+jobs:''
   rodar:
     runs-on: ubuntu-latest
     timeout-minutes: 15

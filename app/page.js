@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ListaOfertas from "../components/ListaOfertas";
 import LinhaOfertas from "../components/LinhaOfertas";
+import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import { buscarOfertas, buscarMaisProcuradas } from "../lib/ofertas";
 
@@ -21,7 +22,8 @@ export default async function Home() {
   return (
     <>
       <h1 className="so-leitor">Ofertas e promoções</h1>
-
+      
+      <BannerBlackFriday />
       <FaixaRelampago ofertas={relampagos} />
 
       {destaques.length > 0 && (
