@@ -89,3 +89,31 @@
   .cabecalho-fixo .categorias .atalhos a.atalho[href="/black-friday"]::after,
   .cabecalho-fixo .categorias .atalhos a.atalho[href="/black-friday"][aria-current="page"]::after { display: none !important; }
 }
+
+/* ===== Página sem rolagem para o lado =====
+   O carrossel é mais largo que a tela (os cards ficam escondidos à direita, esperando a vez).
+   Sem isto, a coluna da página "estica" até a largura do carrossel inteiro e a tela toda
+   passa a arrastar para o lado. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip; /* corta o excesso sem atrapalhar o cabeçalho fixo */
+}
+
+.pagina,
+.pagina > main,
+.pagina > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.faixa,
+.destaques,
+.secao,
+.carrossel,
+.carrossel-trilho {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bfb { max-width: 100%; }
