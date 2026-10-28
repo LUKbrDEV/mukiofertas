@@ -7,8 +7,10 @@ import {
   DIAS_NO_SITE,
   DIAS_EXPIRADA_VISIVEL,
   DIAS_BLOQUEIO_REPUBLICAR,
-  HORAS_ATE_CONFERIR_PRECO,
-  precoMudou,
+  HORAS_ENTRE_CONFERENCIAS,
+  TOLERANCIA_PERCENTUAL,
+  precoSubiu,
+  horaDeConferir,
   podeRenovar,
   camposDaRenovacao,
 } from "../lib/prazos.mjs";
@@ -28,7 +30,6 @@ const fontes = [buscarLomadee];
 async function main() {
   const agora = new Date().toISOString();
   const limiteSite = new Date(Date.now() - DIAS_NO_SITE * DIA_MS);
-  const limiteConferencia = new Date(Date.now() - HORAS_ATE_CONFERIR_PRECO * 60 * 60 * 1000);
   let publicadas = 0;
   let expiradasPorPreco = 0;
   let renovadas = 0;
@@ -81,7 +82,9 @@ async function main() {
 
       const { data: existentes } = await supabase
         .from("ofertas")
-        .select("id, loja, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, renovacoes")
+        .select(
+          "id, loja, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes"
+        )
         .in("id_externo", ids);
 
       // Ofertas que já foram apagadas há pouco tempo não são publicadas de novo
@@ -108,20 +111,34 @@ async function main() {
         (l) => !bloqueadas.has(l.id_externo) && !removidasSet.has(`${l.loja}|${l.id_externo}`)
       );
 
-      // Oferta com mais de 1 dia no site cujo preço mudou: fica como Expirada
-      // (o preço antigo é mantido, e o novo preço não é gravado)
+      // Conferência de preço, de HORAS_ENTRE_CONFERENCIAS em HORAS_ENTRE_CONFERENCIAS horas:
+      // - subiu mais de TOLERANCIA_PERCENTUAL %: a oferta fica como Expirada (o preço novo não é gravado)
+      // - subiu até a tolerância ou caiu: grava o preço novo e marca a hora da conferência
+      // Entre uma conferência e outra, o preço salvo não muda.
       paraGravar = paraGravar.filter((l) => {
         const existente = existentePor.get(`${l.loja}|${l.id_externo}`);
-        if (!existente || !existente.publicada_em) return true;
+        if (!existente || !existente.publicada_em) {
+          l.preco_conferido_em = agora; // oferta nova
+          return true;
+        }
 
-        // Perto de expirar e ainda com o mesmo preço: ganha mais dias no site
-        if (podeRenovar(existente, l.preco_atual)) paraRenovar.push(existente);
+        if (!horaDeConferir(existente)) {
+          // ainda não é hora: mantém o preço e a data da última conferência
+          l.preco_atual = existente.preco_atual;
+          l.preco_antigo = existente.preco_antigo ?? l.preco_antigo;
+          l.preco_conferido_em = existente.preco_conferido_em ?? existente.publicada_em;
+          return true;
+        }
 
-        const jaPodeConferir = new Date(existente.publicada_em) <= limiteConferencia;
-        if (jaPodeConferir && precoMudou(existente.preco_atual, l.preco_atual)) {
+        if (precoSubiu(existente.preco_atual, l.preco_atual)) {
           paraExpirar.push({ loja: l.loja, id_externo: l.id_externo });
           return false;
         }
+
+        // Perto de expirar e ainda com o preço dentro da tolerância: ganha mais dias no site
+        if (podeRenovar(existente, l.preco_atual)) paraRenovar.push(existente);
+
+        l.preco_conferido_em = agora;
         return true;
       });
     }
@@ -184,7 +201,8 @@ async function main() {
 
   console.log(
     `Coleta concluída: ${publicadas} ofertas publicadas/atualizadas, ` +
-      `${expiradasPorPreco} expiradas por mudança de preço, ` +
+      `${expiradasPorPreco} expiradas porque o preço subiu mais de ${TOLERANCIA_PERCENTUAL}% ` +
+      `(conferência a cada ${HORAS_ENTRE_CONFERENCIAS}h), ` +
       `${renovadas} renovadas por manter o preço, ` +
       `${limpeza.total} apagadas (expiradas há mais de ${DIAS_EXPIRADA_VISIVEL} dias).`
   );

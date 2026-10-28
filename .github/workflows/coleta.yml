@@ -32,6 +32,15 @@ jobs:
           LOMADEE_API_KEY: ${{ secrets.LOMADEE_API_KEY }}
           LOMADEE_CANAL: ${{ secrets.LOMADEE_CANAL }}
 
+      # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma
+      - name: Conferir preços (ofertas do Telegram)
+        if: always()
+        continue-on-error: true
+        run: node scripts/conferir-precos.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       # Roda mesmo se o passo anterior falhar
       - name: Importar ofertas do Telegram
         if: always()

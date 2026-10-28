@@ -28,7 +28,7 @@ const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loj
 
 // Lojas que você quer (deixe vazio para usar todas). Use o nome como aparece na Lomadee.
 // Ex.: ["Shopee", "Magalu", "Casas Bahia", "Centauro"]
-const SO_ESTAS_MARCAS = [];
+const SO_ESTAS_MARCAS = ["Shopee", "Magalu", "Casas Bahia", "kabum", "Centauro", "UP Kids", "Amazon", "Americanas", "Submarino", "Carrefour", "Ponto Frio", "Extra", "Shoptime", "Netshoes", "C&A", "Renner", "Riachuelo", "Marisa"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
 const MARCAS_BLOQUEADAS = [];
 // ===================

@@ -8,24 +8,26 @@ import { usePathname } from "next/navigation";
 
 // Estilo das subcategorias (ex.: Hardware > SSD)
 const CSS = `
-  .dep-linha { display: flex; align-items: center; gap: 4px; }
-  .dep-linha .dep-item { flex: 1; min-width: 0; }
-  .dep-abrir {
-    flex: none;
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 10px;
+  /* Departamento com submenu: a linha inteira é um botão que abre/fecha */
+  button.dep-item {
+    width: 100%;
+    font: inherit;
+    font-weight: 600;
+    color: inherit;
+    text-align: left;
     background: transparent;
-    color: var(--tinta-suave, #64748b);
-    font-size: 1.1rem;
+    border: 0;
     cursor: pointer;
-    transition: background 0.15s, transform 0.2s;
   }
-  .dep-abrir:hover { background: #f1f5f9; color: #0f172a; }
-  .dep-abrir[aria-expanded="true"] { transform: rotate(180deg); }
+  button.dep-item[aria-expanded="true"] { background: #fff1e6; }
+  .dep-seta-abrir {
+    flex: none;
+    font-size: 1rem;
+    color: var(--tinta-suave, #64748b);
+    transition: transform 0.2s;
+  }
+  button.dep-item[aria-expanded="true"] .dep-seta-abrir { transform: rotate(90deg); color: #e2640f; }
+  .dep-sub .dep-ver-tudo { font-weight: 700; color: #e2640f; }
   .dep-sub {
     list-style: none;
     display: grid;
@@ -135,21 +137,37 @@ export default function MenuDepartamentos({ departamentos = [] }) {
                 <li key={d.slug}>
                   {temFilhos ? (
                     <>
-                      <div className="dep-linha">
-                        <Item d={d} pathname={pathname} />
-                        <button
-                          type="button"
-                          className="dep-abrir"
-                          aria-expanded={expandido}
-                          aria-controls={`dep-sub-${d.slug}`}
-                          aria-label={`${expandido ? "Fechar" : "Abrir"} subcategorias de ${d.nome}`}
-                          onClick={() => alternar(d.slug)}
-                        >
-                          ▾
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="dep-item"
+                        aria-expanded={expandido}
+                        aria-controls={`dep-sub-${d.slug}`}
+                        onClick={() => alternar(d.slug)}
+                      >
+                        <span className="dep-emoji" aria-hidden="true">
+                          {d.emoji}
+                        </span>
+                        <span className="dep-nome">{d.nome}</span>
+                        {d.total > 0 && <span className="dep-total">{d.total}</span>}
+                        <span className="dep-seta-abrir" aria-hidden="true">
+                          ›
+                        </span>
+                      </button>
                       {expandido && (
                         <ul className="dep-sub" id={`dep-sub-${d.slug}`}>
+                          <li>
+                            <Link
+                              href={`/categoria/${d.slug}`}
+                              className="dep-item dep-ver-tudo"
+                              aria-current={pathname === `/categoria/${d.slug}` ? "page" : undefined}
+                            >
+                              <span className="dep-emoji" aria-hidden="true">
+                                {d.emoji}
+                              </span>
+                              <span className="dep-nome">Ver tudo de {d.nome}</span>
+                              {d.total > 0 && <span className="dep-total">{d.total}</span>}
+                            </Link>
+                          </li>
                           {d.filhos.map((f) => (
                             <li key={f.slug}>
                               <Item d={f} pathname={pathname} />
