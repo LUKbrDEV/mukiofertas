@@ -19,9 +19,9 @@ import { createClient } from "@supabase/supabase-js";
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % (o coletar também filtra por isso)
 const MAX_PAGINAS_MARCAS = 5; // 20 marcas por página
-const MAX_MARCAS = 20; // quantas marcas consultar por execução
+const MAX_MARCAS = 25; // quantas marcas consultar por execução
 const PAGINAS_POR_MARCA = 2; // 100 produtos por página
-const MAX_LINKS_NOVOS = 25; // links de afiliado novos por execução (cada um é uma chamada à API)
+const MAX_LINKS_NOVOS = 40; // links de afiliado novos por execução (cada um é uma chamada à API)
 const MDASC = "mukiofertas"; // identificador que vai no fim dos links (?mdasc=), para relatórios
 const MAX_NOVOS_POR_MARCA = 4; // no máximo X ofertas novas da mesma loja por execução (variedade)
 const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loja e a oferta é ignorada
@@ -113,13 +113,13 @@ async function buscarMarcas() {
 }
 
 // ---------- Produtos ----------
-function melhorPreco(produto) {
+function melhorPreco(produto, divisor) {
   let melhor = null;
   for (const opcao of produto.options ?? []) {
     if (opcao.available === false) continue;
     for (const p of opcao.pricing ?? []) {
-      const atual = Number(p.price) / 100;
-      const antigo = Number(p.listPrice) / 100;
+      const atual = Number(p.price) / divisor;
+      const antigo = Number(p.listPrice) / divisor;
       if (!atual || !antigo || antigo <= atual) continue;
       const desconto = ((antigo - atual) / antigo) * 100;
       if (!melhor || desconto > melhor.desconto) melhor = { atual, antigo, desconto, opcao };
@@ -128,34 +128,60 @@ function melhorPreco(produto) {
   return melhor;
 }
 
+// A API deveria mandar os preços em centavos (12990 = R$ 129,90), mas algumas lojas mandam
+// em reais (130 = R$ 130,00). Pela mediana dos preços da loja dá para saber qual é o caso:
+// em centavos, a mediana de uma loja quase nunca fica abaixo de 1000 (R$ 10).
+function descobrirDivisor(produtos) {
+  const valores = [];
+  for (const produto of produtos) {
+    for (const opcao of produto.options ?? []) {
+      for (const p of opcao.pricing ?? []) {
+        const v = Number(p.price);
+        if (v > 0) valores.push(v);
+      }
+    }
+  }
+  if (valores.length === 0) return 100;
+  if (valores.some((v) => !Number.isInteger(v))) return 1; // tem casas decimais: já está em reais
+  valores.sort((a, b) => a - b);
+  const mediana = valores[Math.floor(valores.length / 2)];
+  return mediana < 1000 ? 1 : 100;
+}
+
 function primeiraImagem(produto, opcao) {
   return produto.images?.[0]?.url || opcao?.images?.[0]?.url || null;
 }
 
 async function buscarProdutosDaMarca(marca) {
-  const encontrados = [];
+  const produtos = [];
   for (let pagina = 1; pagina <= PAGINAS_POR_MARCA; pagina++) {
     const json = await chamar(
       `/affiliate/products?organizationIds=${encodeURIComponent(marca.id)}&isAvailable=true&limit=100&page=${pagina}`
     );
     const itens = lista(json);
-    for (const produto of itens) {
-      if (produto.available === false || !produto.url || !produto.name) continue;
-      const preco = melhorPreco(produto);
-      if (!preco || preco.desconto < DESCONTO_MINIMO) continue;
-      if (preco.atual < PRECO_MINIMO) continue; // preço errado na loja (ex.: R$ 0,36)
-      encontrados.push({
-        marca,
-        produto,
-        id_externo: `${PREFIXO_ID}${produto.id}`,
-        titulo: String(produto.name).replace(/\s+/g, " ").trim().slice(0, 300),
-        preco_atual: Math.round(preco.atual * 100) / 100,
-        preco_antigo: Math.round(preco.antigo * 100) / 100,
-        desconto: preco.desconto,
-        imagem: primeiraImagem(produto, preco.opcao),
-      });
-    }
+    produtos.push(...itens);
     if (itens.length < 100) break;
+  }
+
+  const divisor = descobrirDivisor(produtos);
+  if (divisor === 1) console.log(`[lomadee] ${marca.name}: preços vêm em reais (corrigido).`);
+
+  const encontrados = [];
+  for (const produto of produtos) {
+    if (produto.available === false || !produto.url || !produto.name) continue;
+    const preco = melhorPreco(produto, divisor);
+    if (!preco || preco.desconto < DESCONTO_MINIMO) continue;
+    if (preco.atual < PRECO_MINIMO) continue; // preço errado na loja
+    encontrados.push({
+      marca,
+      produto,
+      id_externo: `${PREFIXO_ID}${produto.id}`,
+      titulo: String(produto.name).replace(/\s+/g, " ").trim().slice(0, 300),
+      preco_atual: Math.round(preco.atual * 100) / 100,
+      preco_antigo: Math.round(preco.antigo * 100) / 100,
+      desconto: preco.desconto,
+      imagem: primeiraImagem(produto, preco.opcao),
+    });
   }
   return encontrados;
 }
