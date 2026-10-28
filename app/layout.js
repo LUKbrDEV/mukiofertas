@@ -7,6 +7,7 @@ import "./destaques.css";
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
+import BotaoComunidade from "../components/BotaoComunidade";
 import { buscarTotaisPorCategoria } from "../lib/ofertas";
 import { montarDepartamentos } from "../lib/departamentos";
 import { SITE } from "../lib/site";
@@ -110,6 +111,10 @@ export default async function RootLayout({ children }) {
           {children}
         </CascaCondicional>
         <AvisoCookies />
+        <BotaoComunidade
+          whatsapp={process.env.NEXT_PUBLIC_WHATSAPP_URL}
+          telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}
+        />
       </body>
     </html>
   );

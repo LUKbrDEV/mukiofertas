@@ -4,23 +4,53 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import SobreMuki from "../components/SobreMuki";
 import { buscarOfertas, buscarMaisProcuradas } from "../lib/ofertas";
+import { ordenarOfertas } from "../lib/ordenar";
 
 export const revalidate = 60;
 
+// Faixas por categoria na página inicial (a ordem aqui é a ordem na tela).
+// Para acrescentar outra, é só copiar uma linha e trocar o slug, o título e o emoji.
+const FAIXAS_DE_CATEGORIA = [
+  { slug: "monitores", titulo: "Melhores ofertas em Monitores", emoji: "🖥️" },
+  { slug: "tv", titulo: "Melhores ofertas em TVs", emoji: "📺" },
+];
+
+// Seção com título, botão "Ver todas" e uma linha de cards com setas
+function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofertas }) {
+  if (!ofertas || ofertas.length === 0) return null;
+  return (
+    <section className="destaques" aria-labelledby={id}>
+      <div className="secao-cabecalho">
+        <div>
+          <h2 id={id} className="secao-titulo">
+            {titulo}
+          </h2>
+          {subtitulo && <p className="secao-sub">{subtitulo}</p>}
+        </div>
+        <Link href={href} className="botao-ver-mais">
+          {textoBotao}
+        </Link>
+      </div>
+      <LinhaOfertas ofertas={ofertas} />
+    </section>
+  );
+}
+
 export default async function Home() {
-  const [relampagosNoAr, procuradas, recentes] = await Promise.all([
+  const [relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
     buscarOfertas({ relampago: true, limite: 12, limiteExpiradas: 0 }),
     buscarMaisProcuradas(24),
     // As que entraram por último no site, sem dar prioridade às que estão em destaque
     buscarOfertas({ ordem: "recentes", limite: 24, limiteExpiradas: 0 }),
+    ...FAIXAS_DE_CATEGORIA.map((f) => buscarOfertas({ categoria: f.slug, limite: 40, limiteExpiradas: 0 })),
   ]);
 
   const relampagos = relampagosNoAr.filter((o) => !o.expirada).slice(0, 12);
 
   // Para não repetir o mesmo produto, o que já está na faixa de relâmpago
-  // não aparece de novo em "Mais procuradas"
+  // não aparece de novo em "Melhores ofertas do momento"
   const idsRelampago = new Set(relampagos.map((o) => o.id));
-  const destaques = procuradas.filter((o) => !idsRelampago.has(o.id)).slice(0, 12);
+  const melhores = procuradas.filter((o) => !idsRelampago.has(o.id)).slice(0, 12);
 
   return (
     <>
@@ -29,39 +59,34 @@ export default async function Home() {
       <BannerBlackFriday />
       <FaixaRelampago ofertas={relampagos} />
 
-      {destaques.length > 0 && (
-        <section className="destaques" aria-labelledby="titulo-destaques">
-          <div className="secao-cabecalho">
-            <div>
-              <h2 id="titulo-destaques" className="secao-titulo">
-                🔥 Mais procuradas e maiores descontos
-              </h2>
-              <p className="secao-sub">As promoções que estão chamando mais atenção agora.</p>
-            </div>
-            <Link href="/mais-procuradas" className="botao-ver-mais">
-              Ver mais →
-            </Link>
-          </div>
-          <LinhaOfertas ofertas={destaques} />
-        </section>
-      )}
+      <Faixa
+        id="titulo-melhores"
+        titulo="🔥 Melhores ofertas do momento"
+        subtitulo="As promoções com os maiores descontos e que estão chamando mais atenção agora."
+        href="/mais-procuradas"
+        textoBotao="Ver mais →"
+        ofertas={melhores}
+      />
 
-      {recentes.length > 0 && (
-        <section className="destaques" aria-labelledby="titulo-recentes">
-          <div className="secao-cabecalho">
-            <div>
-              <h2 id="titulo-recentes" className="secao-titulo">
-                🆕 Promoções adicionadas recentemente
-              </h2>
-              <p className="secao-sub">As ofertas mais novas aparecem primeiro.</p>
-            </div>
-            <Link href="/recentes" className="botao-ver-mais">
-              Ver todas →
-            </Link>
-          </div>
-          <LinhaOfertas ofertas={recentes} />
-        </section>
-      )}
+      {FAIXAS_DE_CATEGORIA.map((f, i) => (
+        <Faixa
+          key={f.slug}
+          id={`titulo-${f.slug}`}
+          titulo={`${f.emoji} ${f.titulo}`}
+          subtitulo="Os maiores descontos desta categoria."
+          href={`/categoria/${f.slug}?ordem=maior-desconto`}
+          // Maiores descontos primeiro
+          ofertas={ordenarOfertas(porCategoria[i] ?? [], "maior-desconto").slice(0, 12)}
+        />
+      ))}
+
+      <Faixa
+        id="titulo-recentes"
+        titulo="🆕 Promoções adicionadas recentemente"
+        subtitulo="As ofertas mais novas aparecem primeiro."
+        href="/recentes"
+        ofertas={recentes}
+      />
 
       <SobreMuki />
     </>
