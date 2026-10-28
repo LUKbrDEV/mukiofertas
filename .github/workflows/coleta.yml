@@ -9,7 +9,7 @@ concurrency:
   group: coleta
   cancel-in-progress: false
 
-jobs:''
+jobs:
   rodar:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -23,14 +23,19 @@ jobs:''
 
       - run: npm ci
 
+      # Lomadee + expirar por preço + renovar + apagar as expiradas antigas
       - name: Coletar ofertas (Lomadee)
         run: node scripts/coletar.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           LOMADEE_API_KEY: ${{ secrets.LOMADEE_API_KEY }}
+          LOMADEE_CANAL: ${{ secrets.LOMADEE_CANAL }}
 
+      # Roda mesmo se o passo anterior falhar
       - name: Importar ofertas do Telegram
+        if: always()
+        continue-on-error: true
         run: node scripts/importar-telegram.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -40,6 +45,7 @@ jobs:''
           TELEGRAM_FONTE: ${{ secrets.TELEGRAM_FONTE }}
 
       - name: Postar no Telegram
+        if: always()
         run: node scripts/postar-telegram.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
