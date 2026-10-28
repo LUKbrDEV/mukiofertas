@@ -1,4 +1,5 @@
 import IconeRaio from "./IconeRaio";
+import BotaoCupom from "./BotaoCupom";
 import {
   calcularDesconto,
   nivelDoDesconto,
@@ -33,6 +34,9 @@ export default function CardOferta({ oferta, previa = false }) {
     .filter(Boolean)
     .join(" ");
 
+  const mostrarEconomia = economia > 0 && !expirada;
+  const mostrarCupom = Boolean(oferta.cupom) && !expirada;
+
   return (
     <article className={classes}>
       <a {...paginaProps} className="cartao-img" aria-hidden="true" tabIndex={-1}>
@@ -61,7 +65,7 @@ export default function CardOferta({ oferta, previa = false }) {
           )}
         </div>
 
-        <h3 className="cartao-titulo">
+        <h3 className="cartao-titulo" title={oferta.titulo}>
           <a {...paginaProps}>{oferta.titulo}</a>
         </h3>
 
@@ -71,14 +75,17 @@ export default function CardOferta({ oferta, previa = false }) {
             <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
           )}
         </div>
-        {economia > 0 && !expirada && (
-          <p className="economia">Economia de {formatarPreco(economia)}</p>
-        )}
-        {oferta.cupom && !expirada && (
-          <p className="cupom">
-            Cupom <strong>{oferta.cupom}</strong>
+
+        {/* Espaço fixo para economia e cupom: todos os cards ficam com a mesma altura */}
+        <div className="cartao-extras">
+          <p className="economia">
+            {mostrarEconomia ? `Economia de ${formatarPreco(economia)}` : " "}
           </p>
-        )}
+          <div className="cartao-cupom-espaco">
+            {mostrarCupom && !previa && <BotaoCupom codigo={oferta.cupom} compacto />}
+            {mostrarCupom && previa && <span className="cupom">Cupom {oferta.cupom}</span>}
+          </div>
+        </div>
 
         <p className="cartao-rodape">
           <span>{tempoAtras(oferta.atualizado_em)}</span>

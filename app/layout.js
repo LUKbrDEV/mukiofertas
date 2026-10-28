@@ -2,6 +2,7 @@ import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import "./globals.css";
 import "./ofertas-extra.css";
 import "./cartoes.css";
+import "./cards-compactos.css";
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
@@ -66,6 +67,27 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
+        <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "MukiOfertas",
+        alternateName: ["Muki Ofertas", "mukiofertas.com.br"],
+        url: `${SITE.url}/`,
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "MukiOfertas",
+        url: `${SITE.url}/`,
+        logo: `${SITE.url}/logo-mukiofertas.png`,
+      },
+    ]),
+  }}
+/>
         <CascaCondicional
           departamentos={departamentos}
           telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}

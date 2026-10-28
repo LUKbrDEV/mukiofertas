@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import Avatar, { nomeDoUsuario } from "./Avatar";
 
 // Estilo "Olá, Entre ou Cadastre-se" com ícone de pessoa (inspirado no cabeçalho da Terabyte).
 const CSS_CONTA = `
@@ -71,6 +72,17 @@ const CSS_CONTA = `
     color: #ff7a1a;
   }
 
+  .conta__acoes {
+    display: flex;
+    gap: 10px;
+    font-weight: 700;
+  }
+
+  a.conta__avatar:hover img,
+  a.conta__avatar:hover span {
+    border-color: #ff7a1a !important;
+  }
+
   /* Celular: só o ícone */
   @media (max-width: 768px) {
     .conta__texto { display: none; }
@@ -105,23 +117,28 @@ export default function BotaoConta() {
 
   const estilo = <style dangerouslySetInnerHTML={{ __html: CSS_CONTA }} />;
 
-  // Logado: "Olá, Fulano" + "Sair"
+  // Logado: foto/ícone + "Olá, Fulano" + "Meu perfil · Sair"
   if (usuario) {
-    const nome = usuario.user_metadata?.nome || usuario.email.split("@")[0];
+    const nome = nomeDoUsuario(usuario);
     return (
       <>
         {estilo}
         <div className="conta">
-          <span className="conta__icone">
-            <IconePessoa />
-          </span>
+          <Link href="/perfil" className="conta__avatar" aria-label="Meu perfil">
+            <Avatar usuario={usuario} tamanho={38} />
+          </Link>
           <span className="conta__texto">
             <span>
               Olá, <strong>{nome}</strong>
             </span>
-            <button type="button" className="conta__sair" onClick={() => supabase.auth.signOut()}>
-              Sair
-            </button>
+            <span className="conta__acoes">
+              <Link href="/perfil" className="conta__link">
+                Meu perfil
+              </Link>
+              <button type="button" className="conta__sair" onClick={() => supabase.auth.signOut()}>
+                Sair
+              </button>
+            </span>
           </span>
         </div>
       </>

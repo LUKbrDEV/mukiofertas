@@ -1,0 +1,124 @@
+/* ===== Cards menores e todos com o mesmo tamanho =====
+   Salve como app/cards-compactos.css e importe no app/layout.js DEPOIS do cartoes.css:
+   import "./cards-compactos.css";
+   Para mudar o tamanho dos cards, mexa só nas variáveis abaixo. */
+
+:root {
+  --card-min: 190px;          /* largura mínima de cada card (era 230px) */
+  --card-espaco: 12px;        /* espaço entre os cards (era 16px) */
+  --card-foto: 1 / 0.8;       /* formato da área da foto */
+  --card-pad: 10px;           /* espaço interno do card */
+}
+
+/* Grade */
+.grade-cartoes {
+  gap: var(--card-espaco);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+}
+
+/* Card */
+.cartao,
+.carrossel-item .cartao {
+  height: 100%;
+  border-radius: 12px;
+}
+
+/* Foto: mesmo formato em todos os cards (grade e carrossel) */
+.cartao .cartao-img,
+.carrossel-item .cartao .cartao-img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--card-foto);
+  overflow: hidden;
+}
+.cartao .cartao-img img,
+.carrossel-item .cartao .cartao-img img {
+  width: 88%;
+  height: 88%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+.cartao .cartao-img .desconto { top: 8px; left: 8px; font-size: 0.95rem; }
+.cartao .cartao-selo { bottom: 8px; left: 8px; }
+.cartao .tag-expirado { top: 6px; right: 6px; padding: 3px 8px; font-size: 0.68rem; }
+
+/* Corpo: cada parte com altura fixa */
+.cartao .cartao-corpo { gap: 5px; padding: var(--card-pad); }
+
+.cartao .cartao-meta {
+  height: 22px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.cartao .cartao-titulo,
+.carrossel-item .cartao .cartao-titulo {
+  height: calc(2 * 1.3em);   /* sempre 2 linhas */
+  min-height: 0;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+}
+
+.cartao .cartao-precos {
+  height: 30px;
+  margin-top: 2px;
+  padding-top: 0;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.cartao .preco-atual { font-size: 1.25rem; }
+.cartao .preco-antigo { font-size: 0.8rem; }
+
+.cartao .cartao-extras {
+  display: grid;
+  grid-template-rows: 18px 28px;
+  gap: 5px;
+}
+.cartao .cartao-extras .economia {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cartao .cartao-cupom-espaco { min-width: 0; height: 28px; }
+.cartao .cartao-cupom-espaco .cupom-copiar { height: 28px; }
+
+.cartao .cartao-rodape {
+  height: 18px;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.cartao .cartao-botao {
+  margin: 0 var(--card-pad) var(--card-pad);
+  padding: 9px 10px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Carrossel acompanha o tamanho da grade */
+.carrossel-trilho { gap: var(--espaco-card, var(--card-espaco)); }
+.carrossel-item { width: var(--largura-card, 200px); }
+
+/* Celular: 2 por linha, um pouco mais compacto */
+@media (max-width: 639px) {
+  :root { --card-espaco: 8px; --card-pad: 8px; }
+  .grade-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cartao .cartao-titulo { font-size: 0.84rem; }
+  .cartao .preco-atual { font-size: 1.08rem; }
+  .cartao .preco-antigo { display: none; }
+  .cartao .cartao-comentarios { display: none; }
+  .cartao .cartao-botao { padding: 8px; font-size: 0.85rem; }
+}

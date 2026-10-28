@@ -11,6 +11,7 @@ import {
   tempoAtras,
 } from "../../../lib/ofertas";
 import SobreProduto from "../../../components/SobreProduto";
+import BotaoCupom from "../../../components/BotaoCupom";
 
 export const revalidate = 60;
 
@@ -127,9 +128,9 @@ export default async function PaginaOferta({ params }) {
           )}
 
           {oferta.cupom && !expirada && (
-            <p className="cupom">
-              Cupom <strong>{oferta.cupom}</strong>
-            </p>
+            <div style={{ maxWidth: 360, margin: "8px 0 4px" }}>
+              <BotaoCupom codigo={oferta.cupom} />
+            </div>
           )}
 
           {expirada ? (

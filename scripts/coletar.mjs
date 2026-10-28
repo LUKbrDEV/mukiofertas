@@ -9,6 +9,8 @@ import {
   DIAS_BLOQUEIO_REPUBLICAR,
   HORAS_ATE_CONFERIR_PRECO,
   precoMudou,
+  podeRenovar,
+  camposDaRenovacao,
 } from "../lib/prazos.mjs";
 
 const supabase = createClient(
@@ -17,7 +19,7 @@ const supabase = createClient(
 );
 
 const DESCONTO_MINIMO = 20; // só publica acima de 20% de desconto
-const DESCONTO_RELAMPAGO = 40; // acima disso, vira "relâmpago"
+const DESCONTO_RELAMPAGO = 50; // acima disso, vira "relâmpago" (mesma regra do banco)
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Lista das fontes ativas. Novas fontes entram aqui.
@@ -29,6 +31,7 @@ async function main() {
   const limiteConferencia = new Date(Date.now() - HORAS_ATE_CONFERIR_PRECO * 60 * 60 * 1000);
   let publicadas = 0;
   let expiradasPorPreco = 0;
+  let renovadas = 0;
 
   // Ofertas dos últimos dias, para reconhecer duplicadas (de qualquer fonte)
   const { data: recentes } = await supabase
@@ -61,7 +64,7 @@ async function main() {
       linhas.push({
         ...item,
         categoria,
-        relampago: desconto >= DESCONTO_RELAMPAGO,
+        relampago: desconto > DESCONTO_RELAMPAGO,
         ativa: true,
         expires_at: item.expires_at ?? null, // se a oferta voltou, deixa de estar expirada
         origem: "automatica",
@@ -71,13 +74,14 @@ async function main() {
 
     let paraGravar = linhas;
     const paraExpirar = [];
+    const paraRenovar = [];
 
     if (linhas.length > 0) {
       const ids = linhas.map((l) => l.id_externo);
 
       const { data: existentes } = await supabase
         .from("ofertas")
-        .select("loja, id_externo, oculta_manual, publicada_em, preco_atual")
+        .select("id, loja, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, renovacoes")
         .in("id_externo", ids);
 
       // Ofertas que já foram apagadas há pouco tempo não são publicadas de novo
@@ -109,6 +113,10 @@ async function main() {
       paraGravar = paraGravar.filter((l) => {
         const existente = existentePor.get(`${l.loja}|${l.id_externo}`);
         if (!existente || !existente.publicada_em) return true;
+
+        // Perto de expirar e ainda com o mesmo preço: ganha mais dias no site
+        if (podeRenovar(existente, l.preco_atual)) paraRenovar.push(existente);
+
         const jaPodeConferir = new Date(existente.publicada_em) <= limiteConferencia;
         if (jaPodeConferir && precoMudou(existente.preco_atual, l.preco_atual)) {
           paraExpirar.push({ loja: l.loja, id_externo: l.id_externo });
@@ -134,6 +142,16 @@ async function main() {
         .upsert(paraGravar, { onConflict: "loja,id_externo" });
       if (error) console.error("Erro ao gravar:", error.message);
       else publicadas += paraGravar.length;
+    }
+
+    // Renovações (gravadas à parte, depois do upsert, para não apagar a data das outras)
+    for (const existente of paraRenovar) {
+      const { error } = await supabase
+        .from("ofertas")
+        .update(camposDaRenovacao(existente))
+        .eq("id", existente.id);
+      if (error) console.error("Erro ao renovar oferta:", error.message);
+      else renovadas++;
     }
 
     for (const oferta of paraExpirar) {
@@ -167,6 +185,7 @@ async function main() {
   console.log(
     `Coleta concluída: ${publicadas} ofertas publicadas/atualizadas, ` +
       `${expiradasPorPreco} expiradas por mudança de preço, ` +
+      `${renovadas} renovadas por manter o preço, ` +
       `${limpeza.total} apagadas (expiradas há mais de ${DIAS_EXPIRADA_VISIVEL} dias).`
   );
 }
