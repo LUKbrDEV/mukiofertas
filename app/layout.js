@@ -5,10 +5,10 @@ import "./cartoes.css";
 import "./cards-compactos.css";
 import "./destaques.css";
 import { categorias } from "../data/ofertas";
-import { montarDepartamentos } from "../lib/departamentos";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
 import { buscarTotaisPorCategoria } from "../lib/ofertas";
+import { montarDepartamentos } from "../lib/departamentos";
 import { SITE } from "../lib/site";
 
 export const revalidate = 300; // o menu Departamentos atualiza os totais a cada 5 minutos
@@ -24,13 +24,24 @@ const fonteTexto = Figtree({
   display: "swap",
 });
 
-const TITULO = "MukiOfertas - As melhores ofertas e promoções";
-const DESCRICAO = "Ofertas, cupons e promoções relâmpago das maiores lojas do Brasil.";
+const TITULO = "MukiOfertas: ofertas, cupons e promoções do dia";
+const DESCRICAO =
+  "O MukiOfertas reúne as melhores ofertas, cupons e promoções relâmpago da Amazon, Mercado Livre, KaBuM!, Magalu e Shopee, com desconto real e atualizadas o dia todo.";
+
+// Perfis oficiais do MukiOfertas em outros sites (ajudam o Google a reconhecer a marca).
+// Coloque aqui os links completos das suas redes, um por linha, entre aspas.
+const PERFIS_OFICIAIS = [
+  process.env.NEXT_PUBLIC_TELEGRAM_URL,
+  // "https://www.instagram.com/mukiofertas",
+  // "https://www.tiktok.com/@mukiofertas",
+  // "https://www.youtube.com/@mukiofertas",
+].filter(Boolean);
 
 export const metadata = {
   metadataBase: new URL(SITE.url),
   title: TITULO,
   description: DESCRICAO,
+  applicationName: "MukiOfertas",
   openGraph: {
     type: "website",
     siteName: SITE.nome,
@@ -52,9 +63,34 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  // Categorias que têm ofertas no ar, com a quantidade de cada uma
+  // Departamentos do menu, com as subcategorias e a quantidade de ofertas no ar
   const totais = await buscarTotaisPorCategoria();
-    const departamentos = montarDepartamentos(categorias, totais);
+  const departamentos = montarDepartamentos(categorias, totais);
+
+  const base = SITE.url.replace(/\/+$/, "");
+
+  // Dados da marca para o Google (nome do site, logo e perfis oficiais)
+  const dadosDaMarca = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "MukiOfertas",
+      alternateName: ["Muki Ofertas", "mukiofertas.com.br"],
+      url: `${base}/`,
+      inLanguage: "pt-BR",
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "MukiOfertas",
+      alternateName: "Muki Ofertas",
+      url: `${base}/`,
+      logo: `${base}/logo-mukiofertas.png`,
+      description:
+        "Site brasileiro de ofertas, cupons e promoções das maiores lojas online. Não é uma loja: as compras são feitas no site de cada loja.",
+      ...(PERFIS_OFICIAIS.length > 0 ? { sameAs: PERFIS_OFICIAIS } : {}),
+    },
+  ];
 
   return (
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteTexto.variable}`}>
@@ -67,30 +103,10 @@ export default async function RootLayout({ children }) {
       </head>
       <body>
         <script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify([
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        name: "MukiOfertas",
-        alternateName: ["Muki Ofertas", "mukiofertas.com.br"],
-        url: `${SITE.url}/`,
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        name: "MukiOfertas",
-        url: `${SITE.url}/`,
-        logo: `${SITE.url}/logo-mukiofertas.png`,
-      },
-    ]),
-  }}
-/>
-        <CascaCondicional
-          departamentos={departamentos}
-          telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}
-        >
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(dadosDaMarca).replace(/</g, "\\u003c") }}
+        />
+        <CascaCondicional departamentos={departamentos} telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}>
           {children}
         </CascaCondicional>
         <AvisoCookies />
