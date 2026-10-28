@@ -18,7 +18,7 @@ const SLUG_OUTROS = "outros"; // mesmo slug de "Outras ofertas" em data/ofertas.
 // Categorias que continuam existindo: se o classificador não reconhecer o título,
 // a oferta fica onde está. As que deixaram de existir (ex.: "tecnologia") vão para "outros".
 const VALIDAS = new Set([
-  "cama-banho", "sapatos", "bebe", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
+  "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",
   "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete", "relogios", "livros",
   "smartphones", "hardware", "perifericos", "computadores", "notebooks", "monitores",
@@ -43,7 +43,7 @@ async function buscarTodas() {
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
       .from("ofertas")
-      .select("id, titulo, categoria")
+      .select("id, titulo, categoria, loja")
       .order("id")
       .range(de, de + 999);
     if (error) throw new Error(error.message);
@@ -58,7 +58,7 @@ const mudancas = [];
 
 for (const o of ofertas) {
   const atual = o.categoria;
-  const nova = classificar(o.titulo) ?? (VALIDAS.has(atual) ? atual : SLUG_OUTROS);
+  const nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : SLUG_OUTROS);
   if (nova !== atual) mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: nova });
 }
 

@@ -44,7 +44,6 @@ export const categorias = [
 
   { slug: "sapatos", nome: "Sapatos", emoji: "👟" },
   { slug: "mochilas", nome: "Mochilas e Malas", emoji: "🎒" },
-  { slug: "bebe", nome: "Bebê", emoji: "🍼" },
   { slug: "brinquedos", nome: "Brinquedos", emoji: "🧸" },
   { slug: "livros", nome: "Livros", emoji: "📚" },
   { slug: "esporte", nome: "Esporte e Lazer", emoji: "⚽" },

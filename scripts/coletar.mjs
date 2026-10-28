@@ -59,7 +59,7 @@ async function main() {
       const desconto = ((item.preco_antigo - item.preco_atual) / item.preco_antigo) * 100;
       if (desconto < DESCONTO_MINIMO) continue;
 
-      const categoria = item.categoria ?? classificar(item.titulo);
+      const categoria = item.categoria ?? classificar(item.titulo, item.loja);
       if (!categoria) continue; // sem categoria reconhecida: não publica
 
       linhas.push({
