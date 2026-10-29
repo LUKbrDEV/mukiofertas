@@ -7,6 +7,7 @@ import LinkAtivo from "./LinkAtivo";
 import BotaoConta from "./BotaoConta";
 import MenuDepartamentos from "./MenuDepartamentos";
 import { atalhos } from "../data/atalhos";
+import { EnfeiteCabecalho } from "./Halloween";
 
 const TAMANHO_LOGO = 48; // tamanho do boneco, em pixels
 
@@ -313,6 +314,9 @@ export default function Casca({ departamentos, telegram, children }) {
               </span>
             </Link>
 
+            {/* Halloween: some sozinho depois de 01/11 */}
+            <EnfeiteCabecalho lado="esq" />
+
             <form className="busca" action="/busca" role="search">
               <input
                 type="search"
@@ -324,6 +328,8 @@ export default function Casca({ departamentos, telegram, children }) {
                 <IconeLupa />
               </button>
             </form>
+
+            <EnfeiteCabecalho lado="dir" />
 
             <div className="topo-acoes">
               <BotaoConta />
