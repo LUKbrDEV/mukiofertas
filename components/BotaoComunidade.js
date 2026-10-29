@@ -1,8 +1,10 @@
 "use client";
 
-// Botão flutuante no canto inferior direito: abre um menu com o grupo do WhatsApp e o canal do Telegram.
+// Botão flutuante no canto inferior direito: abre um menu com o grupo do WhatsApp, o canal do Telegram,
+// o Instagram e o TikTok do MukiOfertas.
 // Salve como components/BotaoComunidade.js.
-// Uso (no app/layout.js): <BotaoComunidade whatsapp={...} telegram={...} />
+// Uso (no app/layout.js): <BotaoComunidade whatsapp={...} telegram={...} instagram={...} tiktok={...} />
+// Cada rede só aparece se o link dela estiver preenchido.
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -105,6 +107,16 @@ const CSS = `
   .bc-opcao small { display: block; font-size: 0.74rem; font-weight: 500; opacity: 0.9; }
   .bc-opcao--whatsapp { background: #25d366; }
   .bc-opcao--telegram { background: #229ed9; }
+  .bc-opcao--instagram { background: linear-gradient(45deg, #f9a825 0%, #e1306c 45%, #833ab4 100%); }
+  .bc-opcao--tiktok { background: #111111; }
+  .bc-divisor {
+    margin: 14px 0 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
   .bc-icone {
     flex: none;
     width: 36px;
@@ -167,7 +179,25 @@ function IconeTelegram() {
   );
 }
 
-export default function BotaoComunidade({ whatsapp, telegram }) {
+function IconeInstagram() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="2" />
+      <circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function IconeTiktok() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.6 3c.3 2.3 1.6 3.9 3.9 4.1v3.1c-1.4.1-2.7-.3-3.9-1.1v6.1c0 3.6-2.6 5.8-5.6 5.8-3.2 0-5.6-2.5-5.6-5.6 0-3.4 2.9-5.9 6.5-5.4v3.2c-1.7-.4-3.4.6-3.4 2.3 0 1.4 1.1 2.4 2.4 2.4 1.5 0 2.5-1 2.5-2.8V3h3.2Z" />
+    </svg>
+  );
+}
+
+export default function BotaoComunidade({ whatsapp, telegram, instagram, tiktok }) {
   const pathname = usePathname();
   const [aberto, setAberto] = useState(false);
   const [balao, setBalao] = useState(false);
@@ -209,14 +239,14 @@ export default function BotaoComunidade({ whatsapp, telegram }) {
   useEffect(() => setAberto(false), [pathname]);
 
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/entrar") || pathname?.startsWith("/bio")) return null;
-  if (!whatsapp && !telegram) return null;
+  if (!whatsapp && !telegram && !instagram && !tiktok) return null;
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="bc" ref={caixa}>
         {aberto && (
-          <div className="bc-menu" id="bc-menu" role="dialog" aria-label="Receba as ofertas">
+          <div className="bc-menu" id="bc-menu" role="dialog" aria-label="Receba as ofertas e siga nas redes">
             <p className="bc-menu-titulo">Receba as ofertas primeiro 🔥</p>
             <p className="bc-menu-sub">Entre no nosso grupo e seja avisado das promoções relâmpago.</p>
             {whatsapp && (
@@ -238,6 +268,30 @@ export default function BotaoComunidade({ whatsapp, telegram }) {
                 <span>
                   Canal do Telegram
                   <small>Todas as promoções em tempo real</small>
+                </span>
+              </a>
+            )}
+
+            {(instagram || tiktok) && <p className="bc-divisor">Siga o MukiOfertas</p>}
+            {instagram && (
+              <a className="bc-opcao bc-opcao--instagram" href={instagram} target="_blank" rel="noopener noreferrer">
+                <span className="bc-icone">
+                  <IconeInstagram />
+                </span>
+                <span>
+                  Instagram
+                  <small>Oficial da MukiOfertas!</small>
+                </span>
+              </a>
+            )}
+            {tiktok && (
+              <a className="bc-opcao bc-opcao--tiktok" href={tiktok} target="_blank" rel="noopener noreferrer">
+                <span className="bc-icone">
+                  <IconeTiktok />
+                </span>
+                <span>
+                  TikTok
+                  <small>Vídeos das melhores ofertas</small>
                 </span>
               </a>
             )}

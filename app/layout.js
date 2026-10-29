@@ -34,8 +34,8 @@ const DESCRICAO =
 // Coloque aqui os links completos das suas redes, um por linha, entre aspas.
 const PERFIS_OFICIAIS = [
   process.env.NEXT_PUBLIC_TELEGRAM_URL,
-  // "https://www.instagram.com/mukiofertas",
-  // "https://www.tiktok.com/@mukiofertas",
+  process.env.NEXT_PUBLIC_INSTAGRAM_URL,
+  process.env.NEXT_PUBLIC_TIKTOK_URL,
   // "https://www.youtube.com/@mukiofertas",
 ].filter(Boolean);
 
@@ -89,7 +89,7 @@ export default async function RootLayout({ children }) {
       url: `${base}/`,
       logo: `${base}/logo-mukiofertas.png`,
       description:
-        "Site brasileiro de ofertas, cupons e promoções das maiores lojas online. Não é uma loja: as compras são feitas no site de cada loja.",
+        "Site brasileiro de ofertas, cupons e promoções das maiores lojas online.",
       ...(PERFIS_OFICIAIS.length > 0 ? { sameAs: PERFIS_OFICIAIS } : {}),
     },
   ];
@@ -117,6 +117,8 @@ export default async function RootLayout({ children }) {
         <BotaoComunidade
           whatsapp={process.env.NEXT_PUBLIC_WHATSAPP_URL}
           telegram={process.env.NEXT_PUBLIC_TELEGRAM_URL}
+          instagram={process.env.NEXT_PUBLIC_INSTAGRAM_URL}
+          tiktok={process.env.NEXT_PUBLIC_TIKTOK_URL}
         />
       </body>
     </html>
