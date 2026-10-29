@@ -195,7 +195,7 @@ export default function SaudeRobo({ aoEditar }) {
 
       <div className="adm-saude-grade">
         <Indicador
-          titulo="Coleta da Lomadee"
+          titulo="Coleta (Lomadee e Shopee)"
           quando={coletaQuando}
           cor={situacao(coletaQuando, 1, 3)}
           erro={dados.coletar && !dados.coletar.ok}

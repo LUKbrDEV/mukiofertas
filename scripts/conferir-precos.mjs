@@ -195,6 +195,7 @@ const { data, error } = await supabase
   .select("id, titulo, loja, link, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes, id_externo")
   .eq("ativa", true)
   .not("id_externo", "like", "lmd-%") // as da Lomadee são conferidas pelo coletar.mjs
+  .not("id_externo", "like", "shp-%") // as da Shopee (API) também
   .or(`expires_at.is.null,expires_at.gt.${agoraIso}`)
   .gt("publicada_em", corte)
   .order("preco_conferido_em", { ascending: true, nullsFirst: true })

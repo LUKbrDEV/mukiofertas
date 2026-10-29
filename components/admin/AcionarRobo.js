@@ -8,10 +8,9 @@ import { supabase } from "../../lib/supabase";
 import { ha, dataHora } from "./util";
 
 const TAREFAS = [
-  { id: "tudo", nome: "▶ Rodar tudo agora", dica: "Coleta, conferência de preços, importação e postagem" },
-  { id: "coletar", nome: "Coletar Lomadee", dica: "Traz ofertas novas e atualiza as do robô" },
+  { id: "tudo", nome: "▶ Rodar tudo agora", dica: "Coleta, conferência de preços e postagem" },
+  { id: "coletar", nome: "Coletar Lomadee e Shopee", dica: "Traz ofertas novas e atualiza as do robô" },
   { id: "conferir-precos", nome: "Conferir preços", dica: "Confere as ofertas do Telegram e manuais que já estão na hora" },
-  { id: "importar-telegram", nome: "Importar do Telegram", dica: "Busca as postagens novas do seu canal" },
   { id: "postar-telegram", nome: "Postar no Telegram", dica: "Envia as ofertas que estão na fila" },
 ];
 

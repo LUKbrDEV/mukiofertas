@@ -14,7 +14,6 @@ on:
           - tudo
           - coletar
           - conferir-precos
-          - importar-telegram
           - postar-telegram
 
 concurrency:
@@ -35,8 +34,8 @@ jobs:
 
       - run: npm ci
 
-      # Lomadee + expirar por preço + renovar + apagar as expiradas antigas
-      - name: Coletar ofertas (Lomadee)
+      # Lomadee + Shopee + expirar por preço + renovar + apagar as expiradas antigas
+      - name: Coletar ofertas (Lomadee e Shopee)
         if: ${{ !inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
         run: node scripts/coletar.mjs
         env:
@@ -44,6 +43,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           LOMADEE_API_KEY: ${{ secrets.LOMADEE_API_KEY }}
           LOMADEE_CANAL: ${{ secrets.LOMADEE_CANAL }}
+          SHOPEE_APP_ID: ${{ secrets.SHOPEE_APP_ID }}
+          SHOPEE_SECRET: ${{ secrets.SHOPEE_SECRET }}
 
       # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma
       - name: Conferir preços (ofertas do Telegram)
@@ -54,17 +55,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      # Roda mesmo se o passo anterior falhar
-      - name: Importar ofertas do Telegram
-        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'importar-telegram') }}
-        continue-on-error: true
-        run: node scripts/importar-telegram.mjs
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_FONTE: ${{ secrets.TELEGRAM_FONTE }}
+      # A importação do canal do Telegram é feita na hora pelo webhook do site
+      # (app/api/telegram-webhook), por isso não tem passo aqui.
 
       - name: Postar no Telegram
         if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'postar-telegram') }}
