@@ -3,7 +3,19 @@ name: Coletar, importar e postar ofertas
 on:
   schedule:
     - cron: "*/30 * * * *"
+  # Também pode ser acionado pelo painel admin (aba Saúde do robô) ou pelo GitHub
   workflow_dispatch:
+    inputs:
+      tarefa:
+        description: "O que rodar"
+        type: choice
+        default: tudo
+        options:
+          - tudo
+          - coletar
+          - conferir-precos
+          - importar-telegram
+          - postar-telegram
 
 concurrency:
   group: coleta
@@ -25,6 +37,7 @@ jobs:
 
       # Lomadee + expirar por preço + renovar + apagar as expiradas antigas
       - name: Coletar ofertas (Lomadee)
+        if: ${{ !inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
         run: node scripts/coletar.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -34,7 +47,7 @@ jobs:
 
       # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma
       - name: Conferir preços (ofertas do Telegram)
-        if: always()
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'conferir-precos') }}
         continue-on-error: true
         run: node scripts/conferir-precos.mjs
         env:
@@ -43,7 +56,7 @@ jobs:
 
       # Roda mesmo se o passo anterior falhar
       - name: Importar ofertas do Telegram
-        if: always()
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'importar-telegram') }}
         continue-on-error: true
         run: node scripts/importar-telegram.mjs
         env:
@@ -54,7 +67,7 @@ jobs:
           TELEGRAM_FONTE: ${{ secrets.TELEGRAM_FONTE }}
 
       - name: Postar no Telegram
-        if: always()
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'postar-telegram') }}
         run: node scripts/postar-telegram.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
