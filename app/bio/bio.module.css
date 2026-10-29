@@ -143,3 +143,12 @@
   color: #666;
   font-size: 13px;
 }
+.instagram {
+  background: linear-gradient(45deg, #f9a825 0%, #e1306c 45%, #833ab4 100%);
+  box-shadow: 0 8px 20px rgba(225, 48, 108, 0.3);
+}
+
+.tiktok {
+  background: linear-gradient(135deg, #111111 0%, #2a2a2a 100%);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}

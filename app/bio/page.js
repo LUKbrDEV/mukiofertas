@@ -18,16 +18,30 @@ const LINKS = [
   {
     nome: "Entrar no grupo do WhatsApp",
     frase: "Receba as promoções antes de todo mundo",
-    url: "https://chat.whatsapp.com/EjPNA5tB2g2BUIlJ701br2", // 👈 troque
+    url: process.env.NEXT_PUBLIC_WHATSAPP_URL || "https://chat.whatsapp.com/EjPNA5tB2g2BUIlJ701br2",
     classe: "whatsapp",
     icone: "💬",
   },
   {
     nome: "Entrar no canal do Telegram",
     frase: "Promoções relâmpago e cupons em tempo real",
-    url: process.env.NEXT_PUBLIC_TELEGRAM_URL || "https://t.me/mukiofertas", // 👈 troque
+    url: process.env.NEXT_PUBLIC_TELEGRAM_URL || "https://t.me/mukiofertas",
     classe: "telegram",
     icone: "✈️",
+  },
+  {
+    nome: "Siga no Instagram",
+    frase: "Instagram Oficial da MukiOfertas!",
+    url: process.env.NEXT_PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/mukiofertas", // 👈 confira o usuário
+    classe: "instagram",
+    icone: "📸",
+  },
+  {
+    nome: "Siga no TikTok",
+    frase: "Vídeos das melhores ofertas do dia",
+    url: process.env.NEXT_PUBLIC_TIKTOK_URL || "https://www.tiktok.com/@mukiofertas", // 👈 confira o usuário
+    classe: "tiktok",
+    icone: "🎵",
   },
 ];
 
