@@ -22,6 +22,10 @@ const PADRAO = {
   max_renovacoes: 2,
   coleta_pausada: false,
   conferencia_pausada: false,
+  telegram_max_por_hora: 3,
+  telegram_desconto_minimo: 25,
+  telegram_exigir_desconto: true,
+  telegram_pausado: false,
 };
 
 function Numero({ rotulo, dica, valor, aoMudar, sufixo, min = 0, max, passo = 1 }) {
@@ -230,6 +234,47 @@ export default function Configuracoes() {
             dica="Enquanto ligado, os preços das ofertas do Telegram e manuais não são conferidos."
             ligado={c.conferencia_pausada}
             aoMudar={mudar("conferencia_pausada")}
+            perigo
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>📨 Ofertas do canal do Telegram</h2>
+        <p>
+          As postagens do canal chegam ao site na hora, pelo webhook. Estas regras decidem quais entram. Valem
+          a partir da próxima postagem (em até 1 minuto).
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Máximo de ofertas novas por hora"
+            sufixo="por hora"
+            max={500}
+            dica="0 = sem limite. Passando do limite, as postagens daquela hora são ignoradas."
+            valor={c.telegram_max_por_hora}
+            aoMudar={mudar("telegram_max_por_hora")}
+          />
+          <Numero
+            rotulo="Desconto mínimo"
+            sufixo="%"
+            max={99}
+            dica="Quando o desconto é conhecido e é menor que isso, a oferta não entra."
+            valor={c.telegram_desconto_minimo}
+            aoMudar={mudar("telegram_desconto_minimo")}
+          />
+        </div>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Só aceitar ofertas com preço antigo"
+            dica="Desligado: entram também as postagens sem o preço 'de' (aparecem sem a tag de desconto)."
+            ligado={c.telegram_exigir_desconto}
+            aoMudar={mudar("telegram_exigir_desconto")}
+          />
+          <Chave
+            rotulo="Pausar a importação do Telegram"
+            dica="Enquanto ligado, nenhuma postagem do canal entra no site."
+            ligado={c.telegram_pausado}
+            aoMudar={mudar("telegram_pausado")}
             perigo
           />
         </div>
