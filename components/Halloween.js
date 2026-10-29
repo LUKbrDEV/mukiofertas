@@ -9,7 +9,7 @@
 // Ano que vem é só trocar as duas datas abaixo.
 
 const INICIO = new Date("2026-10-24T00:00:00-03:00");
-const FIM = new Date("2026-11-02T00:00:00-03:00");
+const FIM = new Date("2026-10-28T00:00:00-03:00");
 
 export function ehHalloween() {
   const agora = new Date();
