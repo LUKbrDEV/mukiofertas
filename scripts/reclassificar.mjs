@@ -18,7 +18,7 @@ const SLUG_OUTROS = "outros"; // mesmo slug de "Outras ofertas" em data/ofertas.
 // Categorias que continuam existindo: se o classificador não reconhecer o título,
 // a oferta fica onde está. As que deixaram de existir (ex.: "tecnologia") vão para "outros".
 const VALIDAS = new Set([
-  "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
+  "ar-condicionado", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",
   "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete", "relogios", "livros",
   "smartphones", "hardware", "perifericos", "computadores", "notebooks", "monitores",

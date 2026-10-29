@@ -28,7 +28,9 @@ const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loj
 
 // Lojas que você quer (deixe vazio para usar todas). Use o nome como aparece na Lomadee.
 // Ex.: ["Shopee", "Magalu", "Casas Bahia", "Centauro"]
-const SO_ESTAS_MARCAS = ["Shopee", "Magalu", "Casas Bahia", "kabum", "Centauro", "UP Kids", "Amazon", "Americanas", "Submarino", "Carrefour", "Ponto Frio", "Extra", "Shoptime", "Netshoes", "C&A", "Renner", "Riachuelo", "Marisa"];
+const SO_ESTAS_MARCAS = [];
+// Lojas que entram SEMPRE, mesmo fora das 25 de maior comissão (são buscadas pelo nome)
+const MARCAS_PRIORITARIAS = ["Shopee"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
 const MARCAS_BLOQUEADAS = [];
 // ===================
@@ -106,10 +108,64 @@ async function buscarMarcas() {
     return escolhidas.slice(0, MAX_MARCAS);
   }
 
-  // As de maior comissão primeiro
-  return liberadas
+  // Lojas prioritárias: procuradas pelo nome, porque podem não estar nas primeiras páginas
+  const prioritarias = [];
+  for (const alvo of MARCAS_PRIORITARIAS) {
+    let achada = escolhidas.find((m) => nome(m) === alvo.toLowerCase());
+    if (!achada) {
+      const json = await chamar(`/affiliate/brands?search=${encodeURIComponent(alvo)}&limit=20`);
+      achada = lista(json).find((m) => nome(m) === alvo.toLowerCase()) ?? lista(json)[0];
+    }
+    if (achada && !bloqueadas.includes(nome(achada))) prioritarias.push(achada);
+    else console.warn(`[lomadee] Loja prioritária "${alvo}" não encontrada na Lomadee.`);
+  }
+
+  // As de maior comissão primeiro; as prioritárias sempre entram
+  const ids = new Set(prioritarias.map((m) => m.id));
+  const demais = liberadas
+    .filter((m) => !ids.has(m.id))
     .sort((a, b) => (b.commission?.value ?? 0) - (a.commission?.value ?? 0))
-    .slice(0, MAX_MARCAS);
+    .slice(0, Math.max(0, MAX_MARCAS - prioritarias.length));
+  return [...prioritarias, ...demais];
+}
+
+// ---------- Diagnóstico de uma loja (usado pelo testar-lomadee.mjs --marca "Nome") ----------
+export async function diagnosticarMarca(alvo) {
+  console.log(`\n=== Diagnóstico: ${alvo} ===`);
+  const json = await chamar(`/affiliate/brands?search=${encodeURIComponent(alvo)}&limit=20`);
+  const marcas = lista(json);
+  if (marcas.length === 0) {
+    console.log("Nenhuma loja com esse nome na Lomadee.");
+    return;
+  }
+  const marca = marcas.find((m) => String(m.name).toLowerCase() === alvo.toLowerCase()) ?? marcas[0];
+  console.log(`Loja: ${marca.name} (id ${marca.id}) | comissão: ${marca.commission?.value ?? "?"}%`);
+  for (const c of marca.channels ?? []) {
+    console.log(`  canal "${c.name}": ${c.shortUrls?.length ? "link liberado" : "sem link"}${c.message ? ` (${c.message})` : ""}`);
+  }
+
+  const prod = await chamar(
+    `/affiliate/products?organizationIds=${encodeURIComponent(marca.id)}&isAvailable=true&limit=100&page=1`
+  );
+  const itens = lista(prod);
+  console.log(`Produtos na API: ${prod?.count ?? itens.length} (lidos nesta página: ${itens.length})`);
+  if (itens.length === 0) {
+    console.log("A Lomadee não tem catálogo de produtos dessa loja na API (só campanhas/cupons).");
+    return;
+  }
+  const divisor = descobrirDivisor(itens);
+  let comDesconto = 0;
+  let acimaDoMinimo = 0;
+  for (const p of itens) {
+    const preco = melhorPreco(p, divisor);
+    if (preco) comDesconto++;
+    if (preco && preco.desconto >= DESCONTO_MINIMO && preco.atual >= PRECO_MINIMO) acimaDoMinimo++;
+  }
+  console.log(`Preços em ${divisor === 1 ? "reais" : "centavos"} | com preço "de" maior que o "por": ${comDesconto} | com ${DESCONTO_MINIMO}% ou mais: ${acimaDoMinimo}`);
+  for (const p of itens.slice(0, 3)) {
+    const pr = p.options?.[0]?.pricing?.[0];
+    console.log(`  exemplo: ${String(p.name).slice(0, 60)} | price=${pr?.price} listPrice=${pr?.listPrice}`);
+  }
 }
 
 // ---------- Produtos ----------

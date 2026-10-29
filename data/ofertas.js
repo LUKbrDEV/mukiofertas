@@ -29,6 +29,7 @@ export const categorias = [
   { slug: "cameras", nome: "Câmeras", emoji: "📷" },
 
   { slug: "casa", nome: "Casa e Cozinha", emoji: "🏠" },
+  { slug: "Ar-Condicionado", nome: "Ar Condicionado", emoji: "❄️", pai: "casa" },
   { slug: "cama-banho", nome: "Cama e Banho", emoji: "🛏️", pai: "casa" },
   { slug: "limpeza", nome: "Limpeza", emoji: "🧼", pai: "casa" },
   { slug: "casa-inteligente", nome: "Casa Inteligente", emoji: "💡", pai: "casa" },
