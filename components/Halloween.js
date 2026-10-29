@@ -61,8 +61,8 @@ const CSS = `
     pointer-events: none;
     user-select: none;
   }
-  .hw-cab--esq { width: 112px; padding-left: 26px; }
-  .hw-cab--dir { width: 104px; justify-content: flex-end; }
+  .hw-cab--esq { width: 128px; padding-left: 26px; }
+  .hw-cab--dir { width: 120px; justify-content: flex-end; }
   .hw-cab svg { display: block; }
 
   /* Aranha descendo do topo do cabeçalho e balançando */
@@ -100,10 +100,55 @@ const CSS = `
     .hw-cab { display: none; }
   }
 
+  /* ============ Versão do celular ============ */
+  /* No celular a busca desce para a segunda linha; os enfeites ficam
+     sentados em cima da busca, embaixo do nome do site, e a aranha desce
+     pela margem esquerda do cabeçalho. */
+  .hw-cel { display: none; }
+  @media (max-width: 768px) {
+    .cabecalho-fixo .topo { position: relative; }
+    .hw-cel {
+      display: block;
+      order: 4;
+      flex: 0 0 100%;
+      height: 0;
+      margin-top: -10px;
+      pointer-events: none;
+      user-select: none;
+    }
+    .hw-cel svg { display: block; }
+    .hw-cel-aboboras {
+      position: absolute;
+      left: 84px;
+      bottom: 47px;
+      z-index: 2;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+    }
+    .hw-cel-morcego {
+      position: absolute;
+      left: 150px;
+      bottom: 54px;
+      z-index: 2;
+      animation: hw-flutua 2.4s ease-in-out infinite alternate;
+    }
+    .hw-cel-morcego svg { animation: hw-asa 0.35s ease-in-out infinite alternate; transform-origin: 50% 40%; }
+    .hw-cel-aranha {
+      position: absolute;
+      left: 2px;
+      top: 0;
+      z-index: 2;
+      transform-origin: 50% 0;
+      animation: hw-balanca 3.2s ease-in-out infinite alternate;
+    }
+  }
+
   /* Quem pediu menos movimento no sistema vê tudo parado */
   @media (prefers-reduced-motion: reduce) {
     .hw-morcego { display: none; }
-    .hw-aranha, .hw-rosto, .hw-flutua, .hw-flutua svg { animation: none; }
+    .hw-aranha, .hw-rosto, .hw-flutua, .hw-flutua svg,
+    .hw-cel-morcego, .hw-cel-morcego svg, .hw-cel-aranha { animation: none; }
   }
 `;
 
@@ -145,9 +190,9 @@ function Abobora({ largura = 40, acesa = false }) {
   );
 }
 
-function Aranha() {
+function Aranha({ largura = 20 }) {
   return (
-    <svg width="20" height="52" viewBox="0 0 20 52" aria-hidden="true">
+    <svg width={largura} height={(largura * 52) / 20} viewBox="0 0 20 52" aria-hidden="true">
       <line x1="10" y1="0" x2="10" y2="38" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
       <g stroke="#0b1020" strokeWidth="1.4" fill="none" strokeLinecap="round">
         <path d="M7 42c-3-2-5-1-6 1M7 44c-3-1-5 0-6 3M7 46c-2 0-4 2-4 5M8 47c-1 1-2 3-1 5" />
@@ -165,6 +210,25 @@ function Aranha() {
 export function EnfeiteCabecalho({ lado = "esq" }) {
   if (!ehHalloween()) return null;
 
+  // Celular: fica logo depois da busca no Casca.js (no computador fica escondido)
+  if (lado === "cel") {
+    return (
+      <div className="hw-cel" aria-hidden="true">
+        {ESTILO}
+        <span className="hw-cel-aranha">
+          <Aranha largura={13} />
+        </span>
+        <span className="hw-cel-aboboras">
+          <Abobora largura={28} acesa />
+          <Abobora largura={20} />
+        </span>
+        <span className="hw-cel-morcego">
+          <Morcego largura={22} cor="#0b1020" />
+        </span>
+      </div>
+    );
+  }
+
   if (lado === "esq") {
     return (
       <div className="hw-cab hw-cab--esq" aria-hidden="true">
@@ -172,8 +236,8 @@ export function EnfeiteCabecalho({ lado = "esq" }) {
         <span className="hw-aranha">
           <Aranha />
         </span>
-        <Abobora largura={40} acesa />
-        <Abobora largura={28} />
+        <Abobora largura={46} acesa />
+        <Abobora largura={32} />
       </div>
     );
   }
@@ -185,9 +249,9 @@ export function EnfeiteCabecalho({ lado = "esq" }) {
         <Morcego largura={24} cor="#0b1020" />
       </span>
       <span className="hw-flutua">
-        <Morcego largura={32} cor="#0b1020" />
+        <Morcego largura={36} cor="#0b1020" />
       </span>
-      <Abobora largura={36} acesa />
+      <Abobora largura={44} acesa />
     </div>
   );
 }

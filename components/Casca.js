@@ -329,6 +329,9 @@ export default function Casca({ departamentos, telegram, children }) {
               </button>
             </form>
 
+            {/* Halloween no celular */}
+            <EnfeiteCabecalho lado="cel" />
+
             <EnfeiteCabecalho lado="dir" />
 
             <div className="topo-acoes">
