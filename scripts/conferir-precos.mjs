@@ -22,6 +22,8 @@ import {
   horaDeConferir,
   podeRenovar,
   camposDaRenovacao,
+  aplicarConfigDoBanco,
+  registrarExecucao,
 } from "../lib/prazos.mjs";
 
 // ===== AJUSTES =====
@@ -176,6 +178,14 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
   auth: { persistSession: false },
 });
 
+// Tolerância, intervalo entre conferências, renovação e pausa vêm do painel admin (aba Configurações)
+const config = await aplicarConfigDoBanco(supabase);
+if (config.conferencia_pausada) {
+  console.log("Conferência de preços pausada no painel admin (aba Configurações). Nada foi feito.");
+  if (!teste) await registrarExecucao(supabase, "conferir-precos", true, "Pausada no painel admin");
+  process.exit(0);
+}
+
 const agora = new Date();
 const agoraIso = agora.toISOString();
 const corte = new Date(agora.getTime() - DIAS_NO_SITE * 86400000).toISOString();
@@ -192,6 +202,7 @@ const { data, error } = await supabase
 
 if (error) {
   console.error("Erro ao buscar ofertas:", error.message);
+  if (!teste) await registrarExecucao(supabase, "conferir-precos", false, `Erro: ${error.message}`);
   process.exit(1);
 }
 
@@ -269,5 +280,14 @@ console.log(
 );
 if (Object.keys(falhasPorLoja).length) {
   console.log("Lojas em que não foi possível ler o preço:", falhasPorLoja);
+}
+if (!teste) {
+  await registrarExecucao(
+    supabase,
+    "conferir-precos",
+    true,
+    `${pendentes.length} conferidas: ${resumo.mantidas} mantidas, ${resumo.baixaram} baixaram, ` +
+      `${resumo.expiradas} expiradas, ${resumo.renovadas} renovadas, ${resumo.semPreco} sem preço`
+  );
 }
 console.log("");

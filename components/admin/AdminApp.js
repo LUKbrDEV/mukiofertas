@@ -8,16 +8,43 @@ import ListaAdmin from "./ListaAdmin";
 import FormOferta from "./FormOferta";
 import ListaSugestoes from "./ListaSugestoes";
 import AdminCupons from "./AdminCupons";
+import SaudeRobo from "./SaudeRobo";
+import Configuracoes from "./Configuracoes";
 import "./admin.css";
 
 const MENU = [
-  { id: "resumo", nome: "Resumo" },
-  { id: "ofertas", nome: "Ofertas" },
-  { id: "form", nome: "Nova oferta" },
-  { id: "comunidade", nome: "Comunidade" },
-  { id: "cupons", nome: "Cupons" },
-  { id: "vendas", nome: "Vendas" },
+  { id: "resumo", nome: "Resumo", icone: "📊" },
+  { id: "ofertas", nome: "Ofertas", icone: "🏷️" },
+  { id: "form", nome: "Nova oferta", icone: "➕" },
+  { id: "comunidade", nome: "Comunidade", icone: "👥" },
+  { id: "cupons", nome: "Cupons", icone: "🎟️" },
+  { id: "robo", nome: "Saúde do robô", icone: "🤖" },
+  { id: "config", nome: "Configurações", icone: "⚙️" },
+  { id: "vendas", nome: "Vendas", icone: "💰" },
 ];
+
+// Tela para quem entrou com uma conta que não é de administrador
+function SemAcesso({ email }) {
+  return (
+    <div className="adm-login">
+      <div className="adm-login-caixa">
+        <h1>
+          Muki<span>Ofertas</span>
+        </h1>
+        <p>
+          A conta <strong>{email}</strong> não tem acesso ao painel admin.
+        </p>
+        <p>
+          Se ela deveria ter, coloque este e-mail na lista do passo 1 do arquivo <strong>admin-painel.sql</strong> e
+          rode o arquivo de novo no Supabase.
+        </p>
+        <button className="adm-btn adm-btn--primario" onClick={() => supabase.auth.signOut()}>
+          Sair
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -114,6 +141,8 @@ export default function AdminApp() {
   const [aba, setAba] = useState("resumo");
   const [editando, setEditando] = useState(null);
   const [sugestao, setSugestao] = useState(null); // sugestão da comunidade sendo revisada
+  const [admin, setAdmin] = useState(undefined); // undefined = verificando; null = não deu para verificar
+  const [pendentes, setPendentes] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
@@ -123,8 +152,28 @@ export default function AdminApp() {
     return () => ouvinte.subscription.unsubscribe();
   }, []);
 
+  // Confere se a conta é de administrador (tabela admins, criada pelo admin-painel.sql).
+  // Se a função ainda não existir no banco, o painel abre como antes.
+  useEffect(() => {
+    if (!sessao) return;
+    setAdmin(undefined);
+    supabase.rpc("eh_admin").then(({ data, error }) => setAdmin(error ? null : Boolean(data)));
+  }, [sessao]);
+
+  // Quantas sugestões da comunidade aguardam revisão (aparece no menu)
+  useEffect(() => {
+    if (!sessao || admin === false) return;
+    supabase
+      .from("sugestoes")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pendente")
+      .then(({ count }) => setPendentes(count ?? 0));
+  }, [sessao, admin, aba]);
+
   if (sessao === undefined) return <p className="adm-centro">Carregando...</p>;
   if (!sessao) return <Login />;
+  if (admin === undefined) return <p className="adm-centro">Verificando acesso...</p>;
+  if (admin === false) return <SemAcesso email={sessao.user?.email} />;
 
   function irPara(id) {
     setEditando(null);
@@ -165,16 +214,26 @@ export default function AdminApp() {
               className={aba === item.id ? "adm-menu adm-menu--ativo" : "adm-menu"}
               onClick={() => irPara(item.id)}
             >
-              {item.id === "form" && editando
-                ? "Editar oferta"
-                : item.id === "form" && sugestao
-                  ? "Publicar sugestão"
-                  : item.nome}
+              <span className="adm-menu-icone" aria-hidden="true">
+                {item.icone}
+              </span>
+              <span className="adm-menu-nome">
+                {item.id === "form" && editando
+                  ? "Editar oferta"
+                  : item.id === "form" && sugestao
+                    ? "Publicar sugestão"
+                    : item.nome}
+              </span>
+              {item.id === "comunidade" && pendentes > 0 && <span className="adm-menu-badge">{pendentes}</span>}
             </button>
           ))}
         </nav>
 
         <div className="adm-rodape">
+          {sessao.user?.email && <small className="adm-usuario">{sessao.user.email}</small>}
+          {admin === null && (
+            <small className="adm-usuario adm-usuario--alerta">Rode o admin-painel.sql para ativar o controle de acesso</small>
+          )}
           <Link href="/" target="_blank">
             Ver o site
           </Link>
@@ -183,7 +242,7 @@ export default function AdminApp() {
       </aside>
 
       <main className="adm-conteudo">
-        {aba === "resumo" && <Resumo />}
+        {aba === "resumo" && <Resumo irPara={irPara} />}
         {aba === "ofertas" && <ListaAdmin aoEditar={editar} />}
         {aba === "form" && (
           <FormOferta
@@ -195,6 +254,8 @@ export default function AdminApp() {
         )}
         {aba === "comunidade" && <ListaSugestoes aoRevisar={revisar} />}
         {aba === "cupons" && <AdminCupons />}
+        {aba === "robo" && <SaudeRobo aoEditar={editar} />}
+        {aba === "config" && <Configuracoes />}
         {aba === "vendas" && <Vendas />}
       </main>
     </div>

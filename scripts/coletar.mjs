@@ -11,8 +11,11 @@ import {
   TOLERANCIA_PERCENTUAL,
   precoSubiu,
   horaDeConferir,
+  DESCONTO_MINIMO_PUBLICAR,
   podeRenovar,
   camposDaRenovacao,
+  aplicarConfigDoBanco,
+  registrarExecucao,
 } from "../lib/prazos.mjs";
 
 const supabase = createClient(
@@ -20,19 +23,28 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const DESCONTO_MINIMO = 20; // só publica acima de 20% de desconto
-const DESCONTO_RELAMPAGO = 50; // acima disso, vira "relâmpago" (mesma regra do banco)
+// Desconto mínimo para publicar, tolerância de preço, renovação e pausa da coleta
+// vêm do painel admin (aba Configurações). Relâmpago e Destaque são marcados pelo
+// próprio banco, com as regras da mesma aba.
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Lista das fontes ativas. Novas fontes entram aqui.
 const fontes = [buscarLomadee];
 
 async function main() {
+  const config = await aplicarConfigDoBanco(supabase);
+  if (config.coleta_pausada) {
+    console.log("Coleta pausada no painel admin (aba Configurações). Nada foi feito.");
+    await registrarExecucao(supabase, "coletar", true, "Pausada no painel admin");
+    return;
+  }
+
   const agora = new Date().toISOString();
   const limiteSite = new Date(Date.now() - DIAS_NO_SITE * DIA_MS);
   let publicadas = 0;
   let expiradasPorPreco = 0;
   let renovadas = 0;
+  const falhas = [];
 
   // Ofertas dos últimos dias, para reconhecer duplicadas (de qualquer fonte)
   const { data: recentes } = await supabase
@@ -49,6 +61,7 @@ async function main() {
       itens = await buscar();
     } catch (erro) {
       console.error("Falha em uma fonte:", erro.message);
+      falhas.push(erro.message);
       continue; // uma fonte quebrada não derruba as outras
     }
 
@@ -57,7 +70,7 @@ async function main() {
       if (!item.preco_antigo || item.preco_antigo <= item.preco_atual) continue;
 
       const desconto = ((item.preco_antigo - item.preco_atual) / item.preco_antigo) * 100;
-      if (desconto < DESCONTO_MINIMO) continue;
+      if (desconto < DESCONTO_MINIMO_PUBLICAR) continue;
 
       const categoria = item.categoria ?? classificar(item.titulo, item.loja);
       if (!categoria) continue; // sem categoria reconhecida: não publica
@@ -65,7 +78,6 @@ async function main() {
       linhas.push({
         ...item,
         categoria,
-        relampago: desconto > DESCONTO_RELAMPAGO,
         ativa: true,
         expires_at: item.expires_at ?? null, // se a oferta voltou, deixa de estar expirada
         origem: "automatica",
@@ -199,6 +211,12 @@ async function main() {
   // Apaga as ofertas que já estão expiradas há mais de DIAS_EXPIRADA_VISIVEL dias
   const limpeza = await limparExpiradas(supabase);
 
+  const resumo =
+    `${publicadas} publicadas/atualizadas, ${expiradasPorPreco} expiradas por preço, ` +
+    `${renovadas} renovadas, ${limpeza.total} apagadas` +
+    (falhas.length ? ` | falha: ${falhas.join("; ")}` : "");
+  await registrarExecucao(supabase, "coletar", falhas.length === 0, resumo);
+
   console.log(
     `Coleta concluída: ${publicadas} ofertas publicadas/atualizadas, ` +
       `${expiradasPorPreco} expiradas porque o preço subiu mais de ${TOLERANCIA_PERCENTUAL}% ` +
@@ -208,4 +226,8 @@ async function main() {
   );
 }
 
-main();
+main().catch(async (erro) => {
+  console.error("Erro na coleta:", erro);
+  await registrarExecucao(supabase, "coletar", false, `Erro: ${erro.message}`);
+  process.exit(1);
+});
