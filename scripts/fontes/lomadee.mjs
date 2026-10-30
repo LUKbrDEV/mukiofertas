@@ -34,7 +34,7 @@ const SO_ESTAS_MARCAS = [];
 // Lojas que entram SEMPRE, mesmo fora das 25 de maior comissão (são buscadas pelo nome)
 const MARCAS_PRIORITARIAS = ["Shopee"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
-const MARCAS_BLOQUEADAS = [];
+const MARCAS_BLOQUEADAS = ["UP Kids", "Sofa na caixa", "Amakha Paris"];
 // ===================
 
 const API = "https://api.lomadee.com.br";
