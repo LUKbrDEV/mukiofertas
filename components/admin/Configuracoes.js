@@ -24,6 +24,15 @@ const PADRAO = {
   coleta_pausada: false,
   conferencia_pausada: false,
   telegram_max_por_hora: 20,
+  aliexpress_ativo: true,
+  aliexpress_preco_minimo: 50,
+  aliexpress_avaliacao_minima: 90,
+  aliexpress_vendas_minimas: 50,
+  aliexpress_por_busca: 20,
+  aliexpress_max_por_execucao: 12,
+  aliexpress_buscas_tecnologia: 3,
+  aliexpress_buscas_outras: 2,
+  aliexpress_max_por_busca: 3,
   telegram_desconto_minimo: 25,
   telegram_exigir_desconto: true,
   telegram_pausado: false,
@@ -285,6 +294,82 @@ export default function Configuracoes() {
             ligado={c.telegram_pausado}
             aoMudar={mudar("telegram_pausado")}
             perigo
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🛒 AliExpress</h2>
+        <p>O robô do AliExpress roda junto com a coleta, a cada 30 minutos.</p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Coletar ofertas do AliExpress"
+            dica="Desligado: o robô não traz ofertas novas do AliExpress (as que já estão no site continuam)."
+            ligado={c.aliexpress_ativo}
+            aoMudar={mudar("aliexpress_ativo")}
+          />
+        </div>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Só ofertas acima de"
+            sufixo="R$"
+            passo={5}
+            valor={c.aliexpress_preco_minimo}
+            aoMudar={mudar("aliexpress_preco_minimo")}
+          />
+          <Numero
+            rotulo="Máximo de ofertas novas por execução"
+            sufixo="ofertas"
+            min={1}
+            max={50}
+            valor={c.aliexpress_max_por_execucao}
+            aoMudar={mudar("aliexpress_max_por_execucao")}
+          />
+          <Numero
+            rotulo="Buscas de tecnologia por execução"
+            sufixo="buscas"
+            max={15}
+            dica="TV, monitor, notebook, celular, hardware."
+            valor={c.aliexpress_buscas_tecnologia}
+            aoMudar={mudar("aliexpress_buscas_tecnologia")}
+          />
+          <Numero
+            rotulo="Buscas de outras categorias por execução"
+            sufixo="buscas"
+            max={15}
+            valor={c.aliexpress_buscas_outras}
+            aoMudar={mudar("aliexpress_buscas_outras")}
+          />
+          <Numero
+            rotulo="Produtos pedidos à API em cada busca"
+            sufixo="produtos"
+            min={5}
+            max={50}
+            dica="Quanto menor, mais rápido e menos chamadas (máximo 50)."
+            valor={c.aliexpress_por_busca}
+            aoMudar={mudar("aliexpress_por_busca")}
+          />
+          <Numero
+            rotulo="Máximo de ofertas de cada busca"
+            sufixo="ofertas"
+            min={1}
+            max={20}
+            valor={c.aliexpress_max_por_busca}
+            aoMudar={mudar("aliexpress_max_por_busca")}
+          />
+          <Numero
+            rotulo="Avaliação positiva mínima"
+            sufixo="%"
+            max={100}
+            valor={c.aliexpress_avaliacao_minima}
+            aoMudar={mudar("aliexpress_avaliacao_minima")}
+          />
+          <Numero
+            rotulo="Vendas mínimas do produto"
+            sufixo="vendas"
+            passo={10}
+            valor={c.aliexpress_vendas_minimas}
+            aoMudar={mudar("aliexpress_vendas_minimas")}
           />
         </div>
       </section>

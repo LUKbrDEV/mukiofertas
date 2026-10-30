@@ -18,16 +18,31 @@
 import { createHmac } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
-import { descontoMinimoDa } from "../../lib/prazos.mjs";
+import { descontoMinimoDa, CONFIG_ROBO } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
-const DESCONTO_MINIMO = 20; // % de desconto mínimo (o coletar também filtra pelo valor do painel)
-const PRECO_MINIMO = 15; // R$ — abaixo disso é ignorado (muita bugiganga)
-const AVALIACAO_MINIMA = 90; // % de avaliações positivas
-const VENDAS_MINIMAS = 50; // vendas recentes do produto
-const POR_BUSCA = 50; // produtos por palavra-chave (máximo da API: 50)
-const MAX_POR_EXECUCAO = 30; // ofertas do AliExpress por execução
+// Estes valores podem ser trocados no painel admin (Configurações → AliExpress).
+// Os números abaixo valem quando o painel não tiver o valor.
+const PADRAO = {
+  aliexpress_ativo: true, // false = não busca nada no AliExpress
+  aliexpress_preco_minimo: 50, // R$ — só ofertas acima desse preço
+  aliexpress_avaliacao_minima: 90, // % de avaliações positivas
+  aliexpress_vendas_minimas: 50, // vendas recentes do produto
+  aliexpress_por_busca: 20, // produtos pedidos à API em cada busca (máximo da API: 50)
+  aliexpress_max_por_execucao: 12, // ofertas do AliExpress por execução
+  aliexpress_buscas_tecnologia: 3, // buscas de tecnologia a cada execução
+  aliexpress_buscas_outras: 2, // buscas das outras categorias a cada execução
+  aliexpress_max_por_busca: 3, // no máximo X ofertas de cada busca
+};
+const DESCONTO_MINIMO = 20; // % (tecnologia usa o desconto mínimo de tecnologia do painel)
 const MAX_POR_LOJA = 2; // variedade: no máximo X ofertas do mesmo vendedor por execução
+
+// Valor do painel ou o padrão
+function ajuste(chave) {
+  const v = CONFIG_ROBO?.[chave];
+  if (typeof PADRAO[chave] === "boolean") return typeof v === "boolean" ? v : PADRAO[chave];
+  return v !== undefined && v !== null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : PADRAO[chave];
+}
 
 // Palavras-chave (um rodízio pega uma parte por vez, para não fazer muitas chamadas de uma vez)
 // Palavras-chave em duas listas. A cada execução o robô pega algumas de cada uma (rodízio),
@@ -47,9 +62,6 @@ const PALAVRAS_OUTRAS = [
   "relógio masculino", "mochila notebook", "óculos de sol", "kit maquiagem",
   "suporte celular carro", "luminária led", "fita led", "lanterna tática",
 ];
-const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 5; // buscas de tecnologia a cada execução
-const BUSCAS_OUTRAS_POR_EXECUCAO = 3; // buscas das outras categorias a cada execução
-const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
 
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
@@ -124,7 +136,7 @@ export async function chamarAliExpress(metodo, extras = {}, tentativa = 1) {
   return json;
 }
 
-export async function buscarPorPalavra(palavra, limite = POR_BUSCA) {
+export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_busca")) {
   const json = await chamarAliExpress("aliexpress.affiliate.product.query", {
     keywords: palavra,
     page_no: 1,
@@ -192,9 +204,9 @@ function passaNosFiltros(o) {
   if (o._desconto >= 95) return false;
   // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
   if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
-  if (o.preco_atual < PRECO_MINIMO) return false;
-  if (Number.isFinite(o._avaliacao) && o._avaliacao > 0 && o._avaliacao < AVALIACAO_MINIMA) return false;
-  if (o._vendas < VENDAS_MINIMAS) return false;
+  if (o.preco_atual <= ajuste("aliexpress_preco_minimo")) return false; // só acima do preço mínimo
+  if (Number.isFinite(o._avaliacao) && o._avaliacao > 0 && o._avaliacao < ajuste("aliexpress_avaliacao_minima")) return false;
+  if (o._vendas < ajuste("aliexpress_vendas_minimas")) return false;
   if (PALAVRAS_BLOQUEADAS.some((re) => re.test(o.titulo))) return false;
   return true;
 }
@@ -212,6 +224,7 @@ function chaveDoModelo(titulo) {
 }
 
 function rodizio(lista, quantas) {
+  if (!(quantas > 0)) return [];
   const blocos = Math.max(1, Math.ceil(lista.length / quantas));
   const vez = Math.floor(Date.now() / (30 * 60 * 1000)) % blocos; // muda a cada 30 min
   return lista.slice(vez * quantas, (vez + 1) * quantas);
@@ -219,8 +232,8 @@ function rodizio(lista, quantas) {
 
 function palavrasDaVez() {
   return [
-    ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
-    ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_TECNOLOGIA, ajuste("aliexpress_buscas_tecnologia")),
+    ...rodizio(PALAVRAS_OUTRAS, ajuste("aliexpress_buscas_outras")),
   ];
 }
 
@@ -243,6 +256,12 @@ async function buscarExistentes(ids) {
 
 // ---------- Função usada pelo coletar.mjs ----------
 export async function buscar({ palavras } = {}) {
+  if (!ajuste("aliexpress_ativo")) {
+    console.log("[aliexpress] Desligado no painel admin (Configurações → AliExpress): pulando.");
+    return [];
+  }
+  const MAX_POR_EXECUCAO = ajuste("aliexpress_max_por_execucao");
+  const MAX_POR_PALAVRA = ajuste("aliexpress_max_por_busca");
   if (!aliexpressConfigurado()) {
     console.log("[aliexpress] ALIEXPRESS_APP_KEY, ALIEXPRESS_APP_SECRET ou ALIEXPRESS_TRACKING_ID não configurados: pulando.");
     return [];
