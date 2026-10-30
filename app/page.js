@@ -4,8 +4,8 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
-import { buscarOfertas, buscarMaisProcuradas, buscarCategoriasPorLoja } from "../lib/ofertas";
-import { lojasDestaque } from "../data/lojas";
+import { buscarOfertas, buscarMaisProcuradas, buscarLojasComCategorias, slugDaLoja } from "../lib/ofertas";
+import { lojasDestaque, lojaDoNome, corDaLoja } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { ordenarOfertas } from "../lib/ordenar";
 
@@ -39,31 +39,55 @@ function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofer
   );
 }
 
-// Monta a faixa de lojas: para cada loja, as categorias com ofertas no ar (da que tem mais para a que tem menos)
-function montarLojas(contagem) {
-  return lojasDestaque.map((l) => {
-    const daLoja = contagem[l.slug] ?? { total: 0, categorias: {} };
-    return {
-      nome: l.nome,
-      slug: l.slug,
-      logo: l.logo,
-      cor: l.cor,
-      artigo: l.artigo,
-      total: daLoja.total,
-      categorias: Object.entries(daLoja.categorias)
-        .map(([slug, total]) => {
-          const c = categorias.find((x) => x.slug === slug);
-          return c ? { slug, nome: c.nome, emoji: c.emoji, total } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.total - a.total),
-    };
-  });
+// Monta a faixa de lojas: primeiro as que têm logo (na ordem do data/lojas.js), depois todas as
+// outras lojas com ofertas no ar, da que tem mais ofertas para a que tem menos.
+function listaDeCategorias(contagem) {
+  return Object.entries(contagem)
+    .map(([slug, total]) => {
+      const c = categorias.find((x) => x.slug === slug);
+      return c ? { slug, nome: c.nome, emoji: c.emoji, total } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.total - a.total);
+}
+
+function montarLojas(doBanco) {
+  const somar = (alvo, l) => {
+    alvo.total += l.total;
+    for (const [slug, n] of Object.entries(l.categorias)) alvo.categorias[slug] = (alvo.categorias[slug] ?? 0) + n;
+  };
+
+  const comLogo = lojasDestaque.map((l) => ({ ...l, total: 0, categorias: {} }));
+  const outras = [];
+  for (const l of doBanco) {
+    const config = lojaDoNome(l.nome);
+    if (config) somar(comLogo.find((x) => x.slug === config.slug), l);
+    else
+      outras.push({
+        nome: l.nome,
+        slug: slugDaLoja(l.nome),
+        artigo: "da",
+        logo: null,
+        cor: corDaLoja(l.nome),
+        total: l.total,
+        categorias: { ...l.categorias },
+      });
+  }
+
+  return [...comLogo, ...outras.sort((a, b) => b.total - a.total)].map((l) => ({
+    nome: l.nome,
+    slug: l.slug,
+    logo: l.logo ?? null,
+    cor: l.cor,
+    artigo: l.artigo,
+    total: l.total,
+    categorias: listaDeCategorias(l.categorias),
+  }));
 }
 
 export default async function Home() {
   const [contagemLojas, relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
-    buscarCategoriasPorLoja(lojasDestaque),
+    buscarLojasComCategorias(),
     buscarOfertas({ relampago: true, limite: 12, limiteExpiradas: 0 }),
     buscarMaisProcuradas(24),
     // As que entraram por último no site, sem dar prioridade às que estão em destaque

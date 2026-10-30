@@ -28,11 +28,11 @@ const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loj
 
 // Lojas que você quer (deixe vazio para usar todas). Use o nome como aparece na Lomadee.
 // Ex.: ["Shopee", "Magalu", "Casas Bahia", "Centauro"]
-const SO_ESTAS_MARCAS = ["Magalu", "Shopee", "KaBuM!", "Amazon", "Mercado Livre", "upKIds", "Americanas", "Submarino", "Casas Bahia", "Ponto Frio", "Carrefour", "Extra", "Fast Shop"];
+const SO_ESTAS_MARCAS = ["Magalu", "Shopee", "KaBuM!", "Amazon", "Mercado Livre", "Americanas", "Submarino", "Casas Bahia", "Ponto Frio", "Carrefour", "Extra", "Fast Shop"];
 // Lojas que entram SEMPRE, mesmo fora das 25 de maior comissão (são buscadas pelo nome)
 const MARCAS_PRIORITARIAS = ["Shopee"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
-const MARCAS_BLOQUEADAS = ["Sofá na Caixa", "LITTLE DUCK", "Mundo Vem", "Amakha Paris", "Brinox"];
+const MARCAS_BLOQUEADAS = ["Sofá na Caixa", "UP Kids", "Amakha Paris", "LITTLE DUCK", "Mundo Vem", "Amakha Paris", "Brinox"];
 // ===================
 
 const API = "https://api.lomadee.com.br";

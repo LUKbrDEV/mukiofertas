@@ -8,72 +8,175 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const CSS = `
-  .fl { margin: 4px 0 26px; }
+  .fl { margin: 4px 0 28px; }
   .fl-titulo {
-    margin: 0 0 10px;
+    margin: 0 0 12px;
     font-family: var(--fonte-titulo), system-ui, sans-serif;
     font-size: 1.15rem;
     font-weight: 800;
     color: #0f172a;
   }
-  .fl-linha {
-    display: grid;
-    grid-template-columns: repeat(var(--fl-qtd), minmax(0, 1fr));
-    gap: 12px;
-  }
+  /* os cartões se esticam para ocupar a largura toda da tela */
+  .fl-linha { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 18px; }
+
+  /* Cartão quadrado: logo na cor da loja em cima, quantidade embaixo */
+  .fl-loja, .fl-em-breve { box-sizing: border-box; }
   .fl-loja {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 120px;
+    padding: 7px;
+    border: 1px solid #e8edf3;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    text-align: center;
+    /* sombra suave na cor da loja */
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.06),
+      0 14px 26px -14px var(--fl-sombra);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .fl-loja:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.06),
+      0 22px 34px -16px var(--fl-sombra);
+  }
+  .fl-loja:focus-visible { outline: 3px solid #0a4bb8; outline-offset: 3px; }
+  .fl-loja[aria-expanded="true"] { border-color: #ff7a1a; box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.25), 0 22px 34px -16px var(--fl-sombra); }
+
+  .fl-logo {
+    position: relative;
+    flex: 1;
     display: grid;
     place-items: center;
-    height: 56px;
-    padding: 6px 14px;
-    border: 0;
+    overflow: hidden;
+    padding: 0 10px;
     border-radius: 14px;
     background: var(--fl-cor);
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .fl-loja:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16); }
-  .fl-loja:focus-visible { outline: 3px solid #0a4bb8; outline-offset: 3px; }
-  .fl-loja[aria-expanded="true"] { box-shadow: 0 0 0 3px #fff, 0 0 0 6px #ff7a1a; }
-  .fl-loja[aria-expanded="true"]::after {
+  /* brilho discreto no canto, para dar profundidade */
+  .fl-logo::before {
     content: "";
     position: absolute;
-    left: 50%;
-    bottom: -15px;
-    width: 14px;
-    height: 14px;
-    background: #fff;
-    border-left: 1px solid #e2e8f0;
-    border-top: 1px solid #e2e8f0;
-    transform: translateX(-50%) rotate(45deg);
-    z-index: 2;
+    top: -40%;
+    right: -30%;
+    width: 90%;
+    height: 120%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0));
+    pointer-events: none;
   }
-  .fl-loja img { display: block; max-width: 100%; max-height: 38px; width: auto; height: auto; object-fit: contain; }
-  .fl-qtd {
-    position: absolute;
-    top: -8px;
-    right: -6px;
-    min-width: 24px;
-    padding: 2px 7px;
-    font-size: 0.7rem;
+  .fl-logo img {
+    position: relative;
+    display: block;
+    max-width: 80%;
+    max-height: 30px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+  }
+
+  /* Loja sem logo: nome escrito */
+  .fl-nome {
+    position: relative;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: var(--fonte-titulo), system-ui, sans-serif;
+    font-size: 0.95rem;
     font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
     color: #fff;
-    background: #0f172a;
-    border: 2px solid #fff;
-    border-radius: 999px;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
-  .fl-qtd--breve { background: #64748b; }
+
+  /* Botão "Ver todas as lojas" */
+  .fl-mais {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 120px;
+    padding: 10px;
+    border: 1px solid #e8edf3;
+    border-radius: 20px;
+    background: #fff;
+    font: inherit;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 14px 26px -16px rgba(15, 23, 42, 0.35);
+    transition: transform 0.18s ease;
+  }
+  .fl-mais:hover { transform: translateY(-4px); }
+  .fl-mais b { font-size: 1.4rem; color: #ff6a00; }
+  .fl-mais span { font-size: 0.8rem; font-weight: 700; }
+
+  .fl-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #475569;
+  }
+  .fl-info b { font-size: 0.9rem; color: #0f172a; }
+  .fl-info--breve { color: #94a3b8; }
+  .fl-seta { font-size: 0.75rem; color: #94a3b8; transition: transform 0.18s ease; }
+  .fl-loja[aria-expanded="true"] .fl-seta { transform: rotate(180deg); color: #ff7a1a; }
+
+  /* "Mais lojas em breve" */
+  .fl-em-breve {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 120px;
+    padding: 10px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 20px;
+    background: repeating-linear-gradient(135deg, rgba(148, 163, 184, 0.06) 0 10px, transparent 10px 20px);
+    color: #64748b;
+    text-align: center;
+  }
+  .fl-em-breve span {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.35);
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #ff7a1a;
+  }
+  .fl-em-breve strong { font-size: 0.82rem; color: #0f172a; }
+  .fl-em-breve small { font-size: 0.7rem; line-height: 1.3; }
 
   .fl-painel {
     position: relative;
-    margin-top: 14px;
+    margin-top: 16px;
     padding: 16px 18px;
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px -14px rgba(15, 23, 42, 0.25);
     animation: fl-abre 0.18s ease;
   }
   @keyframes fl-abre { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
@@ -123,24 +226,32 @@ const CSS = `
   @media (max-width: 760px) {
     .fl-linha {
       display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
       overflow-x: auto;
-      padding: 8px 2px 10px;
-      margin: -8px -2px 0;
+      padding: 4px 2px 18px;
+      margin: -4px -2px -8px;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
     }
     .fl-linha::-webkit-scrollbar { display: none; }
-    .fl-loja { flex: 0 0 160px; height: 52px; padding: 6px 10px; scroll-snap-align: start; }
-    .fl-loja img { max-height: 32px; }
-    .fl-loja[aria-expanded="true"]::after { display: none; }
+    .fl-loja, .fl-em-breve, .fl-mais { flex: 0 0 116px; width: 116px; height: 104px; border-radius: 16px; scroll-snap-align: start; }
+    .fl-logo { border-radius: 12px; padding: 0 8px; }
+    .fl-logo img { max-height: 22px; }
+    .fl-info { height: 28px; font-size: 0.72rem; }
+    .fl-painel-topo small { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .fl-loja, .fl-painel { transition: none; animation: none; }
+    .fl-loja, .fl-painel, .fl-seta { transition: none; animation: none; }
   }
 `;
 
+// Quantas lojas aparecem antes do botão "Ver todas"
+const LIMITE = 9;
+
 export default function FaixaLojas({ lojas }) {
   const [aberta, setAberta] = useState(null);
+  const [todas, setTodas] = useState(false);
 
   // Fecha com Esc
   useEffect(() => {
@@ -152,6 +263,8 @@ export default function FaixaLojas({ lojas }) {
 
   if (!lojas?.length) return null;
   const loja = lojas.find((l) => l.slug === aberta);
+  const escondidas = todas ? 0 : Math.max(0, lojas.length - LIMITE);
+  const visiveis = escondidas ? lojas.slice(0, LIMITE) : lojas;
 
   return (
     <section className="fl" aria-labelledby="fl-titulo">
@@ -161,26 +274,48 @@ export default function FaixaLojas({ lojas }) {
       </h2>
 
       <div className="fl-linha" style={{ "--fl-qtd": lojas.length }}>
-        {lojas.map((l) => (
+        {visiveis.map((l) => (
           <button
             key={l.slug}
             type="button"
             className="fl-loja"
-            style={{ "--fl-cor": l.cor }}
+            style={{ "--fl-cor": l.cor, "--fl-sombra": `${l.cor}aa` }}
             aria-expanded={aberta === l.slug}
             aria-controls="fl-painel"
             aria-label={`${l.nome}: ver categorias com ofertas`}
             onClick={() => setAberta((a) => (a === l.slug ? null : l.slug))}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={l.logo} alt="" width="180" height="38" loading="eager" />
+            <span className="fl-logo">
+              {l.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={l.logo} alt="" loading="eager" />
+              ) : (
+                <span className="fl-nome">{l.nome}</span>
+              )}
+            </span>
             {l.total > 0 ? (
-              <span className="fl-qtd">{l.total > 99 ? "99+" : l.total}</span>
+              <span className="fl-info">
+                <b>{l.total}</b> {l.total === 1 ? "oferta" : "ofertas"}
+                <span className="fl-seta" aria-hidden="true">▼</span>
+              </span>
             ) : (
-              <span className="fl-qtd fl-qtd--breve">em breve</span>
+              <span className="fl-info fl-info--breve">em breve</span>
             )}
           </button>
         ))}
+
+        {escondidas > 0 ? (
+          <button type="button" className="fl-mais" onClick={() => setTodas(true)}>
+            <b>+{escondidas}</b>
+            <span>Ver todas as lojas</span>
+          </button>
+        ) : (
+          <div className="fl-em-breve" aria-label="Mais lojas em breve">
+            <span aria-hidden="true">+</span>
+            <strong>Mais lojas em breve</strong>
+            <small>Novas parceiras chegando</small>
+          </div>
+        )}
       </div>
 
       {loja && (

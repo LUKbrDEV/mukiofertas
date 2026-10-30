@@ -4,12 +4,11 @@ import { notFound } from "next/navigation";
 import ListaOfertas from "../../../components/ListaOfertas";
 import OrdenarOfertas from "../../../components/OrdenarOfertas";
 import { categorias } from "../../../data/ofertas";
-import { buscarOfertas } from "../../../lib/ofertas";
+import { buscarOfertas, encontrarLoja } from "../../../lib/ofertas";
 import { ordenarOfertas } from "../../../lib/ordenar";
 import { slugsDaCategoria, paiDe } from "../../../lib/departamentos";
 import { seoDaCategoria } from "../../../lib/seo-categorias";
 import { SITE } from "../../../lib/site";
-import { lojaPorSlug } from "../../../data/lojas";
 
 export const revalidate = 60;
 
@@ -41,7 +40,7 @@ export async function generateMetadata({ params, searchParams }) {
   if (!categoria) return { title: "Categoria não encontrada | MukiOfertas", robots: { index: false } };
 
   const seo = seoDaCategoria(categoria);
-  const loja = lojaPorSlug(slugLoja);
+  const loja = await encontrarLoja(slugLoja);
   return {
     title: loja ? `${categoria.nome} ${loja.artigo} ${loja.nome} em promoção | MukiOfertas` : seo.titulo,
     // a versão filtrada por loja não entra no Google (a página principal da categoria é a que vale)
@@ -63,7 +62,7 @@ export async function generateMetadata({ params, searchParams }) {
 export default async function PaginaCategoria({ params, searchParams }) {
   const { slug } = await params;
   const { ordem, loja: slugLoja } = await searchParams;
-  const loja = lojaPorSlug(slugLoja); // ?loja=shopee mostra só as ofertas dessa loja
+  const loja = await encontrarLoja(slugLoja); // ?loja=shopee mostra só as ofertas dessa loja
   const categoria = categorias.find((c) => c.slug === slug);
   if (!categoria) notFound();
 
@@ -140,7 +139,7 @@ export default async function PaginaCategoria({ params, searchParams }) {
           {loja && (
             <p className="cat-filtro-loja">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={loja.logo} alt={loja.nome} style={{ background: loja.cor }} />
+              {loja.logo && <img src={loja.logo} alt={loja.nome} style={{ background: loja.cor }} />}
               Só ofertas {loja.artigo} {loja.nome}
               <Link href={`/categoria/${slug}${ordem ? `?ordem=${ordem}` : ""}`}>ver de todas as lojas</Link>
             </p>
