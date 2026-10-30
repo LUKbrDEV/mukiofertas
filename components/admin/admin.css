@@ -570,3 +570,6 @@ a.adm-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .adm-exec-status--vermelho { color: #b42318; background: #fde2e2; }
 .adm-exec-status--cinza { color: #fff; background: var(--tinta-suave); }
 .adm-execucoes .adm-btn { flex: none; padding: 4px 10px; font-size: 0.8rem; }
+
+/* Seletores menores (registro do Telegram) */
+.adm-input--curto { width: auto; padding: 6px 10px; font-size: 0.85rem; }

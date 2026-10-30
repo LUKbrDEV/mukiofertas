@@ -12,6 +12,7 @@ import { calcularDesconto, formatarPreco, estaExpirada } from "../../lib/ofertas
 import { HORAS_ENTRE_CONFERENCIAS } from "../../lib/prazos.mjs";
 import { buscarTudo, ha, dataHora, tituloBase } from "./util";
 import AcionarRobo from "./AcionarRobo";
+import ImportacaoTelegram from "./ImportacaoTelegram";
 
 // Link da página de execuções do GitHub Actions (opcional, no .env.local e na Vercel):
 // NEXT_PUBLIC_GITHUB_ACTIONS_URL=https://github.com/SEU_USUARIO/SEU_REPOSITORIO/actions
@@ -228,6 +229,8 @@ export default function SaudeRobo({ aoEditar }) {
       </p>
 
       <AcionarRobo aoTerminar={carregar} />
+
+      <ImportacaoTelegram />
 
       <h2 className="adm-secao">Ofertas que merecem atenção (só as que estão no ar)</h2>
 
