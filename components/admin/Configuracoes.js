@@ -15,7 +15,7 @@ const PADRAO = {
   relampago_desconto_minimo: 40,
   destaque_desconto_minimo: 60,
   desconto_minimo_publicar: 20,
-  desconto_minimo_tecnologia: 10,
+  desconto_minimo_tecnologia: 15,
   tolerancia_percentual: 10,
   horas_entre_conferencias: 5,
   renovar_se_preco_mantido: true,
@@ -225,7 +225,7 @@ export default function Configuracoes() {
             rotulo="Para tecnologia, desconto de pelo menos"
             sufixo="%"
             max={99}
-            dica="TVs, monitores, notebooks, celulares e hardware. Eletrônico caro quase nunca chega a 20%."
+            dica="TVs, monitores, notebooks, tablets, celulares e hardware. Vale para o robô e para o Telegram."
             valor={c.desconto_minimo_tecnologia}
             aoMudar={mudar("desconto_minimo_tecnologia")}
           />

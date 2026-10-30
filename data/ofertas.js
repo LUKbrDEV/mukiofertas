@@ -4,6 +4,7 @@
 
 export const categorias = [
   { slug: "smartphones", nome: "Smartphones", emoji: "📱" },
+  { slug: "celulares", nome: "Smartphones", emoji: "📱", pai: "smartphones" },
   { slug: "acessorios-celular", nome: "Acessórios", emoji: "🔌", pai: "smartphones" },
 
   { slug: "hardware", nome: "Hardware", emoji: "🧩" },
@@ -17,6 +18,8 @@ export const categorias = [
   { slug: "perifericos", nome: "Periféricos", emoji: "🖱️" },
   { slug: "computadores", nome: "Computadores", emoji: "🖥️" },
   { slug: "notebooks", nome: "Notebooks e Tablets", emoji: "💻" },
+  { slug: "notebook", nome: "Notebooks", emoji: "💻", pai: "notebooks" },
+  { slug: "tablets", nome: "Tablets", emoji: "📲", pai: "notebooks" },
   { slug: "acessorios-notebook", nome: "Acessórios para Notebook", emoji: "🧳", pai: "notebooks" },
   { slug: "monitores", nome: "Monitores", emoji: "🖥️" },
   { slug: "monitor", nome: "Monitores", emoji: "🖥️", pai: "monitores" },
