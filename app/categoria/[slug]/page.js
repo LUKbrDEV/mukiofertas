@@ -12,6 +12,8 @@ import { SITE } from "../../../lib/site";
 
 export const revalidate = 60;
 
+const POR_PAGINA = 96; // ofertas por página
+
 const CSS = `
   .cat-trilha { margin: 0 0 6px; font-size: 0.9rem; font-weight: 600; color: var(--tinta-suave); }
   .cat-trilha a:hover { color: var(--tinta); text-decoration: underline; }
@@ -30,6 +32,22 @@ const CSS = `
   }
   .cat-filtro-loja img { display: block; height: 26px; width: auto; padding: 3px 10px; border-radius: 999px; }
   .cat-filtro-loja a { color: #0a4bb8; text-decoration: underline; }
+  .cat-paginas { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 28px 0 8px; }
+  .cat-paginas a, .cat-paginas span {
+    display: inline-grid;
+    place-items: center;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 14px;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+  }
+  .cat-paginas a:hover { border-color: #ff7a1a; color: #ff6a00; }
+  .cat-paginas [aria-current="page"] { color: #fff; background: #ff6a00; border-color: #ff6a00; }
   .cat-intro { max-width: 860px; margin: 6px 0 0; font-size: 0.95rem; line-height: 1.55; color: var(--tinta-suave); }
 `;
 
@@ -61,7 +79,7 @@ export async function generateMetadata({ params, searchParams }) {
 
 export default async function PaginaCategoria({ params, searchParams }) {
   const { slug } = await params;
-  const { ordem, loja: slugLoja } = await searchParams;
+  const { ordem, loja: slugLoja, pagina: paginaPedida } = await searchParams;
   const loja = await encontrarLoja(slugLoja); // ?loja=shopee mostra só as ofertas dessa loja
   const categoria = categorias.find((c) => c.slug === slug);
   if (!categoria) notFound();
@@ -70,15 +88,36 @@ export default async function PaginaCategoria({ params, searchParams }) {
   const seo = seoDaCategoria(categoria);
 
   // Departamento com subcategorias mostra tudo junto (ex.: Hardware = hardware + SSD + placa-mãe...)
-  const ofertas = ordenarOfertas(
+  // Busca TODAS as ofertas no ar da categoria (antes eram só as 120 primeiras, por isso o
+  // número da página não batia com o do menu). A ordem vale para todas e depois divide em páginas.
+  const todas = ordenarOfertas(
     await buscarOfertas({
       categoria: slugsDaCategoria(categorias, slug),
       loja: loja ? loja.nomesNoBanco : undefined,
-      limite: 120,
+      limite: 1000,
+      limiteExpiradas: 25,
     }),
     ordem
   );
-  const noAr = ofertas.filter((o) => !o.expirada);
+  const noAr = todas.filter((o) => !o.expirada);
+  const expiradas = todas.filter((o) => o.expirada);
+  const totalPaginas = Math.max(1, Math.ceil(noAr.length / POR_PAGINA));
+  const pagina = Math.min(totalPaginas, Math.max(1, parseInt(paginaPedida, 10) || 1));
+  // as expiradas aparecem só no fim da última página
+  const ofertas = [
+    ...noAr.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA),
+    ...(pagina === totalPaginas ? expiradas : []),
+  ];
+
+  // Endereço de outra página, mantendo a ordem e o filtro de loja
+  const linkPagina = (n) => {
+    const p = new URLSearchParams();
+    if (ordem) p.set("ordem", ordem);
+    if (loja) p.set("loja", loja.slug);
+    if (n > 1) p.set("pagina", String(n));
+    const q = p.toString();
+    return `/categoria/${slug}${q ? `?${q}` : ""}`;
+  };
 
   // Dados estruturados: caminho da página e lista das ofertas, para o Google entender a página
   const base = SITE.url.replace(/\/+$/, "");
@@ -146,7 +185,7 @@ export default async function PaginaCategoria({ params, searchParams }) {
           )}
           <p className="cat-intro">{seo.intro}</p>
         </div>
-        {ofertas.length > 1 && (
+        {todas.length > 1 && (
           <Suspense fallback={null}>
             <OrdenarOfertas />
           </Suspense>
@@ -157,6 +196,25 @@ export default async function PaginaCategoria({ params, searchParams }) {
         ofertas={ofertas}
         vazio="Nenhuma oferta nesta categoria agora. Novas ofertas aparecem assim que forem encontradas."
       />
+
+      {totalPaginas > 1 && (
+        <nav className="cat-paginas" aria-label="Páginas">
+          {pagina > 1 && <Link href={linkPagina(pagina - 1)}>← Anterior</Link>}
+          {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+            .filter((n) => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 2)
+            .map((n, i, lista) => (
+              <span key={n} style={{ display: "contents" }}>
+                {i > 0 && n - lista[i - 1] > 1 && <span aria-hidden="true">…</span>}
+                {n === pagina ? (
+                  <span aria-current="page">{n}</span>
+                ) : (
+                  <Link href={linkPagina(n)}>{n}</Link>
+                )}
+              </span>
+            ))}
+          {pagina < totalPaginas && <Link href={linkPagina(pagina + 1)}>Próxima →</Link>}
+        </nav>
+      )}
     </>
   );
 }

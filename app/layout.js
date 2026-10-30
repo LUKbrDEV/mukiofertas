@@ -13,7 +13,7 @@ import { buscarTotaisPorCategoria } from "../lib/ofertas";
 import { montarDepartamentos } from "../lib/departamentos";
 import { SITE } from "../lib/site";
 
-export const revalidate = 300; // o menu Departamentos atualiza os totais a cada 5 minutos
+export const revalidate = 60; // o menu Departamentos atualiza os totais a cada minuto (igual às páginas)
 
 const fonteTitulo = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -89,7 +89,7 @@ export default async function RootLayout({ children }) {
       url: `${base}/`,
       logo: `${base}/logo-mukiofertas.png`,
       description:
-        "Site brasileiro de ofertas, cupons e promoções das maiores lojas online.",
+        "Site brasileiro de ofertas, cupons e promoções das maiores lojas online. Não é uma loja: as compras são feitas no site de cada loja.",
       ...(PERFIS_OFICIAIS.length > 0 ? { sameAs: PERFIS_OFICIAIS } : {}),
     },
   ];

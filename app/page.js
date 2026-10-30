@@ -14,8 +14,9 @@ export const revalidate = 60;
 // Faixas por categoria na página inicial (a ordem aqui é a ordem na tela).
 // Para acrescentar outra, é só copiar uma linha e trocar o slug, o título e o emoji.
 const FAIXAS_DE_CATEGORIA = [
-  { slug: "monitores", titulo: "Melhores ofertas em Monitores", emoji: "🖥️" },
-  { slug: "tv", titulo: "Melhores ofertas em TVs", emoji: "📺" },
+  // "monitor" e "televisores" = só os aparelhos (sem os acessórios)
+  { slug: "monitor", titulo: "Melhores ofertas em Monitores", emoji: "🖥️" },
+  { slug: "televisores", titulo: "Melhores ofertas em TVs", emoji: "📺" },
 ];
 
 // Seção com título, botão "Ver todas" e uma linha de cards com setas

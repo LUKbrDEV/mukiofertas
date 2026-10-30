@@ -4,6 +4,7 @@
 
 export const categorias = [
   { slug: "smartphones", nome: "Smartphones", emoji: "📱" },
+  { slug: "acessorios-celular", nome: "Acessórios", emoji: "🔌", pai: "smartphones" },
 
   { slug: "hardware", nome: "Hardware", emoji: "🧩" },
   { slug: "processadores", nome: "Processadores", emoji: "⚙️", pai: "hardware" },
@@ -16,23 +17,32 @@ export const categorias = [
   { slug: "perifericos", nome: "Periféricos", emoji: "🖱️" },
   { slug: "computadores", nome: "Computadores", emoji: "🖥️" },
   { slug: "notebooks", nome: "Notebooks e Tablets", emoji: "💻" },
+  { slug: "acessorios-notebook", nome: "Acessórios para Notebook", emoji: "🧳", pai: "notebooks" },
   { slug: "monitores", nome: "Monitores", emoji: "🖥️" },
+  { slug: "monitor", nome: "Monitores", emoji: "🖥️", pai: "monitores" },
+  { slug: "acessorios-monitor", nome: "Acessórios para Monitor", emoji: "🦾", pai: "monitores" },
   { slug: "tv", nome: "TVs", emoji: "📺" },
+  { slug: "televisores", nome: "TVs", emoji: "📺", pai: "tv" },
+  { slug: "acessorios-tv", nome: "Acessórios para TV", emoji: "📡", pai: "tv" },
   { slug: "games", nome: "Video Games", emoji: "🎮" },
+  { slug: "jogos", nome: "Jogos", emoji: "💿", pai: "games" },
+  { slug: "controles", nome: "Controles", emoji: "🕹️", pai: "games" },
+  { slug: "consoles", nome: "Consoles", emoji: "🎮", pai: "games" },
   { slug: "cadeiras-mesas", nome: "Cadeiras e Mesas", emoji: "🪑" },
 
   { slug: "eletronicos", nome: "Eletrônicos", emoji: "🎧" },
+  { slug: "fones", nome: "Fones de Ouvido", emoji: "🎧", pai: "eletronicos" },
+  { slug: "redes", nome: "Roteadores e Wi-Fi", emoji: "📶", pai: "eletronicos" },
   { slug: "caixas-de-som", nome: "Caixas de Som", emoji: "🔊", pai: "eletronicos" },
-  { slug: "redes", nome: "Redes e Wi-Fi", emoji: "📡", pai: "eletronicos" },
   { slug: "relogios", nome: "Smartwatch e Relógios", emoji: "⌚", pai: "eletronicos" },
 
   { slug: "cameras", nome: "Câmeras", emoji: "📷" },
 
   { slug: "casa", nome: "Casa e Cozinha", emoji: "🏠" },
-  { slug: "Ar-Condicionado", nome: "Ar Condicionado", emoji: "❄️", pai: "casa" },
   { slug: "cama-banho", nome: "Cama e Banho", emoji: "🛏️", pai: "casa" },
   { slug: "limpeza", nome: "Limpeza", emoji: "🧼", pai: "casa" },
   { slug: "casa-inteligente", nome: "Casa Inteligente", emoji: "💡", pai: "casa" },
+  { slug: "ar-condicionado", nome: "Ar-condicionado", emoji: "❄️" },
 
   { slug: "ferramentas", nome: "Ferramentas", emoji: "🔧" },
   { slug: "perfumaria", nome: "Perfumaria", emoji: "🧴" },

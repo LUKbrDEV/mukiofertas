@@ -34,6 +34,7 @@ export default function OrdenarOfertas() {
 
   function trocar(e) {
     const novos = new URLSearchParams(params.toString());
+    novos.delete("pagina"); // mudou a ordem: volta para a primeira página
     if (e.target.value === ORDEM_PADRAO) novos.delete("ordem");
     else novos.set("ordem", e.target.value);
     const busca = novos.toString();
