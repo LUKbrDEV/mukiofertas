@@ -141,16 +141,24 @@ const CSS = `
   }
 `;
 
-function IconeChat() {
+// Ícone de "links úteis": dois elos de corrente
+function IconeLinks() {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path
-        d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5v-8Z"
-        fill="currentColor"
+        d="M10 14a4.5 4.5 0 0 0 6.36 0l3.18-3.18a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <circle cx="8.5" cy="9.5" r="1.3" fill="#ff7a1a" />
-      <circle cx="12" cy="9.5" r="1.3" fill="#ff7a1a" />
-      <circle cx="15.5" cy="9.5" r="1.3" fill="#ff7a1a" />
+      <path
+        d="M14 10a4.5 4.5 0 0 0-6.36 0l-3.18 3.18a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -247,8 +255,8 @@ export default function BotaoComunidade({ whatsapp, telegram, instagram, tiktok 
       <div className="bc" ref={caixa}>
         {aberto && (
           <div className="bc-menu" id="bc-menu" role="dialog" aria-label="Receba as ofertas e siga nas redes">
-            <p className="bc-menu-titulo">Receba as ofertas primeiro 🔥</p>
-            <p className="bc-menu-sub">Entre no nosso grupo e seja avisado das promoções relâmpago.</p>
+            <p className="bc-menu-titulo">Links úteis 🔗</p>
+            <p className="bc-menu-sub">Receba as ofertas primeiro e siga o MukiOfertas.</p>
             {whatsapp && (
               <a className="bc-opcao bc-opcao--whatsapp" href={whatsapp} target="_blank" rel="noopener noreferrer">
                 <span className="bc-icone">
@@ -280,7 +288,7 @@ export default function BotaoComunidade({ whatsapp, telegram, instagram, tiktok 
                 </span>
                 <span>
                   Instagram
-                  <small>Oficial da MukiOfertas!</small>
+                  <small>Achadinhos e promoções nos stories</small>
                 </span>
               </a>
             )}
@@ -299,19 +307,19 @@ export default function BotaoComunidade({ whatsapp, telegram, instagram, tiktok 
         )}
 
         <div style={{ position: "relative" }}>
-          {balao && !aberto && <span className="bc-balao">Receba as ofertas! 👋</span>}
+          {balao && !aberto && <span className="bc-balao">Links úteis 🔗</span>}
           <button
             type="button"
             className="bc-botao"
             aria-expanded={aberto}
             aria-controls="bc-menu"
-            aria-label={aberto ? "Fechar" : "Entrar no grupo de ofertas"}
+            aria-label={aberto ? "Fechar" : "Links úteis: grupos e redes sociais"}
             onClick={() => {
               setAberto((a) => !a);
               setBalao(false);
             }}
           >
-            {aberto ? <IconeFechar /> : <IconeChat />}
+            {aberto ? <IconeFechar /> : <IconeLinks />}
           </button>
         </div>
       </div>
