@@ -2,8 +2,11 @@ import Link from "next/link";
 import LinhaOfertas from "../components/LinhaOfertas";
 import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
+import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
-import { buscarOfertas, buscarMaisProcuradas } from "../lib/ofertas";
+import { buscarOfertas, buscarMaisProcuradas, buscarCategoriasPorLoja } from "../lib/ofertas";
+import { lojasDestaque } from "../data/lojas";
+import { categorias } from "../data/ofertas";
 import { ordenarOfertas } from "../lib/ordenar";
 
 export const revalidate = 60;
@@ -36,8 +39,31 @@ function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofer
   );
 }
 
+// Monta a faixa de lojas: para cada loja, as categorias com ofertas no ar (da que tem mais para a que tem menos)
+function montarLojas(contagem) {
+  return lojasDestaque.map((l) => {
+    const daLoja = contagem[l.slug] ?? { total: 0, categorias: {} };
+    return {
+      nome: l.nome,
+      slug: l.slug,
+      logo: l.logo,
+      cor: l.cor,
+      artigo: l.artigo,
+      total: daLoja.total,
+      categorias: Object.entries(daLoja.categorias)
+        .map(([slug, total]) => {
+          const c = categorias.find((x) => x.slug === slug);
+          return c ? { slug, nome: c.nome, emoji: c.emoji, total } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.total - a.total),
+    };
+  });
+}
+
 export default async function Home() {
-  const [relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
+  const [contagemLojas, relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
+    buscarCategoriasPorLoja(lojasDestaque),
     buscarOfertas({ relampago: true, limite: 12, limiteExpiradas: 0 }),
     buscarMaisProcuradas(24),
     // As que entraram por último no site, sem dar prioridade às que estão em destaque
@@ -57,6 +83,7 @@ export default async function Home() {
       <h1 className="so-leitor">Ofertas e promoções</h1>
 
       <BannerBlackFriday />
+      <FaixaLojas lojas={montarLojas(contagemLojas)} />
       <FaixaRelampago ofertas={relampagos} />
 
       <Faixa
