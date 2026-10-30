@@ -14,10 +14,37 @@ export const revalidate = 60;
 // Faixas por categoria na página inicial (a ordem aqui é a ordem na tela).
 // Para acrescentar outra, é só copiar uma linha e trocar o slug, o título e o emoji.
 const FAIXAS_DE_CATEGORIA = [
-  // "monitor" e "televisores" = só os aparelhos (sem os acessórios)
-  { slug: "monitor", titulo: "Melhores ofertas em Monitores", emoji: "🖥️" },
-  { slug: "televisores", titulo: "Melhores ofertas em TVs", emoji: "📺" },
+  // Só os aparelhos, sem acessórios. "slugs" inclui o slug antigo do departamento
+  // (para as ofertas que ainda não foram reclassificadas) e o filtro abaixo tira suportes, cabos etc.
+  {
+    slug: "monitor",
+    slugs: ["monitor", "monitores"],
+    titulo: "Melhores ofertas em Monitores",
+    emoji: "🖥️",
+    aparelho: /\bmonitor(es)?\b/i,
+    precoMinimo: 300,
+  },
+  {
+    slug: "televisores",
+    slugs: ["televisores", "tv"],
+    titulo: "Melhores ofertas em TVs",
+    emoji: "📺",
+    aparelho: /\b(smart ?tv|tv|televis(or|ao|ão))\b/i,
+    precoMinimo: 600,
+  },
 ];
+
+// Palavras que, no começo do título, indicam acessório (suporte, cabo, controle...)
+const ACESSORIO =
+  /^(\S+\s+){0,3}(suportes?|bra[cç]os?|cabos?|capas?|pel[ií]culas?|controles?|antenas?|base|filtros?|adaptador(es)?|conversor|receptor|kit|hub|fonte|carregador|protetor|tela|display|pe[cç]as?|botão|botao)\b/i;
+
+// Fica só com os aparelhos de verdade: o título fala do aparelho, não começa com nome de
+// acessório e o preço é de aparelho (suporte de R$ 80 não entra na faixa de monitores)
+function soAparelhos(ofertas, faixa) {
+  return ofertas.filter(
+    (o) => faixa.aparelho.test(o.titulo) && !ACESSORIO.test(o.titulo) && Number(o.preco_atual) >= faixa.precoMinimo
+  );
+}
 
 // Seção com título, botão "Ver todas" e uma linha de cards com setas
 function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofertas }) {
@@ -93,7 +120,7 @@ export default async function Home() {
     buscarMaisProcuradas(24),
     // As que entraram por último no site, sem dar prioridade às que estão em destaque
     buscarOfertas({ ordem: "recentes", limite: 24, limiteExpiradas: 0 }),
-    ...FAIXAS_DE_CATEGORIA.map((f) => buscarOfertas({ categoria: f.slug, limite: 40, limiteExpiradas: 0 })),
+    ...FAIXAS_DE_CATEGORIA.map((f) => buscarOfertas({ categoria: f.slugs, limite: 80, limiteExpiradas: 0 })),
   ]);
 
   const relampagos = relampagosNoAr.filter((o) => !o.expirada).slice(0, 12);
@@ -128,7 +155,7 @@ export default async function Home() {
           subtitulo="Os maiores descontos desta categoria."
           href={`/categoria/${f.slug}?ordem=maior-desconto`}
           // Maiores descontos primeiro
-          ofertas={ordenarOfertas(porCategoria[i] ?? [], "maior-desconto").slice(0, 12)}
+          ofertas={ordenarOfertas(soAparelhos(porCategoria[i] ?? [], f), "maior-desconto").slice(0, 12)}
         />
       ))}
 

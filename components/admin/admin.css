@@ -573,3 +573,5 @@ a.adm-btn { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* Seletores menores (registro do Telegram) */
 .adm-input--curto { width: auto; padding: 6px 10px; font-size: 0.85rem; }
+.adm-btn--publicar { color: #fff; background: #16a34a; border-color: #16a34a; }
+.adm-btn--publicar:hover { background: #15803d; border-color: #15803d; }

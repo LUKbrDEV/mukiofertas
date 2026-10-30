@@ -12,6 +12,7 @@ import { Barras, ha, dataHora } from "./util";
 const MOTIVOS = {
   salva: { nome: "Entrou no site", dica: "Publicada", cor: "verde" },
   renovada: { nome: "Renovada", dica: "Já estava no site e ganhou mais dias", cor: "verde" },
+  publicada_manual: { nome: "Publicada por você", dica: "Publicada pelo botão \"Publicar mesmo assim\"", cor: "verde" },
   sem_desconto: {
     nome: "Sem preço antigo",
     dica: "A postagem não tinha o preço \"de\" e o site não conseguiu descobrir na loja. Coloque \"De R$ X por R$ Y\" na postagem ou desligue \"Só aceitar ofertas com preço antigo\" nas Configurações.",
@@ -37,7 +38,9 @@ const MOTIVOS = {
   erro_insert: { nome: "Erro", dica: "Erro ao gravar a oferta.", cor: "vermelho" },
 };
 const motivo = (m) => MOTIVOS[m] ?? { nome: m, dica: "", cor: "cinza" };
-const ENTRARAM = new Set(["salva", "renovada"]);
+const ENTRARAM = new Set(["salva", "renovada", "publicada_manual"]);
+// Recusas que dá para ignorar com o botão "Publicar mesmo assim"
+const PUBLICAVEIS = new Set(["sem_desconto", "desconto_baixo", "limite_por_hora", "importacao_pausada"]);
 
 const PERIODOS = [
   [6, "6 horas"],
@@ -52,13 +55,15 @@ export default function ImportacaoTelegram() {
   const [horas, setHoras] = useState(24);
   const [loja, setLoja] = useState("todas");
   const [soRecusadas, setSoRecusadas] = useState(true);
+  const [publicando, setPublicando] = useState(null);
+  const [aviso, setAviso] = useState("");
 
   const carregar = useCallback(async () => {
     setErro("");
     const desde = new Date(Date.now() - horas * 3600000).toISOString();
     const { data, error } = await supabase
       .from("telegram_log")
-      .select("*")
+      .select("id, criado_em, origem, motivo, loja, titulo, link, preco, desconto, detalhe")
       .gte("criado_em", desde)
       .order("criado_em", { ascending: false })
       .limit(2000);
@@ -75,6 +80,26 @@ export default function ImportacaoTelegram() {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function publicar(l) {
+    if (!confirm(`Publicar "${l.titulo}" no site mesmo assim?`)) return;
+    setPublicando(l.id);
+    setAviso("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const r = await fetch("/api/admin/telegram-publicar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token}` },
+        body: JSON.stringify({ id: l.id }),
+      });
+      const json = await r.json().catch(() => ({}));
+      setAviso(json.mensagem || json.erro || (r.ok ? "Publicada!" : "Não foi possível publicar."));
+      if (r.ok) carregar();
+    } catch (e) {
+      setAviso(`Não foi possível publicar: ${e.message}`);
+    }
+    setPublicando(null);
+  }
 
   const lojas = useMemo(
     () => [...new Set((linhas ?? []).map((l) => l.loja).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -122,6 +147,15 @@ export default function ImportacaoTelegram() {
           </button>
         </div>
       </div>
+
+      {aviso && (
+        <p className="adm-aviso">
+          {aviso}
+          <button className="adm-aviso-fechar" onClick={() => setAviso("")} aria-label="Fechar aviso">
+            ×
+          </button>
+        </p>
+      )}
 
       {erro ? (
         <p className="adm-aviso">{erro}</p>
@@ -171,13 +205,23 @@ export default function ImportacaoTelegram() {
                         {l.detalhe ? ` · ${l.detalhe}` : ""} · {ha(l.criado_em)} ({dataHora(l.criado_em)})
                       </small>
                     </span>
-                    {l.link && (
-                      <span className="adm-alerta-acoes">
+                    <span className="adm-alerta-acoes">
+                      {PUBLICAVEIS.has(l.motivo) && (
+                        <button
+                          className="adm-btn adm-btn--publicar"
+                          disabled={publicando === l.id}
+                          onClick={() => publicar(l)}
+                          title="Publica no site ignorando o preço antigo, o desconto mínimo e o limite por hora"
+                        >
+                          {publicando === l.id ? "Publicando..." : "Publicar mesmo assim"}
+                        </button>
+                      )}
+                      {l.link && (
                         <a className="adm-btn" href={l.link} target="_blank" rel="noopener noreferrer nofollow">
                           Abrir ↗
                         </a>
-                      </span>
-                    )}
+                      )}
+                    </span>
                   </li>
                 );
               })}
