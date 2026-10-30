@@ -34,8 +34,8 @@ jobs:
 
       - run: npm ci
 
-      # Lomadee + Shopee + AliExpress + expirar por preço + renovar + apagar as expiradas antigas
-      - name: Coletar ofertas (Lomadee, Shopee e AliExpress)
+      # Lomadee + Shopee + AliExpress + Awin (KaBuM!) + expirar por preço + renovar + apagar as expiradas antigas
+      - name: Coletar ofertas (Lomadee, Shopee, AliExpress e KaBuM!)
         if: ${{ !inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
         run: node scripts/coletar.mjs
         env:
@@ -48,6 +48,7 @@ jobs:
           ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
           ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
           ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          AWIN_FEED_KABUM: ${{ secrets.AWIN_FEED_KABUM }}
 
       # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma
       - name: Conferir preços (ofertas do Telegram)

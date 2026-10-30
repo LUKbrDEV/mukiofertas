@@ -24,6 +24,12 @@ const PADRAO = {
   coleta_pausada: false,
   conferencia_pausada: false,
   telegram_max_por_hora: 20,
+  awin_ativo: true,
+  awin_preco_minimo: 30,
+  awin_max_por_execucao: 40,
+  awin_horas_entre_downloads: 3,
+  awin_ler_paginas: true,
+  awin_paginas_por_execucao: 80,
   aliexpress_ativo: true,
   aliexpress_preco_minimo: 50,
   aliexpress_avaliacao_minima: 90,
@@ -228,7 +234,7 @@ export default function Configuracoes() {
             rotulo="Publicar só com desconto de pelo menos"
             sufixo="%"
             max={99}
-            dica="Vale para as ofertas da Lomadee, Shopee e AliExpress."
+            dica="Vale para as ofertas da Lomadee, Shopee, AliExpress e KaBuM!."
             valor={c.desconto_minimo_publicar}
             aoMudar={mudar("desconto_minimo_publicar")}
           />
@@ -296,6 +302,61 @@ export default function Configuracoes() {
             ligado={c.telegram_pausado}
             aoMudar={mudar("telegram_pausado")}
             perigo
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🟠 KaBuM! (Awin)</h2>
+        <p>O robô baixa o catálogo da KaBuM! pela Awin e publica os produtos com desconto.</p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Coletar ofertas da KaBuM!"
+            dica="Desligado: o robô não traz ofertas novas da Awin (as que já estão no site continuam)."
+            ligado={c.awin_ativo}
+            aoMudar={mudar("awin_ativo")}
+          />
+          <Chave
+            rotulo='Ler o preço "de" na página da KaBuM!'
+            dica="O feed só traz o preço atual. Ligado: o robô abre a página do produto e usa o preço riscado que a loja mostra. Desligado: usa só o histórico de preços."
+            ligado={c.awin_ler_paginas}
+            aoMudar={mudar("awin_ler_paginas")}
+          />
+        </div>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Só ofertas acima de"
+            sufixo="R$"
+            passo={5}
+            valor={c.awin_preco_minimo}
+            aoMudar={mudar("awin_preco_minimo")}
+          />
+          <Numero
+            rotulo="Ofertas por download"
+            sufixo="ofertas"
+            min={1}
+            max={200}
+            dica="As de maior desconto, no máximo 6 por categoria."
+            valor={c.awin_max_por_execucao}
+            aoMudar={mudar("awin_max_por_execucao")}
+          />
+          <Numero
+            rotulo="Baixar o catálogo a cada"
+            sufixo="horas"
+            min={1}
+            max={24}
+            dica="O catálogo é grande; não precisa baixar a cada 30 minutos."
+            valor={c.awin_horas_entre_downloads}
+            aoMudar={mudar("awin_horas_entre_downloads")}
+          />
+          <Numero
+            rotulo="Páginas lidas por download"
+            sufixo="páginas"
+            min={0}
+            max={500}
+            dica="Cada página é relida só depois de 20 horas. Mais páginas = mais ofertas, mas o robô demora mais."
+            valor={c.awin_paginas_por_execucao}
+            aoMudar={mudar("awin_paginas_por_execucao")}
           />
         </div>
       </section>

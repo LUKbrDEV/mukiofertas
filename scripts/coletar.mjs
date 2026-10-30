@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 import { buscar as buscarShopee } from "./fontes/shopee.mjs";
 import { buscar as buscarAliExpress } from "./fontes/aliexpress.mjs";
+import { buscar as buscarAwin } from "./fontes/awin.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 import { limparExpiradas } from "../lib/limpeza.mjs";
@@ -31,7 +32,7 @@ const supabase = createClient(
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Lista das fontes ativas. Novas fontes entram aqui.
-const fontes = [buscarLomadee, buscarShopee, buscarAliExpress];
+const fontes = [buscarLomadee, buscarShopee, buscarAliExpress, buscarAwin];
 
 async function main() {
   const config = await aplicarConfigDoBanco(supabase);
