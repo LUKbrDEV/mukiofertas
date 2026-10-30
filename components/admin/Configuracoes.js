@@ -33,6 +33,8 @@ const PADRAO = {
   aliexpress_buscas_tecnologia: 3,
   aliexpress_buscas_outras: 2,
   aliexpress_max_por_busca: 3,
+  aliexpress_entrega_dias: 7,
+  aliexpress_so_mais_vendidos: true,
   telegram_desconto_minimo: 25,
   telegram_exigir_desconto: true,
   telegram_pausado: false,
@@ -308,7 +310,31 @@ export default function Configuracoes() {
             ligado={c.aliexpress_ativo}
             aoMudar={mudar("aliexpress_ativo")}
           />
+          <Chave
+            rotulo="Só os mais vendidos (top sellers)"
+            dica="Busca na lista de produtos em alta do AliExpress. Se ela não tiver nada para a busca, usa a busca comum pelos mais vendidos."
+            ligado={c.aliexpress_so_mais_vendidos}
+            aoMudar={mudar("aliexpress_so_mais_vendidos")}
+          />
         </div>
+        <label className="adm-campo" style={{ marginBottom: 14 }}>
+          <span className="adm-rotulo">Vem do Brasil: entrega em até</span>
+          <select
+            className="adm-input adm-input--curto"
+            value={c.aliexpress_entrega_dias}
+            onChange={(e) => mudar("aliexpress_entrega_dias")(Number(e.target.value))}
+          >
+            <option value={3}>3 dias</option>
+            <option value={5}>5 dias</option>
+            <option value={7}>7 dias (recomendado)</option>
+            <option value={10}>10 dias</option>
+            <option value={0}>Qualquer prazo (inclui envio da China)</option>
+          </select>
+          <small>
+            A API do AliExpress não tem um filtro &quot;Vem do Brasil&quot;. Entrega rápida é o que separa os produtos que já estão
+            no estoque nacional dos que vêm da China (20 dias ou mais).
+          </small>
+        </label>
         <div className="adm-duas-colunas">
           <Numero
             rotulo="Só ofertas acima de"

@@ -33,6 +33,11 @@ const PADRAO = {
   aliexpress_buscas_tecnologia: 3, // buscas de tecnologia a cada execução
   aliexpress_buscas_outras: 2, // buscas das outras categorias a cada execução
   aliexpress_max_por_busca: 3, // no máximo X ofertas de cada busca
+  // "Vem do Brasil": só produtos com entrega rápida para o Brasil (enviados de estoque nacional).
+  // A API não tem um filtro "vem do Brasil"; o filtro de prazo de entrega é o que chega mais perto.
+  aliexpress_entrega_dias: 7, // só produtos entregues em até X dias (3, 5, 7 ou 10; 0 = qualquer prazo)
+  // "Top seller": usa a lista de produtos mais vendidos/em alta do AliExpress em vez da busca comum
+  aliexpress_so_mais_vendidos: true,
 };
 const DESCONTO_MINIMO = 20; // % (tecnologia usa o desconto mínimo de tecnologia do painel)
 const MAX_POR_LOJA = 2; // variedade: no máximo X ofertas do mesmo vendedor por execução
@@ -136,19 +141,28 @@ export async function chamarAliExpress(metodo, extras = {}, tentativa = 1) {
   return json;
 }
 
-export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_busca")) {
-  const json = await chamarAliExpress("aliexpress.affiliate.product.query", {
+// Prazos de entrega aceitos pela API (dias)
+const PRAZOS_VALIDOS = [3, 5, 7, 10];
+
+async function consultar(metodo, palavra, limite) {
+  const dias = ajuste("aliexpress_entrega_dias");
+  const prazo = PRAZOS_VALIDOS.find((d) => d >= dias) ?? (dias > 0 ? 10 : undefined);
+  const json = await chamarAliExpress(metodo, {
     keywords: palavra,
     page_no: 1,
     page_size: limite,
-    sort: "LAST_VOLUME_DESC",
+    sort: "LAST_VOLUME_DESC", // os mais vendidos primeiro
     target_currency: "BRL",
     target_language: "PT",
     ship_to_country: "BR",
+    delivery_days: dias > 0 ? prazo : undefined,
     tracking_id: String(process.env.ALIEXPRESS_TRACKING_ID).trim(),
   });
 
-  const resp = json.aliexpress_affiliate_product_query_response?.resp_result;
+  const chave = metodo === "aliexpress.affiliate.hotproduct.query"
+    ? "aliexpress_affiliate_hotproduct_query_response"
+    : "aliexpress_affiliate_product_query_response";
+  const resp = json[chave]?.resp_result;
   if (!resp) return [];
   // 405 = nenhum produto encontrado para a busca
   if (resp.resp_code && Number(resp.resp_code) !== 200) {
@@ -157,6 +171,26 @@ export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_
   }
   const produtos = resp.result?.products?.product ?? resp.result?.products ?? [];
   return Array.isArray(produtos) ? produtos : [];
+}
+
+let semPermissaoHot = false;
+
+export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_busca")) {
+  // Top sellers: lista de produtos em alta; se não vier nada, cai na busca comum (também pelos mais vendidos)
+  if (ajuste("aliexpress_so_mais_vendidos") && !semPermissaoHot) {
+    try {
+      const quentes = await consultar("aliexpress.affiliate.hotproduct.query", palavra, limite);
+      if (quentes.length) return quentes;
+    } catch (erro) {
+      if (/assinatura|App Key/i.test(erro.message)) throw erro;
+      // O app não tem acesso à lista de produtos em alta: usa só a busca comum (pelos mais vendidos)
+      if (/permiss/i.test(erro.message)) {
+        semPermissaoHot = true;
+        console.warn("[aliexpress] O app não tem acesso à lista de produtos em alta (hotproduct); usando a busca comum.");
+      }
+    }
+  }
+  return consultar("aliexpress.affiliate.product.query", palavra, limite);
 }
 
 const numero = (v) => {
