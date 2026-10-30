@@ -13,7 +13,7 @@ import {
   TOLERANCIA_PERCENTUAL,
   precoSubiu,
   horaDeConferir,
-  DESCONTO_MINIMO_PUBLICAR,
+  descontoMinimoDa,
   podeRenovar,
   camposDaRenovacao,
   aplicarConfigDoBanco,
@@ -71,11 +71,12 @@ async function main() {
     for (const item of itens) {
       if (!item.preco_antigo || item.preco_antigo <= item.preco_atual) continue;
 
-      const desconto = ((item.preco_antigo - item.preco_atual) / item.preco_antigo) * 100;
-      if (desconto < DESCONTO_MINIMO_PUBLICAR) continue;
-
       const categoria = item.categoria ?? classificar(item.titulo, item.loja);
       if (!categoria) continue; // sem categoria reconhecida: não publica
+
+      // Desconto mínimo depende da categoria: tecnologia aceita menos (veja lib/prazos.mjs)
+      const desconto = ((item.preco_antigo - item.preco_atual) / item.preco_antigo) * 100;
+      if (desconto < descontoMinimoDa(categoria)) continue;
 
       linhas.push({
         ...item,

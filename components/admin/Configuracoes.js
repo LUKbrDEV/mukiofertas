@@ -15,6 +15,7 @@ const PADRAO = {
   relampago_desconto_minimo: 40,
   destaque_desconto_minimo: 60,
   desconto_minimo_publicar: 20,
+  desconto_minimo_tecnologia: 10,
   tolerancia_percentual: 10,
   horas_entre_conferencias: 5,
   renovar_se_preco_mantido: true,
@@ -22,7 +23,7 @@ const PADRAO = {
   max_renovacoes: 2,
   coleta_pausada: false,
   conferencia_pausada: false,
-  telegram_max_por_hora: 3,
+  telegram_max_por_hora: 20,
   telegram_desconto_minimo: 25,
   telegram_exigir_desconto: true,
   telegram_pausado: false,
@@ -216,9 +217,17 @@ export default function Configuracoes() {
             rotulo="Publicar só com desconto de pelo menos"
             sufixo="%"
             max={99}
-            dica="Vale para as ofertas da Lomadee."
+            dica="Vale para as ofertas da Lomadee, Shopee e AliExpress."
             valor={c.desconto_minimo_publicar}
             aoMudar={mudar("desconto_minimo_publicar")}
+          />
+          <Numero
+            rotulo="Para tecnologia, desconto de pelo menos"
+            sufixo="%"
+            max={99}
+            dica="TVs, monitores, notebooks, celulares e hardware. Eletrônico caro quase nunca chega a 20%."
+            valor={c.desconto_minimo_tecnologia}
+            aoMudar={mudar("desconto_minimo_tecnologia")}
           />
         </div>
         <div className="adm-chaves">

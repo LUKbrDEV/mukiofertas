@@ -15,9 +15,11 @@
 //   node --env-file=.env.local scripts/testar-lomadee.mjs
 
 import { createClient } from "@supabase/supabase-js";
+import { classificar } from "../../lib/classificar.mjs";
+import { descontoMinimoDa } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
-const DESCONTO_MINIMO = 20; // % (o coletar também filtra por isso)
+const DESCONTO_MINIMO = 20; // % só para o diagnóstico; na coleta vale o desconto por categoria (lib/prazos.mjs)
 const MAX_PAGINAS_MARCAS = 5; // 20 marcas por página
 const MAX_MARCAS = 25; // quantas marcas consultar por execução
 const PAGINAS_POR_MARCA = 2; // 100 produtos por página
@@ -28,11 +30,11 @@ const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loj
 
 // Lojas que você quer (deixe vazio para usar todas). Use o nome como aparece na Lomadee.
 // Ex.: ["Shopee", "Magalu", "Casas Bahia", "Centauro"]
-const SO_ESTAS_MARCAS = ["shopee", "magalu", "casas bahia", "centauro" , "kabum!", "americanas", "submarino", "mercado livre", "amazon", "ponto frio", "carrefour", "fast shop", "netshoes", "dell", "lenovo", "asus", "samsung", "xiaomi", "motorola"];
+const SO_ESTAS_MARCAS = [];
 // Lojas que entram SEMPRE, mesmo fora das 25 de maior comissão (são buscadas pelo nome)
-const MARCAS_PRIORITARIAS = [];
+const MARCAS_PRIORITARIAS = ["Shopee"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
-const MARCAS_BLOQUEADAS = ["Sofá na Caixa", "LITTLE DUCK", "Mundo Vem", "Amakha Paris", "Brinox"];
+const MARCAS_BLOQUEADAS = [];
 // ===================
 
 const API = "https://api.lomadee.com.br";
@@ -226,7 +228,10 @@ async function buscarProdutosDaMarca(marca) {
   for (const produto of produtos) {
     if (produto.available === false || !produto.url || !produto.name) continue;
     const preco = melhorPreco(produto, divisor);
-    if (!preco || preco.desconto < DESCONTO_MINIMO) continue;
+    if (!preco) continue;
+    // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
+    const categoria = classificar(produto.name, marca.name);
+    if (preco.desconto < descontoMinimoDa(categoria)) continue;
     if (preco.atual < PRECO_MINIMO) continue; // preço errado na loja
     encontrados.push({
       marca,
@@ -329,7 +334,7 @@ export async function buscar() {
       modelos.add(modelo);
       return true;
     });
-  console.log(`[lomadee] ${candidatos.length} produtos com ${DESCONTO_MINIMO}% ou mais de desconto.`);
+  console.log(`[lomadee] ${candidatos.length} produtos com desconto suficiente.`);
 
   const existentes = await buscarExistentes(candidatos.map((c) => c.id_externo));
   const agora = new Date().toISOString();

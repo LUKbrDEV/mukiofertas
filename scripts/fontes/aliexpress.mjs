@@ -17,6 +17,8 @@
 
 import { createHmac } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { classificar } from "../../lib/classificar.mjs";
+import { descontoMinimoDa } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % de desconto mínimo (o coletar também filtra pelo valor do painel)
@@ -28,17 +30,26 @@ const MAX_POR_EXECUCAO = 30; // ofertas do AliExpress por execução
 const MAX_POR_LOJA = 2; // variedade: no máximo X ofertas do mesmo vendedor por execução
 
 // Palavras-chave (um rodízio pega uma parte por vez, para não fazer muitas chamadas de uma vez)
-const PALAVRAS = [
+// Palavras-chave em duas listas. A cada execução o robô pega algumas de cada uma (rodízio),
+// com mais buscas de tecnologia, porque são as ofertas que o site mais precisa.
+const PALAVRAS_TECNOLOGIA = [
+  "monitor gamer", "monitor portátil", "monitor 27", "smart tv", "tv box", "notebook", "mini pc", "tablet",
+  "celular xiaomi", "xiaomi redmi", "poco", "ssd nvme", "ssd 1tb", "ssd 2tb", "memória ram ddr4",
+  "memória ram ddr5", "placa de vídeo", "processador ryzen", "processador intel", "placa mãe",
+  "gabinete gamer", "fonte atx", "water cooler", "cooler processador",
+];
+const PALAVRAS_OUTRAS = [
   "fone bluetooth", "smartwatch", "teclado mecânico", "mouse gamer", "headset gamer",
-  "ssd nvme", "memória ram ddr4", "placa mãe", "processador ryzen", "monitor portátil",
   "carregador gan", "power bank", "cabo usb c", "hub usb c", "caixa de som bluetooth",
   "câmera de segurança wifi", "lâmpada inteligente", "tomada inteligente", "roteador wifi 6", "projetor",
   "drone", "action cam", "microfone condensador", "ring light", "controle bluetooth",
-  "aspirador portátil", "mini processador alimentos", "organizador", "ferramenta multifuncional", "parafusadeira",
-  "relógio masculino", "mochila notebook", "óculos de sol", "tênis masculino", "kit maquiagem",
-  "suporte celular carro", "luminária led", "fita led", "lanterna tática", "bicicleta acessórios",
+  "aspirador portátil", "organizador", "ferramenta multifuncional", "parafusadeira",
+  "relógio masculino", "mochila notebook", "óculos de sol", "kit maquiagem",
+  "suporte celular carro", "luminária led", "fita led", "lanterna tática",
 ];
-const BUSCAS_POR_EXECUCAO = 6;
+const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 5; // buscas de tecnologia a cada execução
+const BUSCAS_OUTRAS_POR_EXECUCAO = 3; // buscas das outras categorias a cada execução
+const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
 
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
@@ -178,7 +189,9 @@ export function converter(p) {
 
 function passaNosFiltros(o) {
   if (!o || !o.link || !o.titulo) return false;
-  if (o._desconto < DESCONTO_MINIMO || o._desconto >= 95) return false;
+  if (o._desconto >= 95) return false;
+  // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
+  if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
   if (o.preco_atual < PRECO_MINIMO) return false;
   if (Number.isFinite(o._avaliacao) && o._avaliacao > 0 && o._avaliacao < AVALIACAO_MINIMA) return false;
   if (o._vendas < VENDAS_MINIMAS) return false;
@@ -198,10 +211,17 @@ function chaveDoModelo(titulo) {
     .join(" ");
 }
 
-function palavrasDaVez() {
-  const blocos = Math.ceil(PALAVRAS.length / BUSCAS_POR_EXECUCAO);
+function rodizio(lista, quantas) {
+  const blocos = Math.max(1, Math.ceil(lista.length / quantas));
   const vez = Math.floor(Date.now() / (30 * 60 * 1000)) % blocos; // muda a cada 30 min
-  return PALAVRAS.slice(vez * BUSCAS_POR_EXECUCAO, (vez + 1) * BUSCAS_POR_EXECUCAO);
+  return lista.slice(vez * quantas, (vez + 1) * quantas);
+}
+
+function palavrasDaVez() {
+  return [
+    ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
+  ];
 }
 
 async function buscarExistentes(ids) {
@@ -231,13 +251,13 @@ export async function buscar({ palavras } = {}) {
   const lista = palavras ?? palavrasDaVez();
   console.log(`[aliexpress] Buscando: ${lista.join(", ")}`);
 
-  let candidatos = [];
+  const porPalavra = [];
   for (const palavra of lista) {
     try {
       const produtos = await buscarPorPalavra(palavra);
       const bons = produtos.map(converter).filter(passaNosFiltros);
       console.log(`[aliexpress] "${palavra}": ${produtos.length} produtos, ${bons.length} aprovados nos filtros`);
-      candidatos.push(...bons);
+      porPalavra.push(bons.sort((x, y) => y._desconto - x._desconto || y._vendas - x._vendas));
     } catch (erro) {
       // erro de chave/assinatura/permissão vale para todas as buscas: para logo
       if (/assinatura|App Key|permissão/i.test(erro.message)) throw erro;
@@ -248,19 +268,29 @@ export async function buscar({ palavras } = {}) {
   const ids = new Set();
   const modelos = new Set();
   const porLoja = new Map();
-  candidatos = candidatos
-    .sort((a, b) => b._desconto - a._desconto || b._vendas - a._vendas)
-    .filter((o) => {
-      const modelo = chaveDoModelo(o.titulo);
-      if (ids.has(o.id_externo) || modelos.has(modelo)) return false;
-      const n = porLoja.get(o._vendedor) ?? 0;
-      if (o._vendedor && n >= MAX_POR_LOJA) return false;
-      ids.add(o.id_externo);
-      modelos.add(modelo);
-      porLoja.set(o._vendedor, n + 1);
-      return true;
-    })
-    .slice(0, MAX_POR_EXECUCAO);
+  // Pega as melhores de cada busca, uma de cada vez (assim todas as buscas aparecem),
+  // sem repetir produto/modelo e respeitando o limite por vendedor
+  const candidatos = [];
+  const usadosPorPalavra = porPalavra.map(() => 0);
+  for (let rodada = 0; rodada < 50 && candidatos.length < MAX_POR_EXECUCAO; rodada++) {
+    let pegouAlgum = false;
+    porPalavra.forEach((lista, i) => {
+      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && candidatos.length < MAX_POR_EXECUCAO) {
+        const o = lista.shift();
+        const modelo = chaveDoModelo(o.titulo);
+        const n = porLoja.get(o._vendedor) ?? 0;
+        if (ids.has(o.id_externo) || modelos.has(modelo) || (o._vendedor && n >= MAX_POR_LOJA)) continue;
+        ids.add(o.id_externo);
+        modelos.add(modelo);
+        porLoja.set(o._vendedor, n + 1);
+        candidatos.push(o);
+        usadosPorPalavra[i]++;
+        pegouAlgum = true;
+        break;
+      }
+    });
+    if (!pegouAlgum) break;
+  }
 
   const existentes = await buscarExistentes(candidatos.map((c) => c.id_externo));
   const agora = new Date().toISOString();

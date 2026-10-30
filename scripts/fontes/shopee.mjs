@@ -16,6 +16,8 @@
 
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { classificar } from "../../lib/classificar.mjs";
+import { descontoMinimoDa } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % de desconto mínimo (o coletar também filtra pelo valor do painel)
@@ -28,17 +30,27 @@ const MAX_POR_VENDEDOR = 2; // variedade: no máximo X ofertas do mesmo vendedor
 
 // Palavras-chave procuradas a cada execução (um rodízio pega uma parte por vez,
 // para não fazer muitas chamadas de uma vez). Acrescente ou tire à vontade.
-const PALAVRAS = [
-  "monitor gamer", "smart tv", "fone bluetooth", "ssd nvme", "memória ram ddr4",
-  "teclado mecânico", "mouse gamer", "headset gamer", "smartwatch", "caixa de som bluetooth",
+// Palavras-chave em duas listas. A cada execução o robô pega algumas de cada uma (rodízio),
+// com mais buscas de tecnologia, porque são as ofertas que o site mais precisa.
+const PALAVRAS_TECNOLOGIA = [
+  "smart tv", "smart tv 4k", "tv 50 polegadas", "tv 55 polegadas", "monitor gamer", "monitor 27", "monitor 24",
+  "monitor 144hz", "notebook", "notebook gamer", "notebook i5", "notebook ryzen", "tablet", "celular samsung",
+  "celular motorola", "xiaomi redmi", "iphone", "ssd nvme", "ssd 1tb", "memória ram ddr4", "memória ram ddr5",
+  "placa de vídeo", "rtx", "processador ryzen", "processador intel", "placa mãe", "gabinete gamer",
+  "fonte atx", "water cooler", "pc gamer",
+];
+const PALAVRAS_OUTRAS = [
+  "fone bluetooth", "teclado mecânico", "mouse gamer", "headset gamer", "smartwatch", "caixa de som bluetooth",
   "air fryer", "aspirador robô", "cafeteira", "liquidificador", "panela elétrica",
   "perfume importado", "kit skincare", "secador de cabelo", "chapinha", "barbeador elétrico",
   "tênis masculino", "tênis feminino", "mochila notebook", "mala de viagem", "relógio masculino",
   "carregador turbo", "power bank", "câmera de segurança wifi", "roteador wifi", "lâmpada inteligente",
   "furadeira parafusadeira", "jogo de ferramentas", "garrafa térmica", "jogo de panelas", "jogo de cama",
-  "cadeira gamer", "suporte monitor", "controle ps5", "controle xbox", "tablet",
+  "cadeira gamer", "suporte monitor", "controle ps5", "controle xbox",
 ];
-const BUSCAS_POR_EXECUCAO = 8; // quantas palavras por execução (o rodízio passa por todas ao longo do dia)
+const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
+const BUSCAS_OUTRAS_POR_EXECUCAO = 3; // buscas das outras categorias a cada execução
+const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
 
 // Vendedores que você NÃO quer no site (nome da loja na Shopee). Ex.: ["Loja X"]
 const VENDEDORES_BLOQUEADOS = [];
@@ -148,7 +160,8 @@ export function converter(p) {
 
 function passaNosFiltros(o) {
   if (!o || !o.link || !o.titulo) return false;
-  if (o._desconto < DESCONTO_MINIMO) return false;
+  // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
+  if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
   if (o.preco_atual < PRECO_MINIMO) return false;
   if (o._nota && o._nota < NOTA_MINIMA) return false;
   if (o._vendas < VENDAS_MINIMAS) return false;
@@ -172,10 +185,17 @@ function chaveDoModelo(titulo) {
 }
 
 // Palavras desta execução (rodízio pela hora do dia)
-function palavrasDaVez() {
-  const blocos = Math.ceil(PALAVRAS.length / BUSCAS_POR_EXECUCAO);
+function rodizio(lista, quantas) {
+  const blocos = Math.max(1, Math.ceil(lista.length / quantas));
   const vez = Math.floor(Date.now() / (30 * 60 * 1000)) % blocos; // muda a cada 30 min
-  return PALAVRAS.slice(vez * BUSCAS_POR_EXECUCAO, (vez + 1) * BUSCAS_POR_EXECUCAO);
+  return lista.slice(vez * quantas, (vez + 1) * quantas);
+}
+
+function palavrasDaVez() {
+  return [
+    ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
+  ];
 }
 
 async function buscarExistentes(ids) {
@@ -205,13 +225,13 @@ export async function buscar({ palavras } = {}) {
   const lista = palavras ?? palavrasDaVez();
   console.log(`[shopee] Buscando: ${lista.join(", ")}`);
 
-  let candidatos = [];
+  const porPalavra = [];
   for (const palavra of lista) {
     try {
       const produtos = await buscarPorPalavra(palavra);
       const bons = produtos.map(converter).filter(passaNosFiltros);
       console.log(`[shopee] "${palavra}": ${produtos.length} produtos, ${bons.length} aprovados nos filtros`);
-      candidatos.push(...bons);
+      porPalavra.push(bons.sort((x, y) => y._desconto - x._desconto || y._vendas - x._vendas));
     } catch (erro) {
       // erro de chave/assinatura vale para todas as buscas: para logo
       if (/\[100(20|31|32|33)\]/.test(erro.message)) throw erro;
@@ -223,19 +243,29 @@ export async function buscar({ palavras } = {}) {
   const ids = new Set();
   const modelos = new Set();
   const porVendedor = new Map();
-  candidatos = candidatos
-    .sort((a, b) => b._desconto - a._desconto || b._vendas - a._vendas)
-    .filter((o) => {
-      const modelo = chaveDoModelo(o.titulo);
-      if (ids.has(o.id_externo) || modelos.has(modelo)) return false;
-      const n = porVendedor.get(o._vendedor) ?? 0;
-      if (n >= MAX_POR_VENDEDOR) return false;
-      ids.add(o.id_externo);
-      modelos.add(modelo);
-      porVendedor.set(o._vendedor, n + 1);
-      return true;
-    })
-    .slice(0, MAX_POR_EXECUCAO);
+  // Pega as melhores de cada busca, uma de cada vez (assim todas as buscas aparecem),
+  // sem repetir produto/modelo e respeitando o limite por vendedor
+  const candidatos = [];
+  const usadosPorPalavra = porPalavra.map(() => 0);
+  for (let rodada = 0; rodada < 50 && candidatos.length < MAX_POR_EXECUCAO; rodada++) {
+    let pegouAlgum = false;
+    porPalavra.forEach((lista, i) => {
+      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && candidatos.length < MAX_POR_EXECUCAO) {
+        const o = lista.shift();
+        const modelo = chaveDoModelo(o.titulo);
+        const n = porVendedor.get(o._vendedor) ?? 0;
+        if (ids.has(o.id_externo) || modelos.has(modelo) || (n >= MAX_POR_VENDEDOR)) continue;
+        ids.add(o.id_externo);
+        modelos.add(modelo);
+        porVendedor.set(o._vendedor, n + 1);
+        candidatos.push(o);
+        usadosPorPalavra[i]++;
+        pegouAlgum = true;
+        break;
+      }
+    });
+    if (!pegouAlgum) break;
+  }
 
   const existentes = await buscarExistentes(candidatos.map((c) => c.id_externo));
   const agora = new Date().toISOString();
