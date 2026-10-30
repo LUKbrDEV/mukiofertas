@@ -21,6 +21,14 @@ export const lojasDestaque = [
     cor: "#ffe600",
   },
   {
+    nome: "KaBuM!",
+    slug: "kabum",
+    nomesNoBanco: ["KaBuM!", "KaBuM", "Kabum"],
+    artigo: "da",
+    logo: "/lojas/kabum.png",
+    cor: "#0060b1",
+  },
+  {
     nome: "AliExpress",
     slug: "aliexpress",
     nomesNoBanco: ["AliExpress", "Aliexpress"],
