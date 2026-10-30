@@ -34,6 +34,9 @@ const FAIXAS_DE_CATEGORIA = [
   },
 ];
 
+// Lojas que não aparecem na faixa "Promoções relâmpago" da página inicial
+const LOJAS_FORA_DO_RELAMPAGO = ["AliExpress"];
+
 // Palavras que, no começo do título, indicam acessório (suporte, cabo, controle...)
 const ACESSORIO =
   /^(\S+\s+){0,3}(suportes?|bra[cç]os?|cabos?|capas?|pel[ií]culas?|controles?|antenas?|base|filtros?|adaptador(es)?|conversor|receptor|kit|hub|fonte|carregador|protetor|tela|display|pe[cç]as?|botão|botao)\b/i;
@@ -116,14 +119,16 @@ function montarLojas(doBanco) {
 export default async function Home() {
   const [contagemLojas, relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
     buscarLojasComCategorias(),
-    buscarOfertas({ relampago: true, limite: 12, limiteExpiradas: 0 }),
+    buscarOfertas({ relampago: true, limite: 40, limiteExpiradas: 0 }),
     buscarMaisProcuradas(24),
     // As que entraram por último no site, sem dar prioridade às que estão em destaque
     buscarOfertas({ ordem: "recentes", limite: 24, limiteExpiradas: 0 }),
     ...FAIXAS_DE_CATEGORIA.map((f) => buscarOfertas({ categoria: f.slugs, limite: 80, limiteExpiradas: 0 })),
   ]);
 
-  const relampagos = relampagosNoAr.filter((o) => !o.expirada).slice(0, 12);
+  const relampagos = relampagosNoAr
+    .filter((o) => !o.expirada && !LOJAS_FORA_DO_RELAMPAGO.includes(o.loja))
+    .slice(0, 12);
 
   // Para não repetir o mesmo produto, o que já está na faixa de relâmpago
   // não aparece de novo em "Melhores ofertas do momento"
