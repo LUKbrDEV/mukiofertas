@@ -196,6 +196,7 @@ const { data, error } = await supabase
   .eq("ativa", true)
   .not("id_externo", "like", "lmd-%") // as da Lomadee são conferidas pelo coletar.mjs
   .not("id_externo", "like", "shp-%") // as da Shopee (API) também
+  .not("id_externo", "like", "ali-%") // e as do AliExpress (API)
   .or(`expires_at.is.null,expires_at.gt.${agoraIso}`)
   .gt("publicada_em", corte)
   .order("preco_conferido_em", { ascending: true, nullsFirst: true })
