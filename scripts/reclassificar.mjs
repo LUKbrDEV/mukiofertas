@@ -19,7 +19,7 @@ const SLUG_OUTROS = "outros"; // mesmo slug de "Outras ofertas" em data/ofertas.
 // a oferta fica onde está. As que deixaram de existir (ex.: "tecnologia") vão para "outros".
 const VALIDAS = new Set([
   "ar-condicionado", "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
-  "jogos", "controles", "consoles", "fones", "monitor", "televisores", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
+  "jogos", "controles", "consoles", "fones", "monitor", "televisores", "celulares", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",
   "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete", "relogios", "livros",
   "smartphones", "hardware", "perifericos", "computadores", "notebooks", "monitores",
