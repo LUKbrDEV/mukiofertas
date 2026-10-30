@@ -12,8 +12,15 @@
 //   node --env-file=.env.local scripts/conferir-precos.mjs            (grava no banco)
 //   node --env-file=.env.local scripts/conferir-precos.mjs --teste    (só mostra, não grava)
 //   node --env-file=.env.local scripts/conferir-precos.mjs --debug    (não grava e mostra o que a loja devolveu)
+//   node --env-file=.env.local scripts/conferir-precos.mjs --validar  (não grava: testa até 4 ofertas de cada loja
+//                                                                       e mostra uma tabela com o que funcionou)
+//
+// Shopee e AliExpress são conferidas pela API de afiliados (as páginas delas não mostram o preço
+// para robôs). Ofertas com cupom nunca expiram por aqui: a loja mostra o preço SEM o cupom.
 
 import { createClient } from "@supabase/supabase-js";
+import { chamarShopee, shopeeConfigurada } from "./fontes/shopee.mjs";
+import { chamarAliExpress, aliexpressConfigurado } from "./fontes/aliexpress.mjs";
 import {
   DIAS_NO_SITE,
   HORAS_ENTRE_CONFERENCIAS,
@@ -33,7 +40,9 @@ const PAUSA_MS = 1500; // pausa entre uma loja e outra, para não ser bloqueado
 const DOMINIOS_IGNORADOS = [/amazon\./i, /amzn\./i, /amaznlink/i, /\ba\.co\//i];
 // ===================
 
-const teste = process.argv.includes("--teste") || process.argv.includes("--debug");
+const validar = process.argv.includes("--validar");
+const teste = process.argv.includes("--teste") || process.argv.includes("--debug") || validar;
+const TEMPO_LIMITE_MS = 15000; // desiste de uma loja que demora mais que isso
 const debug = process.argv.includes("--debug"); // mostra o que a loja devolveu (para diagnóstico)
 let detalhesDebug = 0;
 const NAVEGADOR = {
@@ -106,6 +115,9 @@ function precoEmbutido(html) {
     /"current_price"\s*:\s*\{[^}]*?"value"\s*:\s*([\d.]+)/i,
     /"price"\s*:\s*\{\s*"value"\s*:\s*([\d.]+)/i,
     /"amount"\s*:\s*([\d.]+)\s*,\s*"currency_id"\s*:\s*"BRL"/i,
+    /"priceWithDiscount"\s*:\s*([\d.]+)/i, // KaBuM!
+    /"sellingPrice"\s*:\s*([\d.]+)/i, // lojas VTEX (Centauro, Netshoes...)
+    /"bestPrice"\s*:\s*([\d.]+)/i,
   ];
   for (const re of padroes) {
     const m = html.match(re);
@@ -130,9 +142,56 @@ function mostrarDebug(rotulo, pagina) {
 }
 
 async function abrir(url) {
-  const res = await fetch(url, { redirect: "follow", headers: NAVEGADOR });
+  const res = await fetch(url, { redirect: "follow", headers: NAVEGADOR, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
   const html = await res.text();
   return { status: res.status, url: res.url || url, html };
+}
+
+const BLOQUEIO = /captcha|account-verification|suspicious|unusual traffic|security check|access denied|are you a robot|não sou um robô/i;
+
+// Só descobre para onde o link curto leva (sem baixar a página)
+async function destino(url) {
+  try {
+    const res = await fetch(url, { redirect: "follow", headers: NAVEGADOR, signal: AbortSignal.timeout(TEMPO_LIMITE_MS) });
+    const html = await res.text();
+    return { url: res.url || url, html };
+  } catch {
+    return { url, html: "" };
+  }
+}
+
+// ----- Shopee pela API de afiliados (link ...-i.LOJA.PRODUTO ou /product/LOJA/PRODUTO)
+async function precoShopee(link) {
+  if (!shopeeConfigurada()) return { erro: "Shopee sem chave da API (SHOPEE_APP_ID/SHOPEE_SECRET)" };
+  const { url, html } = await destino(link);
+  const m =
+    `${url} ${html.slice(0, 20000)}`.match(/-i\.(\d+)\.(\d+)/) ||
+    `${url} ${html.slice(0, 20000)}`.match(/\/product\/(\d+)\/(\d+)/);
+  if (!m) return { erro: "não achei o código do produto da Shopee no link" };
+  const [, loja, item] = m;
+  const dados = await chamarShopee(`{ productOfferV2(itemId: ${item}, shopId: ${loja}, limit: 1) { nodes { priceMin priceMax } } }`);
+  const no = dados?.productOfferV2?.nodes?.[0];
+  const preco = no ? Number(no.priceMin ?? no.priceMax) : null;
+  return preco ? { preco, via: "API Shopee" } : { erro: "a API da Shopee não devolveu o produto (pode ter saído do ar)" };
+}
+
+// ----- AliExpress pela API de afiliados (link .../item/CODIGO.html)
+async function precoAliExpress(link) {
+  if (!aliexpressConfigurado()) return { erro: "AliExpress sem chave da API" };
+  const { url, html } = await destino(link);
+  const m = `${url} ${html.slice(0, 20000)}`.match(/\/item\/(\d{6,})\.html/) || `${url}`.match(/productIds?=(\d{6,})/);
+  if (!m) return { erro: "não achei o código do produto do AliExpress no link" };
+  const json = await chamarAliExpress("aliexpress.affiliate.productdetail.get", {
+    product_ids: m[1],
+    target_currency: "BRL",
+    target_language: "PT",
+    country: "BR",
+    tracking_id: process.env.ALIEXPRESS_TRACKING_ID,
+  });
+  const resp = json.aliexpress_affiliate_productdetail_get_response?.resp_result;
+  const produto = [].concat(resp?.result?.products?.product ?? [])[0];
+  const preco = produto ? numero(produto.target_sale_price ?? produto.sale_price) : null;
+  return preco ? { preco, via: "API AliExpress" } : { erro: "a API do AliExpress não devolveu o produto" };
 }
 
 // Mercado Livre: o link de afiliado (meli.la) abre uma página intermediária;
@@ -147,8 +206,16 @@ function codigoML(texto) {
   return null;
 }
 
-async function precoAtualDaLoja(link) {
+async function precoAtualDaLoja(link, loja = "") {
+  const alvo = `${link} ${loja}`;
+  if (/shopee/i.test(alvo)) return precoShopee(link);
+  if (/aliexpress|s\.click\.ali/i.test(alvo)) return precoAliExpress(link);
+
   const pagina = await abrir(link);
+  if (/shopee\.com/i.test(pagina.url)) return precoShopee(pagina.url);
+  if (/aliexpress\.com/i.test(pagina.url)) return precoAliExpress(pagina.url);
+  if (pagina.status === 403 || pagina.status === 429 || BLOQUEIO.test(pagina.html.slice(0, 50000)))
+    return { erro: `a loja bloqueou a leitura (${pagina.status})`, bloqueado: true };
   if (pagina.status >= 400) return { erro: `a loja respondeu ${pagina.status}` };
 
   let preco = lerPreco(pagina.html);
@@ -164,13 +231,15 @@ async function precoAtualDaLoja(link) {
           : `https://produto.mercadolivre.com.br/MLB-${cod.num}`;
       await esperar(500);
       const produto = await abrir(url);
+      if (produto.status === 403 || produto.status === 429 || BLOQUEIO.test(produto.html.slice(0, 50000)))
+        return { erro: `o Mercado Livre bloqueou a leitura (${produto.status})`, bloqueado: true };
       if (produto.status >= 400) return { erro: `o Mercado Livre respondeu ${produto.status}` };
       preco = lerPreco(produto.html);
       if (!preco) mostrarDebug("produto", produto);
     }
   }
 
-  return preco ? { preco } : { erro: "preço não encontrado na página" };
+  return preco ? { preco, via: "página da loja" } : { erro: "preço não encontrado na página" };
 }
 
 // ---------- Execução ----------
@@ -192,7 +261,7 @@ const corte = new Date(agora.getTime() - DIAS_NO_SITE * 86400000).toISOString();
 
 const { data, error } = await supabase
   .from("ofertas")
-  .select("id, titulo, loja, link, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes, id_externo")
+  .select("id, titulo, loja, link, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes, id_externo, cupom")
   .eq("ativa", true)
   .not("id_externo", "like", "lmd-%") // as da Lomadee são conferidas pelo coletar.mjs
   .not("id_externo", "like", "shp-%") // as da Shopee (API) também
@@ -208,10 +277,20 @@ if (error) {
   process.exit(1);
 }
 
-const pendentes = (data ?? [])
-  .filter((o) => o.link && !DOMINIOS_IGNORADOS.some((re) => re.test(o.link) || re.test(o.loja ?? "")))
-  .filter((o) => horaDeConferir(o, agora.getTime()))
-  .slice(0, MAX_POR_EXECUCAO);
+const conferiveis = (data ?? []).filter(
+  (o) => o.link && !DOMINIOS_IGNORADOS.some((re) => re.test(o.link) || re.test(o.loja ?? ""))
+);
+
+// --validar: até 4 ofertas de cada loja, sem esperar a hora da conferência
+const porLojaValidar = new Map();
+const pendentes = validar
+  ? conferiveis.filter((o) => {
+      const n = porLojaValidar.get(o.loja) ?? 0;
+      if (n >= 4) return false;
+      porLojaValidar.set(o.loja, n + 1);
+      return true;
+    })
+  : conferiveis.filter((o) => horaDeConferir(o, agora.getTime())).slice(0, MAX_POR_EXECUCAO);
 
 console.log(
   `\n${pendentes.length} ofertas para conferir agora (a cada ${HORAS_ENTRE_CONFERENCIAS}h, tolerância de ${TOLERANCIA_PERCENTUAL}%).` +
@@ -219,13 +298,16 @@ console.log(
     "\n"
 );
 
-const resumo = { mantidas: 0, baixaram: 0, expiradas: 0, renovadas: 0, semPreco: 0 };
+const resumo = { mantidas: 0, baixaram: 0, expiradas: 0, renovadas: 0, semPreco: 0, comCupom: 0 };
 const falhasPorLoja = {};
+const tabela = {}; // relatório por loja: lidas, sem preço, bloqueadas, maior diferença
+const linhaDa = (loja) =>
+  (tabela[loja] ??= { conferidas: 0, "preço lido": 0, "sem preço": 0, bloqueada: 0, "maior diferença %": 0, como: "" });
 
 for (const o of pendentes) {
   let resultado;
   try {
-    resultado = await precoAtualDaLoja(o.link);
+    resultado = await precoAtualDaLoja(o.link, o.loja);
   } catch (erro) {
     resultado = { erro: erro.message };
   }
@@ -241,11 +323,23 @@ for (const o of pendentes) {
 
   const campos = { preco_conferido_em: agoraIso };
   let acao;
+  const t = linhaDa(o.loja ?? "?");
+  t.conferidas++;
+  if (novo) {
+    t["preço lido"]++;
+    t.como = resultado.via ?? t.como;
+    t["maior diferença %"] = Math.max(t["maior diferença %"], Math.round(Math.abs((novo - atual) / atual) * 100));
+  } else if (resultado.bloqueado) t.bloqueada++;
+  else t["sem preço"]++;
 
   if (!novo) {
     resumo.semPreco++;
     falhasPorLoja[o.loja] = (falhasPorLoja[o.loja] ?? 0) + 1;
     acao = `sem preço (${resultado.erro})`;
+  } else if (o.cupom && novo > atual) {
+    // Com cupom, a loja mostra o preço antes do desconto do cupom: não expira por isso
+    resumo.comCupom++;
+    acao = `mantida (tem cupom ${o.cupom}; a loja mostra R$ ${novo} sem o cupom)`;
   } else if (precoSubiu(atual, novo)) {
     campos.expires_at = agoraIso;
     resumo.expiradas++;
@@ -278,8 +372,19 @@ for (const o of pendentes) {
 
 console.log(
   `\nConferência concluída: ${resumo.mantidas} mantidas, ${resumo.baixaram} com preço menor, ` +
-    `${resumo.expiradas} expiradas, ${resumo.renovadas} renovadas, ${resumo.semPreco} sem preço.`
+    `${resumo.expiradas} expiradas, ${resumo.renovadas} renovadas, ${resumo.semPreco} sem preço, ` +
+    `${resumo.comCupom} com cupom (mantidas).`
 );
+if (Object.keys(tabela).length) {
+  console.log("\nResultado por loja:");
+  console.table(tabela);
+  if (validar) {
+    console.log(
+      "Como ler: 'preço lido' alto = a conferência funciona nessa loja. 'bloqueada' = a loja não deixa robôs\n" +
+        "lerem a página (comum no Mercado Livre). 'maior diferença %' alta = vale abrir uma oferta e comparar.\n"
+    );
+  }
+}
 if (Object.keys(falhasPorLoja).length) {
   console.log("Lojas em que não foi possível ler o preço:", falhasPorLoja);
 }
@@ -289,7 +394,10 @@ if (!teste) {
     "conferir-precos",
     true,
     `${pendentes.length} conferidas: ${resumo.mantidas} mantidas, ${resumo.baixaram} baixaram, ` +
-      `${resumo.expiradas} expiradas, ${resumo.renovadas} renovadas, ${resumo.semPreco} sem preço`
+      `${resumo.expiradas} expiradas, ${resumo.renovadas} renovadas, ${resumo.semPreco} sem preço | ` +
+      Object.entries(tabela)
+        .map(([loja, l]) => `${loja}: ${l["preço lido"]}/${l.conferidas} lidas${l.bloqueada ? `, ${l.bloqueada} bloqueadas` : ""}`)
+        .join("; ")
   );
 }
 console.log("");
