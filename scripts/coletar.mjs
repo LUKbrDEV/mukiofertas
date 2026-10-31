@@ -96,12 +96,14 @@ async function main() {
       const categoria = item.categoria ?? classificar(item.titulo, item.loja);
       if (!categoria) continue; // sem categoria reconhecida: não publica
 
-      // Desconto mínimo depende da categoria: tecnologia aceita menos (veja lib/prazos.mjs)
+      // Desconto mínimo depende da categoria: tecnologia aceita menos (veja lib/prazos.mjs).
+      // Uma fonte pode trazer a regra própria (ex.: tecnologia da KaBuM!, no painel).
+      const { desconto_minimo: minimoDaFonte, ...dados } = item;
       const desconto = ((item.preco_antigo - item.preco_atual) / item.preco_antigo) * 100;
-      if (desconto < descontoMinimoDa(categoria)) continue;
+      if (desconto < Math.round(minimoDaFonte ?? descontoMinimoDa(categoria)) - 0.5) continue;
 
       linhas.push({
-        ...item,
+        ...dados,
         categoria,
         ativa: true,
         expires_at: item.expires_at ?? null, // se a oferta voltou, deixa de estar expirada

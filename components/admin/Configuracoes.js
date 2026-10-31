@@ -30,6 +30,9 @@ const PADRAO = {
   awin_horas_entre_downloads: 3,
   awin_ler_paginas: true,
   awin_paginas_por_execucao: 80,
+  awin_desconto_tecnologia: 15,
+  awin_max_tecnologia: 40,
+  awin_max_por_categoria_tecnologia: 10,
   cupons_ativo: true,
   cupons_max_por_rede: 40,
   aliexpress_ativo: true,
@@ -338,7 +341,7 @@ export default function Configuracoes() {
             sufixo="ofertas"
             min={1}
             max={200}
-            dica="As de maior desconto, no máximo 6 por categoria."
+            dica="Das outras categorias (fora tecnologia), as de maior desconto, no máximo 6 por categoria."
             valor={c.awin_max_por_execucao}
             aoMudar={mudar("awin_max_por_execucao")}
           />
@@ -359,6 +362,40 @@ export default function Configuracoes() {
             dica="Cada página é relida só depois de 20 horas. Mais páginas = mais ofertas, mas o robô demora mais."
             valor={c.awin_paginas_por_execucao}
             aoMudar={mudar("awin_paginas_por_execucao")}
+          />
+        </div>
+        <h3 style={{ margin: "18px 0 4px" }}>🖥️ Regra de tecnologia da KaBuM!</h3>
+        <p className="adm-sub" style={{ marginTop: 0 }}>
+          Vale para hardware, gabinete, placa-mãe, SSD, memória, placa de vídeo, PlayStation, Xbox, controles, jogos,
+          periféricos, monitores, notebooks, celulares, TVs, roteadores e cadeiras gamer. Tem cota própria: não
+          disputa espaço com as outras categorias.
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Desconto mínimo para tecnologia"
+            sufixo="%"
+            min={1}
+            max={90}
+            valor={c.awin_desconto_tecnologia}
+            aoMudar={mudar("awin_desconto_tecnologia")}
+          />
+          <Numero
+            rotulo="Ofertas de tecnologia por download"
+            sufixo="ofertas"
+            min={0}
+            max={300}
+            dica="Somam com as 'Ofertas por download' das outras categorias."
+            valor={c.awin_max_tecnologia}
+            aoMudar={mudar("awin_max_tecnologia")}
+          />
+          <Numero
+            rotulo="Máximo da mesma categoria de tecnologia"
+            sufixo="ofertas"
+            min={1}
+            max={100}
+            dica="Variedade: ex.: no máximo 10 SSDs por download."
+            valor={c.awin_max_por_categoria_tecnologia}
+            aoMudar={mudar("awin_max_por_categoria_tecnologia")}
           />
         </div>
       </section>

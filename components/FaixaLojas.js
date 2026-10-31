@@ -341,7 +341,7 @@ export default function FaixaLojas({ lojas }) {
             <ul className="fl-cats">
               {loja.categorias.map((c) => (
                 <li key={c.slug}>
-                  <Link className="fl-cat" href={`/categoria/${c.slug}?loja=${loja.slug}`}>
+                  <Link className="fl-cat" href={c.href ?? `/categoria/${c.slug}?loja=${loja.slug}`}>
                     <span aria-hidden="true">{c.emoji}</span>
                     {c.nome}
                     <b>{c.total}</b>

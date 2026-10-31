@@ -44,12 +44,28 @@ const PADRAO = {
   awin_max_por_execucao: 40, // ofertas por loja a cada download
   awin_horas_entre_downloads: 3, // baixa o feed de X em X horas
   awin_ler_paginas: true, // abre a página do produto para ler o preço "de"
+  // Regra só de tecnologia (hardware, gabinete, placa-mãe, consoles, periféricos, monitores...)
+  awin_desconto_tecnologia: 15, // % mínimo para tecnologia entrar
+  awin_max_tecnologia: 40, // ofertas de tecnologia por download (fora as "Ofertas por download" do resto)
+  awin_max_por_categoria_tecnologia: 10, // no máximo X da mesma categoria de tecnologia por download
   awin_paginas_por_execucao: 80, // páginas lidas a cada download
 };
 const DESCONTO_MAXIMO = 85; // acima disso é quase sempre erro de preço no feed
 const DIAS_HISTORICO = 30; // o preço normal é a mediana destes últimos dias
 const DIAS_MINIMOS_HISTORICO = 3; // precisa ter o preço de pelo menos X dias para comparar
-const MAX_POR_CATEGORIA = 6; // variedade: no máximo X ofertas da mesma categoria por download
+const MAX_POR_CATEGORIA = 6; // variedade: no máximo X ofertas da mesma categoria por download (fora tecnologia)
+
+// O que conta como tecnologia na KaBuM! (além das categorias de tecnologia do site)
+const TECNOLOGIA_KABUM = new Set([
+  ...CATEGORIAS_TECNOLOGIA,
+  "games", "consoles", "controles", "jogos", // PlayStation 5, Xbox, controles, jogos
+  "perifericos", "redes", "cadeiras-mesas", "acessorios-notebook", "acessorios-monitor",
+]);
+const ehTecnologia = (o) => TECNOLOGIA_KABUM.has(o._categoria);
+
+// Desconto mínimo de cada produto: tecnologia tem a regra própria da KaBuM!
+const descontoMinimoKabum = (o) =>
+  ehTecnologia(o) ? ajuste("awin_desconto_tecnologia") : descontoMinimoDa(o._categoria);
 const HORAS_ENTRE_LEITURAS = 20; // relê a página do mesmo produto só depois de X horas
 const PAGINAS_AO_MESMO_TEMPO = 3; // páginas abertas em paralelo (não sobrecarregar a loja)
 const BLOQUEIOS_PARA_PARAR = 5; // se a loja bloquear X vezes seguidas, para de ler páginas
@@ -110,11 +126,25 @@ const numero = (v) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+// Esconde a chave da Awin nas mensagens de erro (o log do GitHub é visível no painel)
+const semChave = (t) => String(t).replace(/apikey\/[^/\s"]+/gi, "apikey/***");
+
 export async function baixarFeed(url) {
-  const resposta = await fetch(url, { signal: AbortSignal.timeout(180000) });
+  let resposta;
+  // a Awin às vezes responde 500/503 por instantes: tenta de novo até 3 vezes
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    resposta = await fetch(url, { signal: AbortSignal.timeout(180000) });
+    if (resposta.ok || ![500, 502, 503, 504].includes(resposta.status) || tentativa === 3) break;
+    console.warn(`[awin] A Awin respondeu ${resposta.status}; tentando de novo em ${tentativa * 15}s...`);
+    await new Promise((r) => setTimeout(r, tentativa * 15000));
+  }
   if (!resposta.ok) {
-    const texto = (await resposta.text()).slice(0, 200);
-    throw new Error(`a Awin respondeu ${resposta.status}: ${texto}`);
+    const texto = semChave((await resposta.text()).slice(0, 300)).slice(0, 160);
+    const dica =
+      resposta.status === 500 && /\/cid\//.test(url)
+        ? " | O endereço do feed tem uma lista enorme de categorias (/cid/...). Gere o feed de novo no Create-a-Feed sem escolher categorias (veja as instruções)."
+        : "";
+    throw new Error(`a Awin respondeu ${resposta.status}: ${texto}${dica}`);
   }
   let dados = Buffer.from(await resposta.arrayBuffer());
   // gzip (o endereço do Create-a-Feed costuma ter /compression/gzip/)
@@ -164,7 +194,7 @@ function passaNosFiltros(o) {
   if (!o || !o._categoria || !o.preco_antigo) return false;
   if (o.preco_atual <= ajuste("awin_preco_minimo")) return false;
   if (o._desconto >= DESCONTO_MAXIMO) return false;
-  return o._desconto >= descontoMinimoDa(o._categoria);
+  return o._desconto >= descontoMinimoKabum(o);
 }
 
 const banco = () =>
@@ -372,12 +402,13 @@ async function buscarExistentes(loja, ids) {
 }
 
 // Escolhe as melhores, sem repetir categoria demais
-function escolher(candidatos, maximo) {
+function escolher(candidatos, maximo, maxPorCategoria = MAX_POR_CATEGORIA) {
   const porCategoria = new Map();
   const escolhidas = [];
+  if (maximo <= 0) return escolhidas;
   for (const o of candidatos.sort((a, b) => b._desconto - a._desconto)) {
     const n = porCategoria.get(o._categoria) ?? 0;
-    if (n >= MAX_POR_CATEGORIA) continue;
+    if (n >= maxPorCategoria) continue;
     porCategoria.set(o._categoria, n + 1);
     escolhidas.push(o);
     if (escolhidas.length >= maximo) break;
@@ -441,14 +472,30 @@ export async function buscar({ forcar = false } = {}) {
       }
 
       const bons = produtos.filter(passaNosFiltros);
-      const escolhidas = escolher(bons, ajuste("awin_max_por_execucao"));
-      console.log(`[awin] ${feed.loja}: ${linhas.length} produtos no feed, ${bons.length} com desconto, ${escolhidas.length} escolhidos.`);
+      // Tecnologia tem a sua própria cota, para não disputar espaço com o resto
+      const tecnologia = escolher(
+        bons.filter(ehTecnologia),
+        ajuste("awin_max_tecnologia"),
+        ajuste("awin_max_por_categoria_tecnologia")
+      );
+      const outras = escolher(
+        bons.filter((o) => !ehTecnologia(o)),
+        ajuste("awin_max_por_execucao")
+      );
+      const escolhidas = [...tecnologia, ...outras];
+      console.log(
+        `[awin] ${feed.loja}: ${linhas.length} produtos no feed, ${bons.length} com desconto ` +
+          `(${bons.filter(ehTecnologia).length} de tecnologia), ${escolhidas.length} escolhidos ` +
+          `(${tecnologia.length} de tecnologia).`
+      );
 
       const existentes = await buscarExistentes(feed.loja, escolhidas.map((o) => o.id_externo));
-      for (const { _desconto, _categoria, _pagina, _fonte, ...o } of escolhidas) {
+      for (const escolhida of escolhidas) {
+        const { _desconto, _categoria, _pagina, _fonte, ...o } = escolhida;
         itens.push({
           ...o,
           categoria: _categoria,
+          desconto_minimo: descontoMinimoKabum(escolhida), // o coletar.mjs respeita esta regra
           publicada_em: existentes.get(o.id_externo)?.publicada_em ?? agora,
         });
       }

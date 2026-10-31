@@ -8,7 +8,15 @@
 import Link from "next/link";
 import ListaOfertas from "../../components/ListaOfertas";
 import CupomRevelar from "../../components/CupomRevelar";
-import { buscarOfertas, buscarCupons, CATEGORIA_CUPONS } from "../../lib/ofertas";
+import { buscarOfertas, buscarCupons, CATEGORIA_CUPONS, slugDaLoja } from "../../lib/ofertas";
+import { lojaDoNome } from "../../data/lojas";
+
+// Loja de cada cupom pelo endereço (?loja=kabum): as lojas do data/lojas.js juntam todos os
+// nomes com que vêm das redes (ex.: "KaBuM!" e "Kabum BR" viram "KaBuM!")
+const lojaDoCupom = (nome) => {
+  const l = lojaDoNome(nome);
+  return l ? { slug: l.slug, nome: l.nome } : { slug: slugDaLoja(nome), nome };
+};
 import { SITE } from "../../lib/site";
 
 export const revalidate = 60;
@@ -72,10 +80,15 @@ export default async function PaginaCupons({ searchParams }) {
 
   // Filtro por loja (só as lojas que têm cupom agora)
   const lojas = [
-    ...new Set([...todos.filter((o) => !o.expirada).map((o) => o.loja), ...manuais.map((c) => c.loja).filter(Boolean)]),
-  ].sort();
-  const cupons = lojaPedida ? todos.filter((o) => o.loja === lojaPedida) : todos;
-  const doPainel = lojaPedida ? manuais.filter((c) => c.loja === lojaPedida) : manuais;
+    ...new Map(
+      [...todos.filter((o) => !o.expirada).map((o) => o.loja), ...manuais.map((c) => c.loja).filter(Boolean)]
+        .map(lojaDoCupom)
+        .map((l) => [l.slug, l])
+    ).values(),
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
+  const daLoja = (nome) => !lojaPedida || (nome && lojaDoCupom(nome).slug === lojaPedida);
+  const cupons = todos.filter((o) => daLoja(o.loja));
+  const doPainel = manuais.filter((c) => daLoja(c.loja));
   const noAr = cupons.filter((o) => !o.expirada).length + doPainel.length;
 
   return (
@@ -100,11 +113,11 @@ export default async function PaginaCupons({ searchParams }) {
           </Link>
           {lojas.map((l) => (
             <Link
-              key={l}
-              href={`/cupons-de-desconto?loja=${encodeURIComponent(l)}`}
-              aria-current={lojaPedida === l ? "page" : undefined}
+              key={l.slug}
+              href={`/cupons-de-desconto?loja=${l.slug}`}
+              aria-current={lojaPedida === l.slug ? "page" : undefined}
             >
-              {l}
+              {l.nome}
             </Link>
           ))}
         </nav>

@@ -72,14 +72,25 @@ function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofer
 
 // Monta a faixa de lojas: SÓ as lojas cadastradas no data/lojas.js, na ordem de lá.
 // Lojas novas não aparecem sozinhas quando chega uma oferta: você escolhe quando colocar.
-function listaDeCategorias(contagem) {
-  return Object.entries(contagem)
+function listaDeCategorias(contagem, slugLoja) {
+  const lista = Object.entries(contagem)
     .map(([slug, total]) => {
       const c = categorias.find((x) => x.slug === slug);
       return c ? { slug, nome: c.nome, emoji: c.emoji, total } : null;
     })
     .filter(Boolean)
     .sort((a, b) => b.total - a.total);
+  // Cupons não são um departamento: entram como atalho para a aba Cupons, filtrada pela loja
+  if (contagem.cupons) {
+    lista.unshift({
+      slug: "cupons",
+      nome: "Cupons",
+      emoji: "🏷️",
+      total: contagem.cupons,
+      href: `/cupons-de-desconto?loja=${slugLoja}`,
+    });
+  }
+  return lista;
 }
 
 function montarLojas(doBanco) {
@@ -101,7 +112,7 @@ function montarLojas(doBanco) {
     cor: l.cor,
     artigo: l.artigo,
     total: l.total,
-    categorias: listaDeCategorias(l.categorias),
+    categorias: listaDeCategorias(l.categorias, l.slug),
   }));
 }
 
