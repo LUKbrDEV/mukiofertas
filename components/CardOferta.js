@@ -13,18 +13,22 @@ export default function CardOferta({ oferta, previa = false }) {
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
   const expirada = Boolean(oferta.expirada);
 
-  // Foto e título: abrem a página do produto, com os comentários
-  const paginaProps = previa ? { href: "#" } : { href: `/oferta/${oferta.id}` };
+  // Cupom (aba Cupons): não tem página de produto, então foto, título e botão vão direto para a loja
+  const ehCupom = oferta.categoria === "cupons";
 
   // Botão: vai para a loja (link de afiliado). Em oferta expirada, vai para a página do produto
+  const paginaDoProduto = previa ? { href: "#" } : { href: `/oferta/${oferta.id}` };
   const lojaProps =
     previa || expirada
-      ? paginaProps
+      ? paginaDoProduto
       : {
           href: `/ir/${oferta.id}`,
           target: "_blank",
           rel: "sponsored noopener noreferrer",
         };
+
+  // Foto e título: abrem a página do produto, com os comentários (cupom: a loja)
+  const paginaProps = ehCupom && !previa && !expirada ? lojaProps : paginaDoProduto;
 
   const classes = [
     "cartao",
@@ -34,7 +38,8 @@ export default function CardOferta({ oferta, previa = false }) {
     .filter(Boolean)
     .join(" ");
 
-  const mostrarEconomia = economia > 0 && !expirada;
+  // Postagem que é só um cupom: sem preço, com o código em destaque
+  const mostrarEconomia = economia > 0 && !expirada && !ehCupom;
   const mostrarCupom = Boolean(oferta.cupom) && !expirada;
 
   return (
@@ -46,7 +51,7 @@ export default function CardOferta({ oferta, previa = false }) {
         ) : (
           <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
         )}
-        {desconto > 0 && (
+        {desconto > 0 && !ehCupom && (
           <span className="desconto" data-nivel={nivelDoDesconto(desconto)}>
             -{desconto}%
           </span>
@@ -70,9 +75,15 @@ export default function CardOferta({ oferta, previa = false }) {
         </h3>
 
         <div className="cartao-precos">
-          <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
-          {desconto > 0 && (
-            <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
+          {ehCupom ? (
+            <span className="preco-atual">🎟️ Cupom</span>
+          ) : (
+            <>
+              <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
+              {desconto > 0 && (
+                <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
+              )}
+            </>
           )}
         </div>
 
@@ -90,14 +101,16 @@ export default function CardOferta({ oferta, previa = false }) {
         <p className="cartao-rodape">
           <span>{tempoAtras(oferta.atualizado_em)}</span>
           {oferta.autor && <span className="cartao-autor">por {oferta.autor}</span>}
-          <a {...paginaProps} className="cartao-comentarios">
-            💬 Comentários
-          </a>
+          {!ehCupom && (
+            <a {...paginaProps} className="cartao-comentarios">
+              💬 Comentários
+            </a>
+          )}
         </p>
       </div>
 
       <a {...lojaProps} className="botao cartao-botao">
-        {expirada ? "Ver comentários" : "Ver oferta"}
+        {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
       </a>
     </article>
   );

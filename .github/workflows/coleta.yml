@@ -15,6 +15,7 @@ on:
           - coletar
           - conferir-precos
           - postar-telegram
+          - kabum
 
 concurrency:
   group: coleta
@@ -35,7 +36,7 @@ jobs:
       - run: npm ci
 
       # Lomadee + Shopee + AliExpress + Awin (KaBuM!) + expirar por preço + renovar + apagar as expiradas antigas
-      - name: Coletar ofertas (Lomadee, Shopee, AliExpress e KaBuM!)
+      - name: Coletar ofertas (Lomadee, Shopee, AliExpress, KaBuM! e cupons)
         if: ${{ !inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
         run: node scripts/coletar.mjs
         env:
@@ -48,6 +49,18 @@ jobs:
           ALIEXPRESS_APP_KEY: ${{ secrets.ALIEXPRESS_APP_KEY }}
           ALIEXPRESS_APP_SECRET: ${{ secrets.ALIEXPRESS_APP_SECRET }}
           ALIEXPRESS_TRACKING_ID: ${{ secrets.ALIEXPRESS_TRACKING_ID }}
+          AWIN_FEED_KABUM: ${{ secrets.AWIN_FEED_KABUM }}
+          # cupons da Awin (opcional)
+          AWIN_API_TOKEN: ${{ secrets.AWIN_API_TOKEN }}
+          AWIN_PUBLISHER_ID: ${{ secrets.AWIN_PUBLISHER_ID }}
+
+      # Só a KaBuM! (botão do painel admin): baixa o catálogo da Awin na hora, sem esperar o horário
+      - name: Buscar ofertas da KaBuM! (agora)
+        if: ${{ inputs.tarefa == 'kabum' }}
+        run: node scripts/coletar.mjs --so=awin --forcar
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           AWIN_FEED_KABUM: ${{ secrets.AWIN_FEED_KABUM }}
 
       # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma

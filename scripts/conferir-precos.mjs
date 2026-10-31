@@ -267,6 +267,8 @@ const { data, error } = await supabase
   .not("id_externo", "like", "shp-%") // as da Shopee (API) também
   .not("id_externo", "like", "ali-%") // e as do AliExpress (API)
   .not("id_externo", "like", "awn-%") // e as da Awin (KaBuM!), que o feed atualiza
+  .not("id_externo", "like", "cp%-%") // cupons da Lomadee/Awin: a coleta atualiza
+  .or("categoria.is.null,categoria.neq.cupons") // cupons não têm preço para conferir
   .or(`expires_at.is.null,expires_at.gt.${agoraIso}`)
   .gt("publicada_em", corte)
   .order("preco_conferido_em", { ascending: true, nullsFirst: true })

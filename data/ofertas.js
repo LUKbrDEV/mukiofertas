@@ -1,4 +1,4 @@
-// Substitua o "export const categorias = [...]" do data/ofertas.js por este bloco.
+// Substitua o "export const categorias = [...]" do data/ofertas.js por este bloco (até o "];").
 // A ordem aqui é a ordem no menu Departamentos (só aparecem as que têm ofertas no ar).
 // "pai" = subcategoria: aparece dentro do departamento indicado (ex.: SSD dentro de Hardware).
 
@@ -61,5 +61,10 @@ export const categorias = [
   { slug: "brinquedos", nome: "Brinquedos", emoji: "🧸" },
   { slug: "livros", nome: "Livros", emoji: "📚" },
   { slug: "esporte", nome: "Esporte e Lazer", emoji: "⚽" },
-  { slug: "outros", nome: "Outras ofertas", emoji: "🏷️" },
+  { slug: "mercado", nome: "Mercado e Bebidas", emoji: "🛒" },
+  { slug: "pet", nome: "Pet Shop", emoji: "🐾" },
+  { slug: "automotivo", nome: "Automotivo", emoji: "🚗" },
+  { slug: "papelaria", nome: "Papelaria e Escritório", emoji: "✏️" },
+  // "Outras ofertas" não existe mais. Postagens que são só um cupom ficam na aba Cupons
+  // (/cupons-de-desconto), fora dos departamentos.
 ];

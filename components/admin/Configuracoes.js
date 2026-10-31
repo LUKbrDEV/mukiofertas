@@ -30,6 +30,8 @@ const PADRAO = {
   awin_horas_entre_downloads: 3,
   awin_ler_paginas: true,
   awin_paginas_por_execucao: 80,
+  cupons_ativo: true,
+  cupons_max_por_rede: 40,
   aliexpress_ativo: true,
   aliexpress_preco_minimo: 50,
   aliexpress_avaliacao_minima: 90,
@@ -357,6 +359,33 @@ export default function Configuracoes() {
             dica="Cada página é relida só depois de 20 horas. Mais páginas = mais ofertas, mas o robô demora mais."
             valor={c.awin_paginas_por_execucao}
             aoMudar={mudar("awin_paginas_por_execucao")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🏷️ Cupons</h2>
+        <p>
+          O robô busca os cupons da Lomadee e da Awin a cada 30 minutos e coloca na aba Cupons do site. Os cupons do
+          Telegram e os cadastrados na aba Cupons deste painel também aparecem lá.
+        </p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Buscar cupons da Lomadee e da Awin"
+            dica="Desligado: o robô não traz cupons novos dessas redes (os do Telegram e do painel continuam)."
+            ligado={c.cupons_ativo}
+            aoMudar={mudar("cupons_ativo")}
+          />
+        </div>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Cupons por rede"
+            sufixo="cupons"
+            min={1}
+            max={200}
+            dica="Máximo de cupons de cada rede (Lomadee, Awin) a cada execução."
+            valor={c.cupons_max_por_rede}
+            aoMudar={mudar("cupons_max_por_rede")}
           />
         </div>
       </section>

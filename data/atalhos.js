@@ -5,11 +5,7 @@ export const atalhos = [
   { href: "/", nome: "🔥 Promoções", tambem: ["/maiores-descontos", "/relampago"] },
   { href: "/black-friday", nome: "🖤 Black Friday" },
   { href: "/cupons", nome: "🎟️ Ofertas com cupom" },
-  {
-    href: "/categoria/hardware",
-    nome: "🖥️ Hardware",
-    tambem: ["/hardware", "/categoria/processadores", "/categoria/placa-mae", "/categoria/ssd", "/categoria/placa-de-video", "/categoria/memoria-ram"],
-  },
+  { href: "/cupons-de-desconto", nome: "🏷️ Cupons" },
   {
     href: "/categoria/monitores",
     nome: "📺 Monitores",

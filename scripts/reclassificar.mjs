@@ -13,10 +13,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../lib/classificar.mjs";
 
-const SLUG_OUTROS = "outros"; // mesmo slug de "Outras ofertas" em data/ofertas.js
+// "Outras ofertas" deixou de existir: as ofertas de lá vão para o departamento certo,
+// para a aba Cupons (as que são só um cupom) ou ficam sem categoria (só na página inicial).
+// Rode com --sem-categoria para ver a lista das que o site ainda não reconhece.
 
 // Categorias que continuam existindo: se o classificador não reconhecer o título,
-// a oferta fica onde está. As que deixaram de existir (ex.: "tecnologia") vão para "outros".
+// a oferta fica onde está. As outras (ex.: "outros", "tecnologia") ficam sem categoria.
 const VALIDAS = new Set([
   "ar-condicionado", "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
   "jogos", "controles", "consoles", "fones", "monitor", "televisores", "celulares", "notebook", "tablets", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
@@ -24,7 +26,7 @@ const VALIDAS = new Set([
   "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete", "relogios", "livros",
   "smartphones", "hardware", "perifericos", "computadores", "notebooks", "monitores",
   "games", "cadeiras-mesas", "eletronicos", "casa-inteligente", "redes", "casa", "limpeza",
-  "perfumaria", "beleza", "moda", "mochilas", "esporte", SLUG_OUTROS,
+  "perfumaria", "beleza", "moda", "mochilas", "esporte", "mercado", "pet", "automotivo", "papelaria", "cupons",
 ]);
 
 const aplicar = process.argv.includes("--aplicar");
@@ -59,14 +61,14 @@ const mudancas = [];
 
 for (const o of ofertas) {
   const atual = o.categoria;
-  const nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : SLUG_OUTROS);
+  const nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : null);
   if (nova !== atual) mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: nova });
 }
 
 // Resumo por categoria
 const resumo = {};
 for (const m of mudancas) {
-  const chaveResumo = `${m.de ?? "(vazia)"} -> ${m.para}`;
+  const chaveResumo = `${m.de ?? "(sem categoria)"} -> ${m.para ?? "(sem categoria)"}`;
   resumo[chaveResumo] = (resumo[chaveResumo] ?? 0) + 1;
 }
 
@@ -75,6 +77,12 @@ console.table(resumo);
 console.log("\nExemplos:");
 for (const m of mudancas.slice(0, 25)) {
   console.log(`  [${m.de} -> ${m.para}] ${m.titulo}`);
+}
+
+if (process.argv.includes("--sem-categoria")) {
+  const sem = ofertas.filter((o) => !(classificar(o.titulo, o.loja) ?? (VALIDAS.has(o.categoria) ? o.categoria : null)));
+  console.log(`\n${sem.length} ofertas que o site não reconhece (mande esta lista para acrescentar palavras):`);
+  for (const o of sem) console.log(`  ${o.titulo}`);
 }
 
 if (!aplicar) {

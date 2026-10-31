@@ -3,6 +3,7 @@ import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 import { buscar as buscarShopee } from "./fontes/shopee.mjs";
 import { buscar as buscarAliExpress } from "./fontes/aliexpress.mjs";
 import { buscar as buscarAwin } from "./fontes/awin.mjs";
+import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 import { limparExpiradas } from "../lib/limpeza.mjs";
@@ -32,7 +33,22 @@ const supabase = createClient(
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 // Lista das fontes ativas. Novas fontes entram aqui.
-const fontes = [buscarLomadee, buscarShopee, buscarAliExpress, buscarAwin];
+const TODAS_AS_FONTES = {
+  lomadee: buscarLomadee,
+  shopee: buscarShopee,
+  aliexpress: buscarAliExpress,
+  awin: buscarAwin,
+  cupons: buscarCupons, // cupons da Lomadee e da Awin (aba Cupons)
+};
+
+// Opções da linha de comando (usadas pelos botões do painel admin):
+//   --so=awin   roda só essa fonte (ex.: botão "Buscar ofertas da KaBuM!")
+//   --forcar    ignora o horário de download da Awin (que normalmente é de X em X horas)
+const SO = process.argv.find((a) => a.startsWith("--so="))?.slice(5);
+const FORCAR = process.argv.includes("--forcar");
+const fontes = (SO ? SO.split(",").map((n) => TODAS_AS_FONTES[n.trim()]).filter(Boolean) : Object.values(TODAS_AS_FONTES)).map(
+  (buscar) => () => buscar({ forcar: FORCAR })
+);
 
 async function main() {
   const config = await aplicarConfigDoBanco(supabase);
@@ -70,6 +86,11 @@ async function main() {
 
     const linhas = [];
     for (const item of itens) {
+      // Cupons não têm preço "de": entram direto na aba Cupons
+      if (item.categoria === "cupons") {
+        linhas.push({ ...item, ativa: true, origem: "automatica", atualizado_em: agora });
+        continue;
+      }
       if (!item.preco_antigo || item.preco_antigo <= item.preco_atual) continue;
 
       const categoria = item.categoria ?? classificar(item.titulo, item.loja);
@@ -216,6 +237,7 @@ async function main() {
   const limpeza = await limparExpiradas(supabase);
 
   const resumo =
+    (SO ? `Só ${SO === "awin" ? "KaBuM!" : SO} (pelo painel): ` : "") +
     `${publicadas} publicadas/atualizadas, ${expiradasPorPreco} expiradas por preço, ` +
     `${renovadas} renovadas, ${limpeza.total} apagadas` +
     (falhas.length ? ` | falha: ${falhas.join("; ")}` : "");
