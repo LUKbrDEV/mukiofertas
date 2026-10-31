@@ -1,5 +1,6 @@
 import IconeRaio from "./IconeRaio";
 import BotaoCupom from "./BotaoCupom";
+import { lojaDoNome } from "../data/lojas";
 import {
   calcularDesconto,
   nivelDoDesconto,
@@ -15,6 +16,11 @@ export default function CardOferta({ oferta, previa = false }) {
 
   // Cupom (aba Cupons): não tem página de produto, então foto, título e botão vão direto para a loja
   const ehCupom = oferta.categoria === "cupons";
+  // Loja cadastrada no data/lojas.js com logo: usada quando a oferta não tem foto
+  const lojaComLogo = (() => {
+    const l = lojaDoNome(oferta.loja);
+    return l?.logo ? l : null;
+  })();
 
   // Botão: vai para a loja (link de afiliado). Em oferta expirada, vai para a página do produto
   const paginaDoProduto = previa ? { href: "#" } : { href: `/oferta/${oferta.id}` };
@@ -48,6 +54,44 @@ export default function CardOferta({ oferta, previa = false }) {
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={oferta.imagem} alt="" loading="lazy" />
+        ) : lojaComLogo ? (
+          // Sem foto: cartão com a logo e a cor da loja (ex.: cupons da KaBuM!)
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              background: `radial-gradient(circle at 75% 20%, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%), ${lojaComLogo.cor}`,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lojaComLogo.logo}
+              alt=""
+              loading="lazy"
+              style={{ width: "62%", height: "auto", maxHeight: "38%", objectFit: "contain" }}
+            />
+            {ehCupom && (
+              <span
+                style={{
+                  padding: "3px 12px",
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  color: lojaComLogo.cor,
+                  background: "#fff",
+                  borderRadius: 999,
+                }}
+              >
+                CUPOM
+              </span>
+            )}
+          </span>
         ) : (
           <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
         )}

@@ -7,6 +7,11 @@
 // - logo: imagem em public/lojas/ (lojas sem logo aparecem com o nome escrito)
 // - cor: cor de fundo do botão (a mesma do fundo da logo)
 // - artigo: "da" ou "do" (ex.: ofertas DA Shopee, ofertas DO Mercado Livre)
+// SÓ as lojas desta lista aparecem na faixa da página inicial. Para colocar uma loja nova:
+//   1) salve a logo (PNG sem fundo, de preferência branca) em public/lojas/nome-da-loja.png
+//   2) copie uma das linhas abaixo e troque nome, slug, nomesNoBanco, logo e cor
+//   3) em nomesNoBanco, coloque TODOS os nomes com que a loja aparece nas ofertas
+//      (a mesma loja pode vir com nomes diferentes de cada rede, ex.: "KaBuM!" e "Kabum BR")
 // A ordem aqui é a ordem na tela. Para voltar com a Magalu (a logo continua em public/lojas/magalu.png):
 //   { nome: "Magalu", slug: "magalu", nomesNoBanco: ["Magalu", "Magazine Luiza"], artigo: "da", logo: "/lojas/magalu.png", cor: "#0e89ff" },
 
@@ -23,7 +28,7 @@ export const lojasDestaque = [
   {
     nome: "KaBuM!",
     slug: "kabum",
-    nomesNoBanco: ["KaBuM!", "KaBuM", "Kabum"],
+    nomesNoBanco: ["KaBuM!", "KaBuM", "Kabum", "Kabum BR", "KaBuM BR"], // Awin, Telegram e Lomadee
     artigo: "da",
     logo: "/lojas/kabum.png",
     cor: "#0060b1",

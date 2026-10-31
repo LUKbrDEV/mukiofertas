@@ -4,8 +4,8 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
-import { buscarOfertas, buscarMaisProcuradas, buscarLojasComCategorias, slugDaLoja } from "../lib/ofertas";
-import { lojasDestaque, lojaDoNome, corDaLoja } from "../data/lojas";
+import { buscarOfertas, buscarMaisProcuradas, buscarLojasComCategorias } from "../lib/ofertas";
+import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { ordenarOfertas } from "../lib/ordenar";
 
@@ -70,8 +70,8 @@ function Faixa({ id, titulo, subtitulo, href, textoBotao = "Ver todas →", ofer
   );
 }
 
-// Monta a faixa de lojas: primeiro as que têm logo (na ordem do data/lojas.js), depois todas as
-// outras lojas com ofertas no ar, da que tem mais ofertas para a que tem menos.
+// Monta a faixa de lojas: SÓ as lojas cadastradas no data/lojas.js, na ordem de lá.
+// Lojas novas não aparecem sozinhas quando chega uma oferta: você escolhe quando colocar.
 function listaDeCategorias(contagem) {
   return Object.entries(contagem)
     .map(([slug, total]) => {
@@ -89,23 +89,12 @@ function montarLojas(doBanco) {
   };
 
   const comLogo = lojasDestaque.map((l) => ({ ...l, total: 0, categorias: {} }));
-  const outras = [];
   for (const l of doBanco) {
-    const config = lojaDoNome(l.nome);
+    const config = lojaDoNome(l.nome); // ex.: "Kabum BR" (Lomadee) soma na KaBuM!
     if (config) somar(comLogo.find((x) => x.slug === config.slug), l);
-    else
-      outras.push({
-        nome: l.nome,
-        slug: slugDaLoja(l.nome),
-        artigo: "da",
-        logo: null,
-        cor: corDaLoja(l.nome),
-        total: l.total,
-        categorias: { ...l.categorias },
-      });
   }
 
-  return [...comLogo, ...outras.sort((a, b) => b.total - a.total)].map((l) => ({
+  return comLogo.map((l) => ({
     nome: l.nome,
     slug: l.slug,
     logo: l.logo ?? null,
