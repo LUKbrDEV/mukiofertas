@@ -7,7 +7,7 @@
 
 import Link from "next/link";
 import ListaOfertas from "../../components/ListaOfertas";
-import BotaoCupom from "../../components/BotaoCupom";
+import CupomRevelar from "../../components/CupomRevelar";
 import { buscarOfertas, buscarCupons, CATEGORIA_CUPONS } from "../../lib/ofertas";
 import { SITE } from "../../lib/site";
 
@@ -117,7 +117,7 @@ export default async function PaginaCupons({ searchParams }) {
             <article key={c.id} className="cupom-manual">
               {c.loja && <span className="cupom-manual-loja">{c.loja}</span>}
               {c.descricao && <p className="cupom-manual-desc">{c.descricao}</p>}
-              <BotaoCupom codigo={c.codigo} />
+              <CupomRevelar codigo={c.codigo} />
               {c.validade && (
                 <p className="cupom-manual-validade">
                   Válido até {new Date(`${c.validade}T12:00:00`).toLocaleDateString("pt-BR")}

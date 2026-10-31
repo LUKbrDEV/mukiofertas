@@ -1,5 +1,6 @@
 import IconeRaio from "./IconeRaio";
 import BotaoCupom from "./BotaoCupom";
+import CupomRevelar from "./CupomRevelar";
 import { lojaDoNome } from "../data/lojas";
 import {
   calcularDesconto,
@@ -36,6 +37,10 @@ export default function CardOferta({ oferta, previa = false }) {
   // Foto e título: abrem a página do produto, com os comentários (cupom: a loja)
   const paginaProps = ehCupom && !previa && !expirada ? lojaProps : paginaDoProduto;
 
+  // O CSS antigo (globals.css) desliga o clique nos cards expirados; aqui ele volta,
+  // para "Ver comentários", a foto e o título abrirem a página da oferta
+  const clicavel = expirada ? { style: { pointerEvents: "auto", cursor: "pointer" } } : {};
+
   const classes = [
     "cartao",
     oferta.destaque && !expirada && "cartao--destaque",
@@ -47,10 +52,11 @@ export default function CardOferta({ oferta, previa = false }) {
   // Postagem que é só um cupom: sem preço, com o código em destaque
   const mostrarEconomia = economia > 0 && !expirada && !ehCupom;
   const mostrarCupom = Boolean(oferta.cupom) && !expirada;
+  const cupomComFita = ehCupom && mostrarCupom && !previa;
 
   return (
     <article className={classes}>
-      <a {...paginaProps} className="cartao-img" aria-hidden="true" tabIndex={-1}>
+      <a {...paginaProps} {...clicavel} className="cartao-img" aria-hidden="true" tabIndex={-1}>
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={oferta.imagem} alt="" loading="lazy" />
@@ -115,7 +121,9 @@ export default function CardOferta({ oferta, previa = false }) {
         </div>
 
         <h3 className="cartao-titulo" title={oferta.titulo}>
-          <a {...paginaProps}>{oferta.titulo}</a>
+          <a {...paginaProps} {...clicavel}>
+            {oferta.titulo}
+          </a>
         </h3>
 
         <div className="cartao-precos">
@@ -132,6 +140,12 @@ export default function CardOferta({ oferta, previa = false }) {
         </div>
 
         {/* Espaço fixo para economia e cupom: todos os cards ficam com a mesma altura */}
+        {/* Cupom (aba Cupons): código escondido pela fita; ao clicar, copia e revela */}
+        {cupomComFita ? (
+          <div style={{ margin: "8px 0 6px" }}>
+            <CupomRevelar codigo={oferta.cupom} />
+          </div>
+        ) : (
         <div className="cartao-extras">
           <p className="economia">
             {mostrarEconomia ? `Economia de ${formatarPreco(economia)}` : " "}
@@ -141,6 +155,7 @@ export default function CardOferta({ oferta, previa = false }) {
             {mostrarCupom && previa && <span className="cupom">Cupom {oferta.cupom}</span>}
           </div>
         </div>
+        )}
 
         <p className="cartao-rodape">
           <span>{tempoAtras(oferta.atualizado_em)}</span>
@@ -153,9 +168,12 @@ export default function CardOferta({ oferta, previa = false }) {
         </p>
       </div>
 
-      <a {...lojaProps} className="botao cartao-botao">
-        {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
-      </a>
+      {/* Cupom com código: sem botão (foto e título levam para a loja) */}
+      {!cupomComFita && (
+        <a {...lojaProps} {...clicavel} className="botao cartao-botao">
+          {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
+        </a>
+      )}
     </article>
   );
 }
