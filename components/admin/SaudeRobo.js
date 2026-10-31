@@ -47,7 +47,7 @@ function Indicador({ titulo, quando, cor, detalhe, erro }) {
   );
 }
 
-function Alerta({ titulo, explicacao, itens, aoEditar, mostrar = 8 }) {
+function Alerta({ titulo, explicacao, itens, aoEditar, acao, mostrar = 8 }) {
   const [aberto, setAberto] = useState(false);
   const lista = aberto ? itens : itens.slice(0, mostrar);
   return (
@@ -56,6 +56,13 @@ function Alerta({ titulo, explicacao, itens, aoEditar, mostrar = 8 }) {
         {itens.length ? "⚠️" : "✅"} {titulo} <span className="adm-alerta-num">{itens.length}</span>
       </h2>
       <p>{explicacao}</p>
+      {acao && itens.length > 0 && (
+        <p>
+          <button className="adm-btn adm-btn--primario" onClick={acao.aoClicar} disabled={acao.ocupado}>
+            {acao.ocupado ? "Trabalhando..." : acao.nome}
+          </button>
+        </p>
+      )}
       {itens.length > 0 && (
         <ul className="adm-alerta-lista">
           {lista.map((o) => (
@@ -90,9 +97,24 @@ function Alerta({ titulo, explicacao, itens, aoEditar, mostrar = 8 }) {
   );
 }
 
+// Ofertas que o painel pode apagar de vez. As do robô (Lomadee, Shopee, AliExpress, KaBuM!)
+// são ocultadas, senão o robô coloca de volta na próxima coleta.
+const APAGAVEIS = ["manual", "telegram", "comunidade"];
+
+// Em cada grupo de repetidas, fica a de menor preço (empate: a mais recente)
+function escolherQueFica(grupo) {
+  return [...grupo].sort(
+    (a, b) =>
+      Number(a.preco_atual) - Number(b.preco_atual) ||
+      new Date(b.publicada_em ?? 0).getTime() - new Date(a.publicada_em ?? 0).getTime()
+  )[0];
+}
+
 export default function SaudeRobo({ aoEditar }) {
   const [dados, setDados] = useState(null);
   const [erro, setErro] = useState("");
+  const [limpando, setLimpando] = useState(false);
+  const [aviso, setAviso] = useState("");
 
   const carregar = useCallback(async () => {
     setErro("");
@@ -118,9 +140,11 @@ export default function SaudeRobo({ aoEditar }) {
       const chave = `${o.loja}|${tituloBase(o.titulo)}`;
       grupos.set(chave, [...(grupos.get(chave) ?? []), o]);
     }
-    const repetidas = [...grupos.values()]
-      .filter((g) => g.length > 1)
-      .flatMap((g) => g.map((o) => ({ ...o, nota: `${g.length} iguais` })));
+    const gruposRepetidos = [...grupos.values()].filter((g) => g.length > 1);
+    const repetidas = gruposRepetidos.flatMap((g) => {
+      const fica = escolherQueFica(g);
+      return g.map((o) => ({ ...o, nota: `${g.length} iguais${o.id === fica.id ? " · esta fica" : ""}` }));
+    });
 
     const suspeitas = noAr
       .map((o) => {
@@ -154,6 +178,7 @@ export default function SaudeRobo({ aoEditar }) {
       semPrecoAntigo: noAr.filter((o) => !o.preco_antigo || Number(o.preco_antigo) <= Number(o.preco_atual)),
       suspeitas,
       repetidas,
+      gruposRepetidos,
       semConferir,
     });
   }, []);
@@ -161,6 +186,48 @@ export default function SaudeRobo({ aoEditar }) {
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // Deixa só 1 de cada grupo de repetidas: a de menor preço (empate: a mais recente)
+  async function limparRepetidas() {
+    const grupos = dados?.gruposRepetidos ?? [];
+    const sobrando = grupos.flatMap((g) => {
+      const fica = escolherQueFica(g);
+      return g.filter((o) => o.id !== fica.id);
+    });
+    if (!sobrando.length) return;
+    if (
+      !confirm(
+        `Deixar só 1 oferta de cada um dos ${grupos.length} grupos de repetidas?\n\n` +
+          `${sobrando.length} ofertas vão sair do site (fica a de menor preço de cada grupo). ` +
+          `As do Telegram e manuais são apagadas; as do robô são ocultadas, para ele não colocar de volta.`
+      )
+    )
+      return;
+
+    setLimpando(true);
+    setAviso("");
+    const apagar = sobrando.filter((o) => APAGAVEIS.includes(o.origem)).map((o) => o.id);
+    const ocultar = sobrando.filter((o) => !APAGAVEIS.includes(o.origem)).map((o) => o.id);
+    const erros = [];
+    for (let i = 0; i < apagar.length; i += 200) {
+      const { error } = await supabase.from("ofertas").delete().in("id", apagar.slice(i, i + 200));
+      if (error) erros.push(error.message);
+    }
+    for (let i = 0; i < ocultar.length; i += 200) {
+      const { error } = await supabase
+        .from("ofertas")
+        .update({ ativa: false, oculta_manual: true })
+        .in("id", ocultar.slice(i, i + 200));
+      if (error) erros.push(error.message);
+    }
+    setLimpando(false);
+    setAviso(
+      erros.length
+        ? `Algumas não saíram: ${erros[0]}`
+        : `Pronto: ${apagar.length} apagadas e ${ocultar.length} ocultadas. Ficou 1 de cada grupo.`
+    );
+    carregar();
+  }
 
   if (erro) return <p className="adm-aviso">{erro}</p>;
   if (!dados) return <p className="adm-centro">Verificando o robô...</p>;
@@ -233,6 +300,7 @@ export default function SaudeRobo({ aoEditar }) {
       <ImportacaoTelegram />
 
       <h2 className="adm-secao">Ofertas que merecem atenção (só as que estão no ar)</h2>
+      {aviso && <p className="adm-aviso">{aviso}</p>}
 
       <div className="adm-duas">
         <Alerta
@@ -255,9 +323,14 @@ export default function SaudeRobo({ aoEditar }) {
         />
         <Alerta
           titulo="Repetidas"
-          explicacao="Mesma loja e mesmo título no ar mais de uma vez. Oculte as sobrando."
+          explicacao="Mesma loja e mesmo título no ar mais de uma vez. O botão deixa só a de menor preço de cada grupo (marcada com “esta fica”)."
           itens={dados.repetidas}
           aoEditar={aoEditar}
+          acao={{
+            nome: `🧹 Deixar só 1 de cada (${dados.gruposRepetidos.length} grupos)`,
+            aoClicar: limparRepetidas,
+            ocupado: limpando,
+          }}
         />
         <Alerta
           titulo="Sem preço antigo"
