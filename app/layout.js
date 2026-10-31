@@ -1,4 +1,5 @@
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import "./ofertas-extra.css";
 import "./cartoes.css";
@@ -29,6 +30,9 @@ const fonteTexto = Figtree({
 const TITULO = "MukiOfertas: ofertas, cupons e promoções do dia";
 const DESCRICAO =
   "O MukiOfertas reúne as melhores ofertas, cupons e promoções relâmpago da Amazon, Mercado Livre, KaBuM!, Magalu e Shopee, com desconto real e atualizadas o dia todo.";
+
+// Tag do Google Ads (medição de conversões)
+const GOOGLE_ADS_ID = "AW-18414048816";
 
 // Perfis oficiais do MukiOfertas em outros sites (ajudam o Google a reconhecer a marca).
 // Coloque aqui os links completos das suas redes, um por linha, entre aspas.
@@ -104,6 +108,19 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* Tag do Google Ads */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads-tag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ADS_ID}');
+          `}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(dadosDaMarca).replace(/</g, "\\u003c") }}
