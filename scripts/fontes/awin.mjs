@@ -66,6 +66,7 @@ const ehTecnologia = (o) => TECNOLOGIA_KABUM.has(o._categoria);
 // Desconto mínimo de cada produto: tecnologia tem a regra própria da KaBuM!
 const descontoMinimoKabum = (o) =>
   ehTecnologia(o) ? ajuste("awin_desconto_tecnologia") : descontoMinimoDa(o._categoria);
+const MINUTOS_PARA_BAIXAR = 10; // prazo para a Awin montar e enviar o catálogo
 const HORAS_ENTRE_LEITURAS = 20; // relê a página do mesmo produto só depois de X horas
 const PAGINAS_AO_MESMO_TEMPO = 3; // páginas abertas em paralelo (não sobrecarregar a loja)
 const BLOQUEIOS_PARA_PARAR = 5; // se a loja bloquear X vezes seguidas, para de ler páginas
@@ -131,9 +132,21 @@ const semChave = (t) => String(t).replace(/apikey\/[^/\s"]+/gi, "apikey/***");
 
 export async function baixarFeed(url) {
   let resposta;
-  // a Awin às vezes responde 500/503 por instantes: tenta de novo até 3 vezes
+  const inicio = Date.now();
+  // Catálogo completo é grande: a Awin pode levar alguns minutos para montar e enviar o arquivo.
+  // O prazo vale para tudo (montar + baixar). A Awin às vezes responde 500/503 por instantes:
+  // nesses casos tenta de novo, até 3 vezes.
   for (let tentativa = 1; tentativa <= 3; tentativa++) {
-    resposta = await fetch(url, { signal: AbortSignal.timeout(180000) });
+    try {
+      resposta = await fetch(url, { signal: AbortSignal.timeout(MINUTOS_PARA_BAIXAR * 60000) });
+    } catch (e) {
+      if (e?.name === "TimeoutError")
+        throw new Error(
+          `a Awin não terminou de enviar o catálogo em ${MINUTOS_PARA_BAIXAR} minutos. ` +
+            `Use o endereço do feed com /fid/ (gerado sem escolher categorias), que já vem pronto e baixa mais rápido.`
+        );
+      throw e;
+    }
     if (resposta.ok || ![500, 502, 503, 504].includes(resposta.status) || tentativa === 3) break;
     console.warn(`[awin] A Awin respondeu ${resposta.status}; tentando de novo em ${tentativa * 15}s...`);
     await new Promise((r) => setTimeout(r, tentativa * 15000));
@@ -147,6 +160,7 @@ export async function baixarFeed(url) {
     throw new Error(`a Awin respondeu ${resposta.status}: ${texto}${dica}`);
   }
   let dados = Buffer.from(await resposta.arrayBuffer());
+  console.log(`[awin] Catálogo baixado: ${(dados.length / 1048576).toFixed(1)} MB em ${Math.round((Date.now() - inicio) / 1000)}s.`);
   // gzip (o endereço do Create-a-Feed costuma ter /compression/gzip/)
   if (dados[0] === 0x1f && dados[1] === 0x8b) dados = gunzipSync(dados);
   const texto = dados.toString("utf8");
