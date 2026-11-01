@@ -185,20 +185,37 @@ async function main() {
       `; ${candidatas.length} vão para o grupo agora.`
   );
 
+  // Frases enviadas nas últimas mensagens, para a IA (e o banco de frases) não repetir
+  const { data: ultimas, error: erroFrases } = await db
+    .from("ofertas")
+    .select("frase_whatsapp")
+    .not("frase_whatsapp", "is", null)
+    .order("postada_whatsapp_em", { ascending: false })
+    .limit(40);
+  if (erroFrases) console.warn("[whatsapp] Rode o whatsapp-frases.sql no Supabase para o robô lembrar das frases já usadas.");
+  const recentes = (ultimas ?? []).map((u) => u.frase_whatsapp).filter(Boolean);
+  const contagemFrases = { ia: 0, banco: 0, motivos: new Set() };
+
   let enviadas = 0;
   const falhas = [];
   for (const [i, o] of candidatas.entries()) {
     const siteUrl = process.env.SITE_URL || "https://www.mukiofertas.com.br";
     let campos = camposDaOferta(o, { siteUrl });
+    let fraseUsada = null;
     const modelo = o.categoria === "cupons" ? ajuste("whatsapp_modelo_cupom") : ajuste("whatsapp_modelo");
     // Frase engraçada: só é gerada se o modelo tiver o campo {frase}
     if (modelo.includes("{frase}")) {
-      const { frase, origem } = await gerarFrase(o, campos, {
+      const { frase, origem, motivo } = await gerarFrase(o, campos, {
         estilo: ajuste("whatsapp_frase_estilo"),
         usarIa: ajuste("whatsapp_frase_ia"),
+        recentes,
       });
       campos = { ...campos, frase };
-      if (TESTE) console.log(`  (frase ${origem === "ia" ? "da IA" : "do banco"})`);
+      fraseUsada = frase;
+      recentes.unshift(frase); // as próximas mensagens desta execução também não repetem
+      contagemFrases[origem]++;
+      if (motivo) contagemFrases.motivos.add(motivo);
+      if (TESTE) console.log(`  (frase ${origem === "ia" ? "da IA" : `do banco: ${motivo}`})`);
     }
     const texto = montarMensagem(modelo, campos);
     let foto = ajuste("whatsapp_com_foto") ? o.imagem : null;
@@ -224,7 +241,10 @@ async function main() {
     }
     try {
       await enviar(grupo, texto, foto);
-      await db.from("ofertas").update({ postada_whatsapp_em: new Date().toISOString() }).eq("id", o.id);
+      const marca = { postada_whatsapp_em: new Date().toISOString(), frase_whatsapp: fraseUsada };
+      const { error: erroMarca } = await db.from("ofertas").update(marca).eq("id", o.id);
+      // sem a coluna frase_whatsapp (whatsapp-frases.sql não rodado): marca só como enviada
+      if (erroMarca) await db.from("ofertas").update({ postada_whatsapp_em: marca.postada_whatsapp_em }).eq("id", o.id);
       enviadas++;
       console.log(`  ✓ ${o.titulo.slice(0, 70)}`);
     } catch (e) {
@@ -242,6 +262,11 @@ async function main() {
     console.log("\n(teste: nada foi enviado)\n");
     return;
   }
+  if (contagemFrases.ia || contagemFrases.banco)
+    console.log(
+      `[whatsapp] Frases: ${contagemFrases.ia} da IA, ${contagemFrases.banco} do banco` +
+        (contagemFrases.motivos.size ? ` (motivo: ${[...contagemFrases.motivos].join("; ")})` : "")
+    );
   const resumo = `${enviadas} enviadas para o grupo` + (falhas.length ? ` | ${falhas.length} falharam: ${falhas[0]}` : "");
   console.log(`[whatsapp] ${resumo}`);
   await registrarExecucao(db, "postar-whatsapp", falhas.length === 0 || enviadas > 0, resumo);
