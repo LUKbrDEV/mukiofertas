@@ -12,7 +12,8 @@ import { useEffect, useState } from "react";
 
 // Banner da KaBuM! (o mesmo do BannerBlackFriday). Cole o seu link de afiliado da Awin para a
 // página da Black November (Awin → Links → Link Builder). Vazio = ofertas da KaBuM! no site.
-const KABUM_BANNER = "/banners/kabum-black-november.png";
+// Versão grande (1400x520, fundo transparente), montada a partir do banner original da KaBuM!
+const KABUM_BANNER = "/banners/kabum-black-november-grande.png";
 const KABUM_LINK = "";
 
 const CSS = `
@@ -139,11 +140,9 @@ const CSS = `
     display: flex;
     align-items: center;
     min-height: 240px;
-    padding: 0 18px 0 40px;
-    /* fundo escuro só atrás do banner, com um degradê inclinado ( / ) que some para a esquerda */
-    background:
-      linear-gradient(62deg, rgba(4, 6, 8, 0) 18%, rgba(4, 6, 8, 0.75) 40%, #040608 58%),
-      linear-gradient(90deg, rgba(4, 6, 8, 0), rgba(4, 6, 8, 0) 100%);
+    padding: 10px 14px 10px 46px;
+    /* a imagem da KaBuM! tem fundo transparente: ela "flutua" sobre o fundo do banner, sem corte */
+    background: radial-gradient(60% 70% at 60% 50%, rgba(255, 90, 0, 0.12), rgba(255, 90, 0, 0) 70%);
   }
   .hbf-kabum::before {
     content: "";
@@ -163,9 +162,7 @@ const CSS = `
     display: block;
     width: 100%;
     height: auto;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12%);
-            mask-image: linear-gradient(90deg, transparent 0%, #000 12%);
-    filter: drop-shadow(0 10px 30px rgba(255, 90, 0, 0.25));
+    filter: drop-shadow(0 8px 26px rgba(255, 90, 0, 0.22));
     transition: transform 0.35s ease;
   }
   .hbf-kabum:hover img { transform: scale(1.03); }
@@ -211,7 +208,7 @@ const CSS = `
       gap: 6px;
       min-height: 0;
       padding: 0 0 6px;
-        background: #040608;
+      background: none;
     }
     .hbf-kabum::before { display: none; }
     .hbf-kabum img { -webkit-mask-image: none; mask-image: none; }
@@ -306,7 +303,7 @@ export default function HeroBlackFriday({ ano, inicioIso, fimIso, dataTexto, tit
           aria-label="Black November da KaBuM!: até 70% off"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={KABUM_BANNER} alt="Black das Blacks KaBuM!: até 70% off" width={695} height={87} />
+          <img src={KABUM_BANNER} alt="Black das Blacks KaBuM!: até 70% off" width={1400} height={520} />
           <span className="hbf-kabum-selo">Black November KaBuM! →</span>
         </a>
       </header>
