@@ -1,0 +1,6 @@
+# HTTPS automático (Let's Encrypt) para a Evolution API.
+# O domínio vem do .env (ex.: 129-151-10-20.sslip.io, que aponta sozinho para o IP da VPS).
+{$DOMINIO} {
+	encode gzip
+	reverse_proxy evolution-api:8080
+}

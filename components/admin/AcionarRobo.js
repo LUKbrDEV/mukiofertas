@@ -17,6 +17,7 @@ const TAREFAS = [
   },
   { id: "conferir-precos", nome: "Conferir preços", dica: "Confere as ofertas do Telegram e manuais que já estão na hora" },
   { id: "postar-telegram", nome: "Postar no Telegram", dica: "Envia as ofertas que estão na fila" },
+  { id: "postar-whatsapp", nome: "🟢 Postar no WhatsApp", dica: "Envia agora as ofertas novas para o grupo do WhatsApp" },
 ];
 
 const NOME_TAREFA = Object.fromEntries(TAREFAS.map((t) => [t.id, t.nome.replace("▶ ", "")]));

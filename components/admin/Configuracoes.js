@@ -9,6 +9,60 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL, DIAS_BLOQUEIO_REPUBLICAR } from "../../lib/prazos.mjs";
+import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } from "../../lib/whatsapp-modelo.mjs";
+
+// Ofertas de exemplo para a prévia da mensagem do WhatsApp
+const EXEMPLO_OFERTA = {
+  id: 123,
+  titulo: "Monitor Gamer LG UltraGear 27\" IPS 180Hz",
+  loja: "KaBuM!",
+  categoria: "monitor",
+  preco_atual: 899.9,
+  preco_antigo: 1299.9,
+  cupom: "MUKI10",
+};
+const EXEMPLO_CUPOM = { id: 124, titulo: "10% OFF em SSDs selecionados", loja: "KaBuM!", categoria: "cupons", cupom: "SSD10" };
+const SITE_EXEMPLO = "https://www.mukiofertas.com.br";
+
+// Caixa de texto do modelo + prévia de como a mensagem fica no grupo
+function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
+  const texto = valor || padrao;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, margin: "12px 0" }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <strong>{rotulo}</strong>
+        <textarea
+          className="adm-input"
+          rows={11}
+          value={texto}
+          onChange={(e) => aoMudar(e.target.value)}
+          style={{ fontFamily: "ui-monospace, Menlo, Consolas, monospace", fontSize: 13, lineHeight: 1.45, resize: "vertical" }}
+        />
+        <button type="button" className="adm-btn adm-btn--link" style={{ alignSelf: "flex-start" }} onClick={() => aoMudar(padrao)}>
+          Voltar ao modelo padrão
+        </button>
+      </label>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <strong>Prévia no grupo</strong>
+        <div
+          style={{
+            whiteSpace: "pre-wrap",
+            padding: "12px 14px",
+            fontSize: 14,
+            lineHeight: 1.45,
+            background: "#dcf8c6",
+            borderRadius: "10px 10px 10px 2px",
+            boxShadow: "0 1px 1px rgba(0,0,0,0.12)",
+            color: "#111",
+            wordBreak: "break-word",
+          }}
+        >
+          {montarMensagem(texto, camposDaOferta(exemplo, { siteUrl: SITE_EXEMPLO }))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const PADRAO = {
   relampago_preco_minimo: 500,
@@ -30,6 +84,18 @@ const PADRAO = {
   awin_horas_entre_downloads: 3,
   awin_ler_paginas: true,
   awin_paginas_por_execucao: 80,
+  whatsapp_ativo: false,
+  whatsapp_grupo: "",
+  whatsapp_modelo: MODELO_PADRAO,
+  whatsapp_modelo_cupom: MODELO_CUPOM_PADRAO,
+  whatsapp_enviar_cupons: true,
+  whatsapp_com_foto: true,
+  whatsapp_max_por_execucao: 5,
+  whatsapp_max_por_hora: 10,
+  whatsapp_intervalo_segundos: 40,
+  whatsapp_desconto_minimo: 0,
+  whatsapp_hora_inicio: 7,
+  whatsapp_hora_fim: 23,
   awin_desconto_tecnologia: 15,
   awin_max_tecnologia: 40,
   awin_max_por_categoria_tecnologia: 10,
@@ -126,9 +192,11 @@ export default function Configuracoes() {
   async function salvar() {
     setAviso("");
     for (const [k, v] of Object.entries(c)) {
-      if (v === "") return setAviso("Preencha todos os campos antes de salvar.");
+      if (v === "" && typeof PADRAO[k] === "number") return setAviso("Preencha todos os campos antes de salvar.");
       if (typeof v === "number" && v < 0) return setAviso("Os valores não podem ser negativos.");
     }
+    if (c.whatsapp_ativo && !String(c.whatsapp_grupo || "").includes("@g.us"))
+      return setAviso("Coloque o id do grupo do WhatsApp (termina em @g.us) antes de ligar o envio.");
     if (c.horas_entre_conferencias < 1) return setAviso("A conferência de preço precisa ser de no mínimo 1 em 1 hora.");
 
     setSalvando(true);
@@ -396,6 +464,122 @@ export default function Configuracoes() {
             dica="Variedade: ex.: no máximo 10 SSDs por download."
             valor={c.awin_max_por_categoria_tecnologia}
             aoMudar={mudar("awin_max_por_categoria_tecnologia")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🟢 WhatsApp</h2>
+        <p>
+          O robô envia as ofertas novas do site para o seu grupo, a cada 30 minutos, pelo servidor da Evolution API
+          (VPS da Oracle). Só vão as ofertas que entrarem no site depois que você ligar.
+        </p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Enviar ofertas para o grupo do WhatsApp"
+            dica="Desligado: nada é enviado."
+            ligado={c.whatsapp_ativo}
+            aoMudar={mudar("whatsapp_ativo")}
+          />
+          <Chave
+            rotulo="Enviar com a foto do produto"
+            dica="Desligado: só texto, com a prévia do link."
+            ligado={c.whatsapp_com_foto}
+            aoMudar={mudar("whatsapp_com_foto")}
+          />
+          <Chave
+            rotulo="Enviar os cupons também"
+            dica="Os cupons da aba Cupons do site, com o modelo de cupom abaixo."
+            ligado={c.whatsapp_enviar_cupons}
+            aoMudar={mudar("whatsapp_enviar_cupons")}
+          />
+        </div>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, margin: "12px 0" }}>
+          <strong>Id do grupo</strong>
+          <input
+            className="adm-input"
+            placeholder="120363012345678901@g.us"
+            value={c.whatsapp_grupo ?? ""}
+            onChange={(e) => mudar("whatsapp_grupo")(e.target.value.trim())}
+          />
+          <small className="adm-sub">
+            Para ver o id dos seus grupos, rode no VS Code: node --env-file=.env.local scripts/testar-whatsapp.mjs
+          </small>
+        </label>
+
+        <p className="adm-sub" style={{ marginBottom: 0 }}>
+          Campos: {"{titulo} {loja} {preco} {preco_antigo} {desconto} {economia} {cupom} {link} {link_site}"}. Linha
+          com campo vazio some sozinha; trecho entre [[ e ]] some quando tem campo vazio. Formatação do WhatsApp:
+          *negrito*, _itálico_, ~riscado~.
+        </p>
+        <ModeloWhatsApp
+          rotulo="Modelo da mensagem (ofertas)"
+          valor={c.whatsapp_modelo}
+          padrao={MODELO_PADRAO}
+          exemplo={EXEMPLO_OFERTA}
+          aoMudar={mudar("whatsapp_modelo")}
+        />
+        <ModeloWhatsApp
+          rotulo="Modelo da mensagem (cupons)"
+          valor={c.whatsapp_modelo_cupom}
+          padrao={MODELO_CUPOM_PADRAO}
+          exemplo={EXEMPLO_CUPOM}
+          aoMudar={mudar("whatsapp_modelo_cupom")}
+        />
+
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Mensagens a cada 30 minutos"
+            sufixo="msgs"
+            min={1}
+            max={30}
+            valor={c.whatsapp_max_por_execucao}
+            aoMudar={mudar("whatsapp_max_por_execucao")}
+          />
+          <Numero
+            rotulo="Máximo por hora"
+            sufixo="msgs"
+            min={1}
+            max={60}
+            dica="Grupos com mensagem demais perdem membros (e o WhatsApp desconfia)."
+            valor={c.whatsapp_max_por_hora}
+            aoMudar={mudar("whatsapp_max_por_hora")}
+          />
+          <Numero
+            rotulo="Intervalo entre mensagens"
+            sufixo="segundos"
+            min={10}
+            max={300}
+            dica="Varia um pouco a cada envio, para não parecer robô."
+            valor={c.whatsapp_intervalo_segundos}
+            aoMudar={mudar("whatsapp_intervalo_segundos")}
+          />
+          <Numero
+            rotulo="Só ofertas com desconto a partir de"
+            sufixo="%"
+            min={0}
+            max={90}
+            dica="0 = todas as ofertas que entram no site."
+            valor={c.whatsapp_desconto_minimo}
+            aoMudar={mudar("whatsapp_desconto_minimo")}
+          />
+          <Numero
+            rotulo="Começar a enviar às"
+            sufixo="h"
+            min={0}
+            max={23}
+            valor={c.whatsapp_hora_inicio}
+            aoMudar={mudar("whatsapp_hora_inicio")}
+          />
+          <Numero
+            rotulo="Parar de enviar às"
+            sufixo="h"
+            min={1}
+            max={24}
+            dica="Horário de Brasília. Fora desse horário o robô não envia."
+            valor={c.whatsapp_hora_fim}
+            aoMudar={mudar("whatsapp_hora_fim")}
           />
         </div>
       </section>

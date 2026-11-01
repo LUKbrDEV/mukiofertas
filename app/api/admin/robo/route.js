@@ -13,7 +13,7 @@ import { createClient } from "@supabase/supabase-js";
 export const dynamic = "force-dynamic";
 
 const WORKFLOW = "coleta.yml";
-const TAREFAS = ["tudo", "coletar", "conferir-precos", "postar-telegram", "kabum"];
+const TAREFAS = ["tudo", "coletar", "conferir-precos", "postar-telegram", "kabum", "postar-whatsapp"];
 
 function resposta(dados, status = 200) {
   return Response.json(dados, { status });

@@ -1,0 +1,80 @@
+# Servidor do WhatsApp do MukiOfertas (Evolution API) para a VPS grátis da Oracle.
+# Versão LEVE, para o servidor pequeno (VM.Standard.E2.1.Micro, 1 GB de RAM): sem Redis,
+# banco com pouca memória e 2 GB de swap (criado pelo instalar.sh).
+# Fica na VPS em ~/servidor-whatsapp/docker-compose.yml. O instalar.sh cria o arquivo .env com as senhas.
+#
+# evolution-api : conecta o número de WhatsApp (por QR Code) e envia as mensagens
+# postgres      : banco que a Evolution API precisa (ajustado para usar pouca memória)
+# caddy         : coloca HTTPS (cadeado) na frente da API, com certificado grátis automático
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: always
+    depends_on: [postgres]
+    volumes:
+      - evolution-instances:/evolution/instances
+    environment:
+      SERVER_URL: https://${DOMINIO}
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      LANGUAGE: pt-BR
+      CONFIG_SESSION_PHONE_CLIENT: MukiOfertas
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      TELEMETRY: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${POSTGRES_SENHA}@postgres:5432/evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      # não guarda as mensagens dos grupos (economiza disco)
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      # sem Redis (economiza memória): o cache fica na própria Evolution
+      CACHE_REDIS_ENABLED: "false"
+      CACHE_LOCAL_ENABLED: "true"
+      # limita a memória do Node.js (o resto fica para o banco e o sistema)
+      NODE_OPTIONS: --max-old-space-size=384
+    logging: &logs
+      driver: json-file
+      options: { max-size: "10m", max-file: "2" }
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    # pouca memória: o banco da Evolution é pequeno
+    command: >
+      postgres -c shared_buffers=24MB -c max_connections=20 -c work_mem=2MB
+      -c maintenance_work_mem=16MB -c effective_cache_size=64MB
+    logging: *logs
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${POSTGRES_SENHA}
+    volumes:
+      - postgres-dados:/var/lib/postgresql/data
+
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    depends_on: [evolution-api]
+    logging: *logs
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-config:/config
+
+volumes:
+  evolution-instances:
+  postgres-dados:
+  caddy-dados:
+  caddy-config:

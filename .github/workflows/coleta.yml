@@ -16,6 +16,7 @@ on:
           - conferir-precos
           - postar-telegram
           - kabum
+          - postar-whatsapp
 
 concurrency:
   group: coleta
@@ -89,4 +90,17 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+
+      # Envia as ofertas novas para o grupo do WhatsApp (servidor da Evolution API na Oracle)
+      - name: Postar no WhatsApp
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'postar-whatsapp') }}
+        continue-on-error: true
+        run: node scripts/postar-whatsapp.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EVOLUTION_URL: ${{ secrets.EVOLUTION_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_INSTANCIA: ${{ secrets.EVOLUTION_INSTANCIA }}
           SITE_URL: ${{ secrets.SITE_URL }}
