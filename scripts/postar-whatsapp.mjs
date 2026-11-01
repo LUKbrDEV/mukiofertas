@@ -37,6 +37,7 @@ const PADRAO = {
   whatsapp_hora_fim: 23,
   whatsapp_frase_ia: true, // frase engraçada da IA no campo {frase} (sem IA: frase sorteada do banco)
   whatsapp_frase_estilo: ESTILO_PADRAO,
+  whatsapp_preco_minimo: 0, // R$ — só ofertas a partir desse preço (0 = qualquer preço)
 };
 const HORAS_PARA_TRAS = 6; // só ofertas que entraram no site nas últimas X horas
 
@@ -153,7 +154,18 @@ async function main() {
 
   const descontoDe = (o) =>
     Number(o.preco_antigo) > Number(o.preco_atual) ? ((o.preco_antigo - o.preco_atual) / o.preco_antigo) * 100 : 0;
+  // Tipos de produto e lojas escolhidos no painel (lista vazia = todos)
+  const lista = (chave) => (Array.isArray(CONFIG_ROBO?.[chave]) ? CONFIG_ROBO[chave] : []);
+  const categoriasEscolhidas = new Set(lista("whatsapp_categorias"));
+  const lojasEscolhidas = new Set(lista("whatsapp_lojas_nomes").map((n) => String(n).toLowerCase()));
+  const tipoOk = (o) => o.categoria === "cupons" || !categoriasEscolhidas.size || categoriasEscolhidas.has(o.categoria);
+  const lojaOk = (o) => !lojasEscolhidas.size || lojasEscolhidas.has(String(o.loja).toLowerCase());
+  const precoOk = (o) => o.categoria === "cupons" || Number(o.preco_atual) >= ajuste("whatsapp_preco_minimo");
+
   const candidatas = (data ?? [])
+    .filter(tipoOk)
+    .filter(lojaOk)
+    .filter(precoOk)
     .filter((o) => !o.expires_at || new Date(o.expires_at) > new Date())
     .filter((o) => (o.categoria === "cupons" ? ajuste("whatsapp_enviar_cupons") && o.cupom : true))
     .filter((o) => o.categoria === "cupons" || descontoDe(o) >= ajuste("whatsapp_desconto_minimo"))
@@ -161,7 +173,11 @@ async function main() {
     .sort((a, b) => Number(b.destaque) - Number(a.destaque) || descontoDe(b) - descontoDe(a))
     .slice(0, vagas);
 
-  console.log(`[whatsapp] ${data?.length ?? 0} ofertas novas sem envio; ${candidatas.length} vão para o grupo agora.`);
+  console.log(
+    `[whatsapp] ${data?.length ?? 0} ofertas novas sem envio` +
+      (categoriasEscolhidas.size || lojasEscolhidas.size ? " (com o filtro de tipos/lojas do painel)" : "") +
+      `; ${candidatas.length} vão para o grupo agora.`
+  );
 
   let enviadas = 0;
   const falhas = [];

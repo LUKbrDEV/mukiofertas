@@ -10,6 +10,49 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL, DIAS_BLOQUEIO_REPUBLICAR } from "../../lib/prazos.mjs";
 import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } from "../../lib/whatsapp-modelo.mjs";
+import { categorias } from "../../data/ofertas";
+import { lojasDestaque } from "../../data/lojas";
+
+// Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
+const DEPARTAMENTOS = categorias
+  .filter((c) => !c.pai)
+  .map((d) => ({ ...d, slugs: [d.slug, ...categorias.filter((c) => c.pai === d.slug).map((c) => c.slug)] }));
+
+// Caixinhas para escolher quais departamentos / lojas vão para o grupo do WhatsApp.
+// Nada marcado = todos.
+function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar }) {
+  const todos = marcados.length === 0;
+  const alternar = (id) => aoMudar(marcados.includes(id) ? marcados.filter((x) => x !== id) : [...marcados, id]);
+  return (
+    <div style={{ margin: "14px 0" }}>
+      <strong>{titulo}</strong>
+      <p className="adm-sub" style={{ margin: "2px 0 8px" }}>{dica}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button
+          type="button"
+          className={todos ? "adm-btn adm-btn--primario" : "adm-btn"}
+          onClick={() => aoMudar([])}
+        >
+          ✅ Todos
+        </button>
+        {opcoes.map((o) => {
+          const ligado = marcados.includes(o.id);
+          return (
+            <button
+              key={o.id}
+              type="button"
+              className={ligado ? "adm-btn adm-btn--primario" : "adm-btn"}
+              aria-pressed={ligado}
+              onClick={() => alternar(o.id)}
+            >
+              {o.nome}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // Frase de exemplo na prévia (no envio de verdade, a IA cria uma para cada produto)
 const FRASE_EXEMPLO = "Upgrade no setup, downgrade no preço 📉";
@@ -102,6 +145,11 @@ const PADRAO = {
   whatsapp_hora_inicio: 7,
   whatsapp_hora_fim: 23,
   whatsapp_frase_ia: true,
+  whatsapp_preco_minimo: 0,
+  whatsapp_departamentos: [], // vazio = todos
+  whatsapp_categorias: [], // gerado a partir dos departamentos (usado pelo robô)
+  whatsapp_lojas: [], // vazio = todas
+  whatsapp_lojas_nomes: [], // gerado a partir das lojas (usado pelo robô)
   whatsapp_frase_estilo: ESTILO_PADRAO,
   awin_desconto_tecnologia: 15,
   awin_max_tecnologia: 40,
@@ -502,6 +550,33 @@ export default function Configuracoes() {
           />
         </div>
 
+        <EscolherVarios
+          titulo="Tipos de produto que vão para o grupo"
+          dica="Clique para marcar ou desmarcar. Nenhum marcado = todos. Cada departamento leva junto as subcategorias dele."
+          opcoes={DEPARTAMENTOS.map((d) => ({ id: d.slug, nome: `${d.emoji} ${d.nome}` }))}
+          marcados={c.whatsapp_departamentos ?? []}
+          aoMudar={(lista) =>
+            setC((atual) => ({
+              ...atual,
+              whatsapp_departamentos: lista,
+              whatsapp_categorias: DEPARTAMENTOS.filter((d) => lista.includes(d.slug)).flatMap((d) => d.slugs),
+            }))
+          }
+        />
+        <EscolherVarios
+          titulo="Lojas que vão para o grupo"
+          dica="Nenhuma marcada = todas as lojas (inclusive as que não estão nesta lista)."
+          opcoes={lojasDestaque.map((l) => ({ id: l.slug, nome: l.nome }))}
+          marcados={c.whatsapp_lojas ?? []}
+          aoMudar={(lista) =>
+            setC((atual) => ({
+              ...atual,
+              whatsapp_lojas: lista,
+              whatsapp_lojas_nomes: lojasDestaque.filter((l) => lista.includes(l.slug)).flatMap((l) => l.nomesNoBanco),
+            }))
+          }
+        />
+
         <label style={{ display: "flex", flexDirection: "column", gap: 6, margin: "12px 0" }}>
           <strong>Id do grupo</strong>
           <input
@@ -582,6 +657,14 @@ export default function Configuracoes() {
             dica="Varia um pouco a cada envio, para não parecer robô."
             valor={c.whatsapp_intervalo_segundos}
             aoMudar={mudar("whatsapp_intervalo_segundos")}
+          />
+          <Numero
+            rotulo="Só produtos a partir de"
+            sufixo="R$"
+            passo={10}
+            dica="0 = qualquer preço. Não vale para os cupons."
+            valor={c.whatsapp_preco_minimo}
+            aoMudar={mudar("whatsapp_preco_minimo")}
           />
           <Numero
             rotulo="Só ofertas com desconto a partir de"
