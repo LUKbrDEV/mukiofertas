@@ -12,6 +12,7 @@ import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL, DIAS_BLOQUEIO_REPUBLICAR } from ".
 import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } from "../../lib/whatsapp-modelo.mjs";
 import { categorias } from "../../data/ofertas";
 import { PADRAO_VITRINE } from "../../lib/vitrine.mjs";
+import { PADRAO_QUALIDADE } from "../../lib/qualidade.mjs";
 import { lojasDestaque } from "../../data/lojas";
 
 // Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
@@ -182,6 +183,7 @@ const PADRAO = {
   awin_ler_paginas: true,
   awin_paginas_por_execucao: 80,
   ...PADRAO_VITRINE,
+  ...PADRAO_QUALIDADE,
   whatsapp_ativo: false,
   whatsapp_grupo: "",
   whatsapp_modelo: MODELO_PADRAO,
@@ -573,6 +575,78 @@ export default function Configuracoes() {
             dica="Variedade: ex.: no máximo 10 SSDs por download."
             valor={c.awin_max_por_categoria_tecnologia}
             aoMudar={mudar("awin_max_por_categoria_tecnologia")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🛍️ Shopee e AliExpress (qualidade)</h2>
+        <p>
+          Para o site não encher de bugiganga barata e de preço &quot;de&quot; inflado pelo vendedor. Vale para os robôs
+          (Shopee, AliExpress, Lomadee) e para o Telegram. Para limpar o que já está no ar, rode o
+          scripts/limpar-marketplace.mjs.
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Só produtos a partir de"
+            sufixo="R$"
+            passo={5}
+            valor={c.mkt_preco_minimo}
+            aoMudar={mudar("mkt_preco_minimo")}
+          />
+          <Numero
+            rotulo="Desconto máximo aceito"
+            sufixo="%"
+            min={30}
+            max={95}
+            dica='Acima disso o preço "de" quase sempre foi inflado pelo vendedor.'
+            valor={c.mkt_desconto_maximo}
+            aoMudar={mudar("mkt_desconto_maximo")}
+          />
+          <Numero
+            rotulo="Máximo de ofertas da Shopee no ar"
+            sufixo="ofertas"
+            min={10}
+            max={2000}
+            passo={10}
+            dica="Chegou no limite: novas só entram quando outras saírem."
+            valor={c.mkt_max_no_ar_shopee}
+            aoMudar={mudar("mkt_max_no_ar_shopee")}
+          />
+          <Numero
+            rotulo="Máximo de ofertas do AliExpress no ar"
+            sufixo="ofertas"
+            min={10}
+            max={2000}
+            passo={10}
+            valor={c.mkt_max_no_ar_aliexpress}
+            aoMudar={mudar("mkt_max_no_ar_aliexpress")}
+          />
+          <Numero
+            rotulo="Shopee: nota mínima do produto"
+            sufixo="estrelas"
+            min={0}
+            max={5}
+            passo={0.1}
+            valor={c.shopee_nota_minima}
+            aoMudar={mudar("shopee_nota_minima")}
+          />
+          <Numero
+            rotulo="Shopee: vendas mínimas"
+            sufixo="vendidos"
+            min={0}
+            max={100000}
+            passo={50}
+            valor={c.shopee_vendas_minimas}
+            aoMudar={mudar("shopee_vendas_minimas")}
+          />
+          <Numero
+            rotulo="Shopee: ofertas novas a cada 30 minutos"
+            sufixo="ofertas"
+            min={0}
+            max={100}
+            valor={c.shopee_max_por_execucao}
+            aoMudar={mudar("shopee_max_por_execucao")}
           />
         </div>
       </section>

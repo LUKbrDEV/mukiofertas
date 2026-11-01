@@ -5,6 +5,7 @@ import { buscar as buscarAliExpress } from "./fontes/aliexpress.mjs";
 import { buscar as buscarAwin } from "./fontes/awin.mjs";
 import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
+import { regrasDeQualidade, motivoDeRecusa, ehMarketplace, maximoNoAr } from "../lib/qualidade.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 import { limparExpiradas } from "../lib/limpeza.mjs";
 import {
@@ -74,6 +75,22 @@ async function main() {
   const donos = new Map(); // chave da oferta -> id_externo de quem já está no site
   for (const o of recentes ?? []) donos.set(chaveDaOferta(o), o.id_externo);
 
+  // Qualidade da Shopee e do AliExpress (lib/qualidade.mjs, números no painel admin):
+  // preço mínimo, desconto máximo (preço "de" inflado) e limite de ofertas no ar por loja
+  const qualidade = regrasDeQualidade(config);
+  const { data: marketplaceNoAr } = await supabase
+    .from("ofertas")
+    .select("loja, id_externo")
+    .eq("ativa", true)
+    .in("loja", ["Shopee", "AliExpress", "Aliexpress"])
+    .limit(5000);
+  const jaNoAr = new Set((marketplaceNoAr ?? []).map((o) => `${o.loja.toLowerCase()}|${o.id_externo}`));
+  const vagas = new Map();
+  for (const o of marketplaceNoAr ?? []) vagas.set(o.loja.toLowerCase(), (vagas.get(o.loja.toLowerCase()) ?? 0) + 1);
+  for (const [loja, n] of vagas) vagas.set(loja, Math.max(0, maximoNoAr(loja, qualidade) - n));
+  let recusadasQualidade = 0;
+  let semVaga = 0;
+
   for (const buscar of fontes) {
     let itens = [];
     try {
@@ -92,6 +109,24 @@ async function main() {
         continue;
       }
       if (!item.preco_antigo || item.preco_antigo <= item.preco_atual) continue;
+
+      // Shopee e AliExpress: barato demais ou desconto inflado não entra
+      if (motivoDeRecusa(item, qualidade)) {
+        recusadasQualidade++;
+        continue;
+      }
+      // Limite de ofertas no ar da loja: só as novas ocupam vaga (as que já estão continuam atualizando)
+      if (ehMarketplace(item.loja)) {
+        const loja = item.loja.toLowerCase();
+        if (!jaNoAr.has(`${loja}|${item.id_externo}`)) {
+          const livres = vagas.has(loja) ? vagas.get(loja) : maximoNoAr(loja, qualidade);
+          if (livres <= 0) {
+            semVaga++;
+            continue;
+          }
+          vagas.set(loja, livres - 1);
+        }
+      }
 
       const categoria = item.categoria ?? classificar(item.titulo, item.loja);
       if (!categoria) continue; // sem categoria reconhecida: não publica
@@ -237,6 +272,12 @@ async function main() {
 
   // Apaga as ofertas que já estão expiradas há mais de DIAS_EXPIRADA_VISIVEL dias
   const limpeza = await limparExpiradas(supabase);
+
+  if (recusadasQualidade || semVaga)
+    console.log(
+      `Shopee/AliExpress: ${recusadasQualidade} recusadas pelo filtro de qualidade, ` +
+        `${semVaga} sem vaga (limite de ofertas no ar da loja).`
+    );
 
   const resumo =
     (SO ? `Só ${SO === "awin" ? "KaBuM!" : SO} (pelo painel): ` : "") +

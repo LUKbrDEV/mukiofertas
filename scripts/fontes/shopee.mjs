@@ -17,15 +17,16 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
-import { descontoMinimoDa } from "../../lib/prazos.mjs";
+import { descontoMinimoDa, CONFIG_ROBO } from "../../lib/prazos.mjs";
+import { regrasDeQualidade } from "../../lib/qualidade.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % de desconto mínimo (o coletar também filtra pelo valor do painel)
-const PRECO_MINIMO = 10; // R$ — abaixo disso é ignorado (muita bugiganga barata)
-const NOTA_MINIMA = 4.5; // estrelas da avaliação do produto
-const VENDAS_MINIMAS = 30; // produtos com poucas vendas costumam ser arriscados
+// Preço mínimo, desconto máximo, nota, vendas e quantidade por execução vêm do painel admin
+// (Configurações → Shopee e AliExpress), com os padrões do lib/qualidade.mjs
+const regras = () => regrasDeQualidade(CONFIG_ROBO);
 const POR_BUSCA = 50; // produtos por palavra-chave (máximo da API: 50)
-const MAX_POR_EXECUCAO = 40; // ofertas da Shopee por execução
+
 const MAX_POR_VENDEDOR = 2; // variedade: no máximo X ofertas do mesmo vendedor por execução
 
 // Palavras-chave procuradas a cada execução (um rodízio pega uma parte por vez,
@@ -162,9 +163,11 @@ function passaNosFiltros(o) {
   if (!o || !o.link || !o.titulo) return false;
   // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
   if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
-  if (o.preco_atual < PRECO_MINIMO) return false;
-  if (o._nota && o._nota < NOTA_MINIMA) return false;
-  if (o._vendas < VENDAS_MINIMAS) return false;
+  const r = regras();
+  if (o.preco_atual < r.mkt_preco_minimo) return false;
+  if (o._desconto > r.mkt_desconto_maximo) return false; // preço "de" inflado
+  if (!o._nota || o._nota < r.shopee_nota_minima) return false; // sem nota = sem avaliação: fora
+  if (o._vendas < r.shopee_vendas_minimas) return false;
   if (VENDEDORES_BLOQUEADOS.some((v) => v.toLowerCase() === o._vendedor.toLowerCase())) return false;
   if (PALAVRAS_BLOQUEADAS.some((re) => re.test(o.titulo))) return false;
   return true;
@@ -231,7 +234,8 @@ export async function buscar({ palavras } = {}) {
       const produtos = await buscarPorPalavra(palavra);
       const bons = produtos.map(converter).filter(passaNosFiltros);
       console.log(`[shopee] "${palavra}": ${produtos.length} produtos, ${bons.length} aprovados nos filtros`);
-      porPalavra.push(bons.sort((x, y) => y._desconto - x._desconto || y._vendas - x._vendas));
+      // Mais vendidos e mais bem avaliados primeiro (antes era o maior desconto, que puxava os inflados)
+      porPalavra.push(bons.sort((x, y) => y._vendas - x._vendas || y._nota - x._nota || y._desconto - x._desconto));
     } catch (erro) {
       // erro de chave/assinatura vale para todas as buscas: para logo
       if (/\[100(20|31|32|33)\]/.test(erro.message)) throw erro;
@@ -247,10 +251,10 @@ export async function buscar({ palavras } = {}) {
   // sem repetir produto/modelo e respeitando o limite por vendedor
   const candidatos = [];
   const usadosPorPalavra = porPalavra.map(() => 0);
-  for (let rodada = 0; rodada < 50 && candidatos.length < MAX_POR_EXECUCAO; rodada++) {
+  for (let rodada = 0; rodada < 50 && candidatos.length < regras().shopee_max_por_execucao; rodada++) {
     let pegouAlgum = false;
     porPalavra.forEach((lista, i) => {
-      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && candidatos.length < MAX_POR_EXECUCAO) {
+      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && candidatos.length < regras().shopee_max_por_execucao) {
         const o = lista.shift();
         const modelo = chaveDoModelo(o.titulo);
         const n = porVendedor.get(o._vendedor) ?? 0;
