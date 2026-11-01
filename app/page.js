@@ -4,31 +4,56 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
-import { buscarOfertas, buscarMaisProcuradas, buscarLojasComCategorias } from "../lib/ofertas";
+import { buscarOfertas, buscarLojasComCategorias, buscarConfigHome } from "../lib/ofertas";
 import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
-import { ordenarOfertas } from "../lib/ordenar";
+import { regrasDaVitrine, escolherComVariedade, descontoDe } from "../lib/vitrine.mjs";
 
 export const revalidate = 60;
 
-// Faixas por categoria na página inicial (a ordem aqui é a ordem na tela).
-// Para acrescentar outra, é só copiar uma linha e trocar o slug, o título e o emoji.
-const FAIXAS_DE_CATEGORIA = [
-  // Só os aparelhos, sem acessórios. "slugs" inclui o slug antigo do departamento
-  // (para as ofertas que ainda não foram reclassificadas) e o filtro abaixo tira suportes, cabos etc.
+// Ordem da página inicial (estratégia de vendas):
+//   1) Black Friday  2) 🔥 Em alta agora  3) ⚡ Relâmpago  4) 🆕 Acabaram de chegar  5) 🎟️ Cupons do dia
+//   6) Faixas do nicho (Hardware, Monitores, Smartphones, Games, TVs)  7) Ofertas por loja  8) Sobre
+// Quem aparece primeiro em cada faixa: lib/vitrine.mjs (pontuação + variedade), com os números
+// ajustáveis no painel admin (Configurações → Página inicial).
+
+// Faixas do nicho (a ordem aqui é a ordem na tela). Para acrescentar outra, copie uma linha.
+const FAIXAS_DO_NICHO = [
   {
-    slug: "monitor",
+    id: "hardware",
+    slugs: ["hardware", "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete"],
+    titulo: "🧩 Hardware em promoção",
+    href: "/categoria/hardware",
+    maxPorCategoria: 3, // variedade: placa de vídeo, SSD, memória, placa-mãe...
+  },
+  {
+    id: "monitores",
     slugs: ["monitor", "monitores"],
-    titulo: "Melhores ofertas em Monitores",
-    emoji: "🖥️",
+    titulo: "🖥️ Monitores",
+    href: "/categoria/monitores",
     aparelho: /\bmonitor(es)?\b/i,
     precoMinimo: 300,
   },
   {
-    slug: "televisores",
+    id: "smartphones",
+    slugs: ["celulares", "smartphones"],
+    titulo: "📱 Smartphones",
+    href: "/categoria/smartphones",
+    aparelho: /\b(smartphones?|celular(es)?|iphone|galaxy|redmi|poco|moto ?g|motorola|xiaomi|realme)\b/i,
+    precoMinimo: 400,
+  },
+  {
+    id: "games",
+    slugs: ["games", "consoles", "controles", "jogos"],
+    titulo: "🎮 Video Games",
+    href: "/categoria/games",
+    maxPorCategoria: 4,
+  },
+  {
+    id: "tvs",
     slugs: ["televisores", "tv"],
-    titulo: "Melhores ofertas em TVs",
-    emoji: "📺",
+    titulo: "📺 TVs",
+    href: "/categoria/tv",
     aparelho: /\b(smart ?tv|tv|televis(or|ao|ão))\b/i,
     precoMinimo: 600,
   },
@@ -39,13 +64,17 @@ const LOJAS_FORA_DO_RELAMPAGO = ["AliExpress"];
 
 // Palavras que, no começo do título, indicam acessório (suporte, cabo, controle...)
 const ACESSORIO =
-  /^(\S+\s+){0,3}(suportes?|bra[cç]os?|cabos?|capas?|pel[ií]culas?|controles?|antenas?|base|filtros?|adaptador(es)?|conversor|receptor|kit|hub|fonte|carregador|protetor|tela|display|pe[cç]as?|botão|botao)\b/i;
+  /^(\S+\s+){0,3}(suportes?|bra[cç]os?|cabos?|capas?|capinhas?|pel[ií]culas?|controles?|antenas?|base|filtros?|adaptador(es)?|conversor|receptor|kit|hub|fonte|carregador|protetor|tela|display|pe[cç]as?|botão|botao)\b/i;
+// Telas de carro/moto (CarPlay, DVR) não entram nas faixas de Monitores e TVs
+const VEICULO = /\b(moto|carro|veicular|automotiv[oa]|carplay|android auto|dvr)\b/i;
 
-// Fica só com os aparelhos de verdade: o título fala do aparelho, não começa com nome de
-// acessório e o preço é de aparelho (suporte de R$ 80 não entra na faixa de monitores)
-function soAparelhos(ofertas, faixa) {
+function daFaixa(ofertas, faixa) {
   return ofertas.filter(
-    (o) => faixa.aparelho.test(o.titulo) && !ACESSORIO.test(o.titulo) && Number(o.preco_atual) >= faixa.precoMinimo
+    (o) =>
+      faixa.slugs.includes(o.categoria) &&
+      (!faixa.aparelho ||
+        (faixa.aparelho.test(o.titulo) && !ACESSORIO.test(o.titulo) && !VEICULO.test(o.titulo))) &&
+      Number(o.preco_atual) >= (faixa.precoMinimo ?? 0)
   );
 }
 
@@ -117,60 +146,85 @@ function montarLojas(doBanco) {
 }
 
 export default async function Home() {
-  const [contagemLojas, relampagosNoAr, procuradas, recentes, ...porCategoria] = await Promise.all([
+  const [todas, cuponsNoAr, contagemLojas, config] = await Promise.all([
+    // todas as ofertas no ar (sem cupons e sem as da comunidade); as faixas são montadas daqui
+    buscarOfertas({ limite: 1000, limiteExpiradas: 0 }),
+    buscarOfertas({ categoria: "cupons", ordem: "recentes", limite: 12, limiteExpiradas: 0 }),
     buscarLojasComCategorias(),
-    buscarOfertas({ relampago: true, limite: 40, limiteExpiradas: 0 }),
-    buscarMaisProcuradas(24),
-    // As que entraram por último no site, sem dar prioridade às que estão em destaque
-    buscarOfertas({ ordem: "recentes", limite: 24, limiteExpiradas: 0 }),
-    ...FAIXAS_DE_CATEGORIA.map((f) => buscarOfertas({ categoria: f.slugs, limite: 80, limiteExpiradas: 0 })),
+    buscarConfigHome(),
   ]);
+  const r = regrasDaVitrine(config);
+  const noAr = todas.filter((o) => !o.expirada);
+  const jaMostradas = new Set();
+  const marcar = (lista) => (lista.forEach((o) => jaMostradas.add(o.id)), lista);
 
-  const relampagos = relampagosNoAr
-    .filter((o) => !o.expirada && !LOJAS_FORA_DO_RELAMPAGO.includes(o.loja))
-    .slice(0, 12);
+  // 2) Em alta agora: pontuação (desconto confiável + cliques + marca + loja), das últimas horas
+  let emAlta = escolherComVariedade(noAr, r, { maximo: 12, horas: r.home_horas_destaque });
+  if (emAlta.length < 6) emAlta = escolherComVariedade(noAr, r, { maximo: 12 });
+  marcar(emAlta);
 
-  // Para não repetir o mesmo produto, o que já está na faixa de relâmpago
-  // não aparece de novo em "Melhores ofertas do momento"
-  const idsRelampago = new Set(relampagos.map((o) => o.id));
-  const melhores = procuradas.filter((o) => !idsRelampago.has(o.id)).slice(0, 12);
+  // 3) Relâmpago: só as recentes, sem repetir o que já está em "Em alta"
+  const relampagosNoAr = noAr.filter((o) => o.relampago && !LOJAS_FORA_DO_RELAMPAGO.includes(o.loja));
+  let relampagos = escolherComVariedade(relampagosNoAr, r, { maximo: 12, horas: r.home_horas_relampago, ignorar: jaMostradas });
+  if (relampagos.length < 4)
+    relampagos = escolherComVariedade(relampagosNoAr, r, { maximo: 12, horas: r.home_horas_relampago * 2, ignorar: jaMostradas });
+  marcar(relampagos);
+
+  // 4) Acabaram de chegar: as mais novas primeiro (só com desconto, para toda oferta ter o selo)
+  const recentes = [...noAr]
+    .filter((o) => descontoDe(o) > 0)
+    .sort((a, b) => new Date(b.publicada_em ?? 0) - new Date(a.publicada_em ?? 0))
+    .slice(0, 16);
+
+  // 6) Faixas do nicho: as melhores de cada uma, sem repetir as das faixas de cima
+  const faixasDoNicho = FAIXAS_DO_NICHO.map((f) => ({
+    ...f,
+    ofertas: escolherComVariedade(daFaixa(noAr, f), r, {
+      maximo: 12,
+      ignorar: jaMostradas,
+      maxPorCategoria: f.maxPorCategoria ?? 12,
+      maxPorLoja: 4,
+    }),
+  }));
 
   return (
     <>
-      <h1 className="so-leitor">Ofertas e promoções</h1>
+      <h1 className="so-leitor">Ofertas do dia, cupons e promoções relâmpago</h1>
 
       <BannerBlackFriday />
-      <FaixaLojas lojas={montarLojas(contagemLojas)} />
+
+      <Faixa
+        id="titulo-em-alta"
+        titulo="🔥 Em alta agora"
+        subtitulo="As melhores ofertas do momento: desconto real, marcas conhecidas e o que o público está clicando."
+        href="/mais-procuradas"
+        textoBotao="Ver mais →"
+        ofertas={emAlta}
+      />
+
       <FaixaRelampago ofertas={relampagos} />
 
       <Faixa
-        id="titulo-melhores"
-        titulo="🔥 Melhores ofertas do momento"
-        subtitulo="As promoções com os maiores descontos e que estão chamando mais atenção agora."
-        href="/mais-procuradas"
-        textoBotao="Ver mais →"
-        ofertas={melhores}
-      />
-
-      {FAIXAS_DE_CATEGORIA.map((f, i) => (
-        <Faixa
-          key={f.slug}
-          id={`titulo-${f.slug}`}
-          titulo={`${f.emoji} ${f.titulo}`}
-          subtitulo="Os maiores descontos desta categoria."
-          href={`/categoria/${f.slug}?ordem=maior-desconto`}
-          // Maiores descontos primeiro
-          ofertas={ordenarOfertas(soAparelhos(porCategoria[i] ?? [], f), "maior-desconto").slice(0, 12)}
-        />
-      ))}
-
-      <Faixa
         id="titulo-recentes"
-        titulo="🆕 Promoções adicionadas recentemente"
+        titulo="🆕 Acabaram de chegar"
         subtitulo="As ofertas mais novas aparecem primeiro."
         href="/recentes"
         ofertas={recentes}
       />
+
+      <Faixa
+        id="titulo-cupons"
+        titulo="🎟️ Cupons do dia"
+        subtitulo="Clique em copiar e use na loja."
+        href="/cupons-de-desconto"
+        ofertas={cuponsNoAr.filter((o) => !o.expirada)}
+      />
+
+      {faixasDoNicho.map((f) => (
+        <Faixa key={f.id} id={`titulo-${f.id}`} titulo={f.titulo} href={f.href} ofertas={f.ofertas} />
+      ))}
+
+      <FaixaLojas lojas={montarLojas(contagemLojas)} />
 
       <SobreMuki />
     </>

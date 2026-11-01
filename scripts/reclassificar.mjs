@@ -46,7 +46,7 @@ async function buscarTodas() {
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
       .from("ofertas")
-      .select("id, titulo, categoria, loja")
+      .select("id, titulo, categoria, loja, id_externo")
       .order("id")
       .range(de, de + 999);
     if (error) throw new Error(error.message);
@@ -61,6 +61,11 @@ const mudancas = [];
 
 for (const o of ofertas) {
   const atual = o.categoria;
+  // Cupons (da aba Cupons ou que vieram das redes como cupom) nunca viram produto
+  if (atual === "cupons" || /^cp[a-z]-/.test(o.id_externo ?? "")) {
+    if (atual !== "cupons") mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: "cupons" });
+    continue;
+  }
   const nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : null);
   if (nova !== atual) mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: nova });
 }

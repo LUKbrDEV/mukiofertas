@@ -401,8 +401,6 @@ export default function Casca({ departamentos, telegram, children }) {
           <Link href="/contato">Contato</Link>
           <Link href="/privacidade">Política de Privacidade</Link>
           <Link href="/termos">Termos de Uso</Link>
-          <Link href="/admin" className="rodape-admin">
-          </Link>
         </nav>
       </footer>
     </>

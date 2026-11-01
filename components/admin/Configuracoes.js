@@ -11,6 +11,7 @@ import { supabase } from "../../lib/supabase";
 import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL, DIAS_BLOQUEIO_REPUBLICAR } from "../../lib/prazos.mjs";
 import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } from "../../lib/whatsapp-modelo.mjs";
 import { categorias } from "../../data/ofertas";
+import { PADRAO_VITRINE } from "../../lib/vitrine.mjs";
 import { lojasDestaque } from "../../data/lojas";
 
 // Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
@@ -180,6 +181,7 @@ const PADRAO = {
   awin_horas_entre_downloads: 3,
   awin_ler_paginas: true,
   awin_paginas_por_execucao: 80,
+  ...PADRAO_VITRINE,
   whatsapp_ativo: false,
   whatsapp_grupo: "",
   whatsapp_modelo: MODELO_PADRAO,
@@ -571,6 +573,84 @@ export default function Configuracoes() {
             dica="Variedade: ex.: no máximo 10 SSDs por download."
             valor={c.awin_max_por_categoria_tecnologia}
             aoMudar={mudar("awin_max_por_categoria_tecnologia")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🏠 Página inicial</h2>
+        <p>
+          Quem aparece primeiro em "Em alta agora", "Relâmpago" e nas faixas de Hardware, Monitores, Smartphones,
+          Games e TVs. Cada oferta ganha pontos por desconto confiável, cliques, marca conhecida e loja confiável, e
+          perde pontos com o tempo no ar. Vale em até 1 minuto depois de salvar.
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Desconto suspeito na Shopee e no AliExpress acima de"
+            sufixo="%"
+            min={30}
+            max={95}
+            dica="Acima disso a oferta PERDE pontos (preço 'de' inflado pelo vendedor) e cai para o fim."
+            valor={c.home_teto_desconto_marketplace}
+            aoMudar={mudar("home_teto_desconto_marketplace")}
+          />
+          <Numero
+            rotulo="Desconto suspeito nas outras lojas acima de"
+            sufixo="%"
+            min={30}
+            max={99}
+            valor={c.home_teto_desconto_outras}
+            aoMudar={mudar("home_teto_desconto_outras")}
+          />
+          <Numero
+            rotulo="Bônus para marca conhecida"
+            sufixo="pontos"
+            min={0}
+            max={60}
+            dica="Samsung, LG, JBL, Kingston, Asus, Logitech... (lista no lib/vitrine.mjs)"
+            valor={c.home_bonus_marca}
+            aoMudar={mudar("home_bonus_marca")}
+          />
+          <Numero
+            rotulo="Bônus para Amazon, Mercado Livre e KaBuM!"
+            sufixo="pontos"
+            min={0}
+            max={60}
+            valor={c.home_bonus_loja}
+            aoMudar={mudar("home_bonus_loja")}
+          />
+          <Numero
+            rotulo='"Em alta agora": só ofertas das últimas'
+            sufixo="horas"
+            min={6}
+            max={240}
+            valor={c.home_horas_destaque}
+            aoMudar={mudar("home_horas_destaque")}
+          />
+          <Numero
+            rotulo='"Relâmpago": só ofertas das últimas'
+            sufixo="horas"
+            min={6}
+            max={168}
+            valor={c.home_horas_relampago}
+            aoMudar={mudar("home_horas_relampago")}
+          />
+          <Numero
+            rotulo="Máximo da mesma categoria por faixa"
+            sufixo="ofertas"
+            min={1}
+            max={12}
+            dica="Evita uma faixa cheia de cadeiras, por exemplo. Vale para Em alta e Relâmpago."
+            valor={c.home_max_por_categoria}
+            aoMudar={mudar("home_max_por_categoria")}
+          />
+          <Numero
+            rotulo="Máximo da mesma loja por faixa"
+            sufixo="ofertas"
+            min={1}
+            max={12}
+            valor={c.home_max_por_loja}
+            aoMudar={mudar("home_max_por_loja")}
           />
         </div>
       </section>
