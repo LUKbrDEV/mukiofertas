@@ -163,7 +163,7 @@ async function main() {
   let enviadas = 0;
   const falhas = [];
   for (const [i, o] of candidatas.entries()) {
-    const campos = camposDaOferta(o, { siteUrl: process.env.SITE_URL });
+    const campos = camposDaOferta(o, { siteUrl: process.env.SITE_URL || "https://www.mukiofertas.com.br" });
     const modelo = o.categoria === "cupons" ? ajuste("whatsapp_modelo_cupom") : ajuste("whatsapp_modelo");
     const texto = montarMensagem(modelo, campos);
     const foto = ajuste("whatsapp_com_foto") ? o.imagem : null;
