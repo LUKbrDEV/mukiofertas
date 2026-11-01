@@ -18,6 +18,54 @@ const DEPARTAMENTOS = categorias
   .filter((c) => !c.pai)
   .map((d) => ({ ...d, slugs: [d.slug, ...categorias.filter((c) => c.pai === d.slug).map((c) => c.slug)] }));
 
+// Prévia da marca d'água (a foto de verdade é montada pelo robô, igual a esta)
+const POSICOES_MARCA = [
+  ["baixo", "Embaixo, no centro"],
+  ["baixo-direita", "Embaixo, à direita"],
+  ["baixo-esquerda", "Embaixo, à esquerda"],
+  ["topo", "Em cima, no centro"],
+  ["topo-direita", "Em cima, à direita"],
+  ["centro", "No meio"],
+];
+function PreviaMarca({ posicao, tamanho, opacidade }) {
+  const m = "4%";
+  const lugar = {
+    baixo: { bottom: m, left: "50%", transform: "translateX(-50%)" },
+    "baixo-direita": { bottom: m, right: m },
+    "baixo-esquerda": { bottom: m, left: m },
+    topo: { top: m, left: "50%", transform: "translateX(-50%)" },
+    "topo-direita": { top: m, right: m },
+    centro: { top: "50%", left: "50%", transform: "translate(-50%, -50%)" },
+  }[posicao] ?? { bottom: m, left: "50%", transform: "translateX(-50%)" };
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: 220,
+        height: 220,
+        borderRadius: 10,
+        overflow: "hidden",
+        border: "1px solid #e2e8f0",
+        background: "#fff",
+        display: "grid",
+        placeItems: "center",
+        color: "#94a3b8",
+        fontSize: 13,
+      }}
+    >
+      <span style={{ width: "55%", height: "62%", display: "grid", placeItems: "center", background: "#f1f5f9", borderRadius: 8 }}>
+        foto do produto
+      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/marca-dagua.png"
+        alt=""
+        style={{ position: "absolute", width: `${tamanho}%`, height: "auto", opacity: opacidade / 100, ...lugar }}
+      />
+    </div>
+  );
+}
+
 // Caixinhas para escolher quais departamentos / lojas vão para o grupo do WhatsApp.
 // Nada marcado = todos.
 function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar }) {
@@ -146,6 +194,10 @@ const PADRAO = {
   whatsapp_hora_fim: 23,
   whatsapp_frase_ia: true,
   whatsapp_preco_minimo: 0,
+  whatsapp_marca_dagua: true,
+  whatsapp_marca_posicao: "baixo",
+  whatsapp_marca_tamanho: 55,
+  whatsapp_marca_opacidade: 90,
   whatsapp_departamentos: [], // vazio = todos
   whatsapp_categorias: [], // gerado a partir dos departamentos (usado pelo robô)
   whatsapp_lojas: [], // vazio = todas
@@ -548,6 +600,62 @@ export default function Configuracoes() {
             ligado={c.whatsapp_enviar_cupons}
             aoMudar={mudar("whatsapp_enviar_cupons")}
           />
+        </div>
+
+        <h3 style={{ margin: "18px 0 4px" }}>🖼️ Marca d'água na foto</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "flex-start" }}>
+          <div style={{ flex: "1 1 300px" }}>
+            <div className="adm-chaves">
+              <Chave
+                rotulo="Colocar a marca d'água nas fotos"
+                dica="A foto vira um quadrado com fundo branco e ganha a marca. Para trocar a marca, substitua o arquivo public/marca-dagua.png (PNG sem fundo)."
+                ligado={c.whatsapp_marca_dagua}
+                aoMudar={mudar("whatsapp_marca_dagua")}
+              />
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, margin: "10px 0" }}>
+              <strong>Posição</strong>
+              <select
+                className="adm-input"
+                value={c.whatsapp_marca_posicao ?? "baixo"}
+                onChange={(e) => mudar("whatsapp_marca_posicao")(e.target.value)}
+              >
+                {POSICOES_MARCA.map(([v, n]) => (
+                  <option key={v} value={v}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="adm-duas-colunas">
+              <Numero
+                rotulo="Tamanho"
+                sufixo="% da foto"
+                min={10}
+                max={95}
+                passo={5}
+                valor={c.whatsapp_marca_tamanho}
+                aoMudar={mudar("whatsapp_marca_tamanho")}
+              />
+              <Numero
+                rotulo="Visibilidade"
+                sufixo="%"
+                min={10}
+                max={100}
+                passo={5}
+                dica="100 = sem transparência."
+                valor={c.whatsapp_marca_opacidade}
+                aoMudar={mudar("whatsapp_marca_opacidade")}
+              />
+            </div>
+          </div>
+          {c.whatsapp_marca_dagua && (
+            <PreviaMarca
+              posicao={c.whatsapp_marca_posicao}
+              tamanho={c.whatsapp_marca_tamanho}
+              opacidade={c.whatsapp_marca_opacidade}
+            />
+          )}
         </div>
 
         <EscolherVarios

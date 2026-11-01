@@ -20,6 +20,8 @@ import { createClient } from "@supabase/supabase-js";
 import { aplicarConfigDoBanco, CONFIG_ROBO, registrarExecucao } from "../lib/prazos.mjs";
 import { camposDaOferta, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
 import { gerarFrase, ESTILO_PADRAO } from "../lib/frase-ia.mjs";
+import { fotoComMarcaDagua } from "../lib/marca-dagua.mjs";
+import { writeFileSync } from "node:fs";
 
 // Valores padrão (o painel admin pode trocar)
 const PADRAO = {
@@ -37,7 +39,11 @@ const PADRAO = {
   whatsapp_hora_fim: 23,
   whatsapp_frase_ia: true, // frase engraçada da IA no campo {frase} (sem IA: frase sorteada do banco)
   whatsapp_frase_estilo: ESTILO_PADRAO,
-  whatsapp_preco_minimo: 0, // R$ — só ofertas a partir desse preço (0 = qualquer preço)
+  whatsapp_preco_minimo: 0,
+  whatsapp_marca_dagua: true, // marca d'água (public/marca-dagua.png) na foto
+  whatsapp_marca_posicao: "baixo", // baixo | baixo-direita | baixo-esquerda | topo | topo-direita | centro
+  whatsapp_marca_tamanho: 55, // % da largura da foto
+  whatsapp_marca_opacidade: 90, // % (100 = sem transparência) // R$ — só ofertas a partir desse preço (0 = qualquer preço)
 };
 const HORAS_PARA_TRAS = 6; // só ofertas que entraram no site nas últimas X horas
 
@@ -195,10 +201,25 @@ async function main() {
       if (TESTE) console.log(`  (frase ${origem === "ia" ? "da IA" : "do banco"})`);
     }
     const texto = montarMensagem(modelo, campos);
-    const foto = ajuste("whatsapp_com_foto") ? o.imagem : null;
+    let foto = ajuste("whatsapp_com_foto") ? o.imagem : null;
+    // marca d'água: a foto vai em base64 já com a marca (se falhar, vai a foto original)
+    if (foto && ajuste("whatsapp_marca_dagua")) {
+      const comMarca = await fotoComMarcaDagua(foto, {
+        posicao: ajuste("whatsapp_marca_posicao"),
+        tamanho: ajuste("whatsapp_marca_tamanho"),
+        opacidade: ajuste("whatsapp_marca_opacidade"),
+      });
+      if (comMarca) {
+        foto = comMarca;
+        // no teste, salva a foto para você ver como ficou
+        if (TESTE) writeFileSync(`previa-whatsapp-${i + 1}.jpg`, Buffer.from(comMarca, "base64"));
+      }
+    }
 
     if (TESTE) {
-      console.log(`\n----- ${i + 1}. ${foto ? "(com foto) " : ""}-----\n${texto}`);
+      console.log(
+        `\n----- ${i + 1}. ${foto ? (foto.startsWith("http") ? "(com foto) " : `(foto com marca d'água: previa-whatsapp-${i + 1}.jpg) `) : ""}-----\n${texto}`
+      );
       continue;
     }
     try {
