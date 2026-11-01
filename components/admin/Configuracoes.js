@@ -11,6 +11,11 @@ import { supabase } from "../../lib/supabase";
 import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL, DIAS_BLOQUEIO_REPUBLICAR } from "../../lib/prazos.mjs";
 import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } from "../../lib/whatsapp-modelo.mjs";
 
+// Frase de exemplo na prévia (no envio de verdade, a IA cria uma para cada produto)
+const FRASE_EXEMPLO = "Upgrade no setup, downgrade no preço 📉";
+const ESTILO_PADRAO =
+  "engraçada e leve, no estilo de meme brasileiro de grupo de promoções, sem palavrão, sem ofender ninguém";
+
 // Ofertas de exemplo para a prévia da mensagem do WhatsApp
 const EXEMPLO_OFERTA = {
   id: 123,
@@ -57,7 +62,7 @@ function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
             wordBreak: "break-word",
           }}
         >
-          {montarMensagem(texto, camposDaOferta(exemplo, { siteUrl: SITE_EXEMPLO }))}
+          {montarMensagem(texto, camposDaOferta(exemplo, { siteUrl: SITE_EXEMPLO, frase: FRASE_EXEMPLO }))}
         </div>
       </div>
     </div>
@@ -96,6 +101,8 @@ const PADRAO = {
   whatsapp_desconto_minimo: 0,
   whatsapp_hora_inicio: 7,
   whatsapp_hora_fim: 23,
+  whatsapp_frase_ia: true,
+  whatsapp_frase_estilo: ESTILO_PADRAO,
   awin_desconto_tecnologia: 15,
   awin_max_tecnologia: 40,
   awin_max_por_categoria_tecnologia: 10,
@@ -509,10 +516,31 @@ export default function Configuracoes() {
         </label>
 
         <p className="adm-sub" style={{ marginBottom: 0 }}>
-          Campos: {"{titulo} {loja} {preco} {preco_antigo} {desconto} {economia} {cupom} {link} {link_site}"}. Linha
+          Campos: {"{titulo} {frase} {loja} {preco} {preco_antigo} {desconto} {economia} {cupom} {link} {link_site}"}. Linha
           com campo vazio some sozinha; trecho entre [[ e ]] some quando tem campo vazio. Formatação do WhatsApp:
           *negrito*, _itálico_, ~riscado~.
         </p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Frase engraçada da IA no campo {frase}"
+            dica="A IA (Gemini) cria uma frase para cada produto. Desligado, ou se a IA falhar: o robô sorteia uma frase pronta. Coloque {frase} no modelo para aparecer."
+            ligado={c.whatsapp_frase_ia}
+            aoMudar={mudar("whatsapp_frase_ia")}
+          />
+        </div>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, margin: "8px 0 4px" }}>
+          <strong>Estilo da frase</strong>
+          <input
+            className="adm-input"
+            value={c.whatsapp_frase_estilo ?? ""}
+            placeholder={ESTILO_PADRAO}
+            onChange={(e) => mudar("whatsapp_frase_estilo")(e.target.value)}
+          />
+          <small className="adm-sub">
+            Como a IA deve escrever. Ex.: "engraçada, com trocadilho", "empolgada, estilo locutor de futebol", "irônica e
+            curta". Vazio = estilo padrão.
+          </small>
+        </label>
         <ModeloWhatsApp
           rotulo="Modelo da mensagem (ofertas)"
           valor={c.whatsapp_modelo}

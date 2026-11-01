@@ -19,6 +19,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { aplicarConfigDoBanco, CONFIG_ROBO, registrarExecucao } from "../lib/prazos.mjs";
 import { camposDaOferta, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
+import { gerarFrase, ESTILO_PADRAO } from "../lib/frase-ia.mjs";
 
 // Valores padrão (o painel admin pode trocar)
 const PADRAO = {
@@ -34,6 +35,8 @@ const PADRAO = {
   whatsapp_desconto_minimo: 0, // % — 0 = manda tudo que entrou no site
   whatsapp_hora_inicio: 7, // só envia entre estas horas (horário de Brasília)
   whatsapp_hora_fim: 23,
+  whatsapp_frase_ia: true, // frase engraçada da IA no campo {frase} (sem IA: frase sorteada do banco)
+  whatsapp_frase_estilo: ESTILO_PADRAO,
 };
 const HORAS_PARA_TRAS = 6; // só ofertas que entraram no site nas últimas X horas
 
@@ -163,8 +166,18 @@ async function main() {
   let enviadas = 0;
   const falhas = [];
   for (const [i, o] of candidatas.entries()) {
-    const campos = camposDaOferta(o, { siteUrl: process.env.SITE_URL || "https://www.mukiofertas.com.br" });
+    const siteUrl = process.env.SITE_URL || "https://www.mukiofertas.com.br";
+    let campos = camposDaOferta(o, { siteUrl });
     const modelo = o.categoria === "cupons" ? ajuste("whatsapp_modelo_cupom") : ajuste("whatsapp_modelo");
+    // Frase engraçada: só é gerada se o modelo tiver o campo {frase}
+    if (modelo.includes("{frase}")) {
+      const { frase, origem } = await gerarFrase(o, campos, {
+        estilo: ajuste("whatsapp_frase_estilo"),
+        usarIa: ajuste("whatsapp_frase_ia"),
+      });
+      campos = { ...campos, frase };
+      if (TESTE) console.log(`  (frase ${origem === "ia" ? "da IA" : "do banco"})`);
+    }
     const texto = montarMensagem(modelo, campos);
     const foto = ajuste("whatsapp_com_foto") ? o.imagem : null;
 
