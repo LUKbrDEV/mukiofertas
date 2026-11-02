@@ -46,7 +46,7 @@ const PADRAO = {
   whatsapp_marca_tamanho: 55, // % da largura da foto
   whatsapp_marca_opacidade: 90, // % (100 = sem transparência) // R$ — só ofertas a partir desse preço (0 = qualquer preço)
 };
-const HORAS_PARA_TRAS = 6; // só ofertas que entraram no site nas últimas X horas
+const HORAS_PARA_TRAS = 12; // só ofertas que entraram no site nas últimas X horas
 
 const TESTE = process.argv.includes("--teste");
 
@@ -169,13 +169,24 @@ async function main() {
   const lojaOk = (o) => !lojasEscolhidas.size || lojasEscolhidas.has(String(o.loja).toLowerCase());
   const precoOk = (o) => o.categoria === "cupons" || Number(o.preco_atual) >= ajuste("whatsapp_preco_minimo");
 
-  const candidatas = (data ?? [])
-    .filter(tipoOk)
-    .filter(lojaOk)
-    .filter(precoOk)
-    .filter((o) => !o.expires_at || new Date(o.expires_at) > new Date())
-    .filter((o) => (o.categoria === "cupons" ? ajuste("whatsapp_enviar_cupons") && o.cupom : true))
-    .filter((o) => o.categoria === "cupons" || descontoDe(o) >= ajuste("whatsapp_desconto_minimo"))
+  // Filtros, um de cada vez, contando quantas ficaram de fora em cada um (aparece no log)
+  const foraPor = {};
+  const filtrar = (lista, nome, teste) =>
+    lista.filter((o) => {
+      const ok = teste(o);
+      if (!ok) foraPor[nome] = (foraPor[nome] ?? 0) + 1;
+      return ok;
+    });
+  let aprovadas = data ?? [];
+  aprovadas = filtrar(aprovadas, "tipo de produto", tipoOk);
+  aprovadas = filtrar(aprovadas, "loja", lojaOk);
+  aprovadas = filtrar(aprovadas, "preço mínimo", precoOk);
+  aprovadas = filtrar(aprovadas, "expirada", (o) => !o.expires_at || new Date(o.expires_at) > new Date());
+  aprovadas = filtrar(aprovadas, "cupom", (o) => (o.categoria === "cupons" ? ajuste("whatsapp_enviar_cupons") && o.cupom : true));
+  aprovadas = filtrar(aprovadas, "desconto mínimo", (o) => o.categoria === "cupons" || descontoDe(o) >= ajuste("whatsapp_desconto_minimo"));
+  if (Object.keys(foraPor).length)
+    console.log(`[whatsapp] Ficaram de fora: ${Object.entries(foraPor).map(([k, n]) => `${n} por ${k}`).join(", ")}.`);
+  const candidatas = aprovadas
     // destaques e maiores descontos primeiro
     .sort((a, b) => Number(b.destaque) - Number(a.destaque) || descontoDe(b) - descontoDe(a))
     .slice(0, vagas);
