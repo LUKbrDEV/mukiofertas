@@ -160,19 +160,63 @@ async function destino(url) {
   }
 }
 
-// ----- Shopee pela API de afiliados (link ...-i.LOJA.PRODUTO ou /product/LOJA/PRODUTO)
+// ----- Shopee pela API de afiliados
+// O código do produto aparece de vários jeitos, conforme o tipo de link:
+//   ...-i.LOJA.PRODUTO   /product/LOJA/PRODUTO   /opaanlp/LOJA/PRODUTO   ?shopid=LOJA&itemid=PRODUTO
+//   e às vezes só dentro de outro endereço "escondido" (origin_link=https%3A%2F%2F...)
+function idsShopee(texto) {
+  let t = String(texto ?? "");
+  // desfaz os endereços codificados (%2F → /), até 3 camadas
+  for (let i = 0; i < 3; i++) {
+    try {
+      const d = decodeURIComponent(t);
+      if (d === t) break;
+      t = d;
+    } catch {
+      break;
+    }
+  }
+  const padroes = [
+    /-i\.(\d{3,})\.(\d{3,})/,
+    /\/product\/(\d{3,})\/(\d{3,})/,
+    /\/opaanlp\/(\d{3,})\/(\d{3,})/,
+    /shop_?id["'=:\s]+(\d{3,})[\s\S]{0,80}?item_?id["'=:\s]+(\d{3,})/i,
+  ];
+  for (const re of padroes) {
+    const m = t.match(re);
+    if (m) return { loja: m[1], item: m[2] };
+  }
+  // item antes da loja (?itemid=...&shopid=...)
+  const inv = t.match(/item_?id["'=:\s]+(\d{3,})[\s\S]{0,80}?shop_?id["'=:\s]+(\d{3,})/i);
+  return inv ? { loja: inv[2], item: inv[1] } : null;
+}
+
 async function precoShopee(link) {
   if (!shopeeConfigurada()) return { erro: "Shopee sem chave da API (SHOPEE_APP_ID/SHOPEE_SECRET)" };
-  const { url, html } = await destino(link);
-  const m =
-    `${url} ${html.slice(0, 20000)}`.match(/-i\.(\d+)\.(\d+)/) ||
-    `${url} ${html.slice(0, 20000)}`.match(/\/product\/(\d+)\/(\d+)/);
-  if (!m) return { erro: "não achei o código do produto da Shopee no link" };
-  const [, loja, item] = m;
-  const dados = await chamarShopee(`{ productOfferV2(itemId: ${item}, shopId: ${loja}, limit: 1) { nodes { priceMin priceMax } } }`);
-  const no = dados?.productOfferV2?.nodes?.[0];
+  // primeiro tenta no próprio link (sem abrir nada); depois segue o link curto
+  let ids = idsShopee(link);
+  let destinoFinal = link;
+  if (!ids) {
+    const { url, html } = await destino(link);
+    destinoFinal = url;
+    ids = idsShopee(url) ?? idsShopee(html.slice(0, 60000));
+  }
+  if (!ids) {
+    if (debug) console.log(`      [debug shopee] sem código do produto. Link final: ${destinoFinal.slice(0, 160)}`);
+    return { erro: "não achei o código do produto da Shopee no link" };
+  }
+  const consulta = (filtro) => chamarShopee(`{ productOfferV2(${filtro}, limit: 1) { nodes { priceMin priceMax itemId } } }`);
+  let dados = await consulta(`itemId: ${ids.item}, shopId: ${ids.loja}`);
+  let no = dados?.productOfferV2?.nodes?.[0];
+  // às vezes a loja do link não bate: tenta só pelo código do produto
+  if (!no) {
+    dados = await consulta(`itemId: ${ids.item}`).catch(() => null);
+    no = dados?.productOfferV2?.nodes?.find((n) => String(n.itemId) === String(ids.item)) ?? null;
+  }
   const preco = no ? Number(no.priceMin ?? no.priceMax) : null;
-  return preco ? { preco, via: "API Shopee" } : { erro: "a API da Shopee não devolveu o produto (pode ter saído do ar)" };
+  return preco
+    ? { preco, via: "API Shopee" }
+    : { erro: "a API da Shopee não devolveu o produto (saiu do ar ou não está no programa de afiliados)" };
 }
 
 // ----- AliExpress pela API de afiliados (link .../item/CODIGO.html)

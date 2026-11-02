@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Comentarios from "../../../components/Comentarios";
 import IconeRaio from "../../../components/IconeRaio";
+import BotaoPrecoSubiu from "../../../components/BotaoPrecoSubiu";
 import { SITE } from "../../../lib/site";
 import {
   buscarOfertaPorId,
@@ -205,6 +206,7 @@ export default async function PaginaOferta({ params }) {
               Ir para a oferta na {oferta.loja}
             </a>
           )}
+               {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
 
           <p className="cartao-rodape">
             <span>{tempoAtras(oferta.atualizado_em)}</span>

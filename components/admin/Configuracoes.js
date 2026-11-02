@@ -216,6 +216,8 @@ const PADRAO = {
   cupons_ativo: true,
   cupons_max_por_rede: 40,
   cupons_lojas: LOJAS_CUPOM_PADRAO,
+  amazon_horas_no_site: 24,
+  avisos_para_expirar: 2,
   aliexpress_ativo: true,
   aliexpress_preco_minimo: 50,
   aliexpress_avaliacao_minima: 90,
@@ -579,6 +581,33 @@ export default function Configuracoes() {
             dica="Variedade: ex.: no máximo 10 SSDs por download."
             valor={c.awin_max_por_categoria_tecnologia}
             aoMudar={mudar("awin_max_por_categoria_tecnologia")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>⏱️ Validade das ofertas</h2>
+        <p>
+          A Amazon não deixa robôs conferirem o preço na loja, então as ofertas dela ficam menos tempo no ar. Se a
+          mesma oferta for postada de novo no canal (com preço igual ou menor), ela volta por mais esse tempo.
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Ofertas da Amazon ficam no ar por"
+            sufixo="horas"
+            min={2}
+            max={240}
+            valor={c.amazon_horas_no_site}
+            aoMudar={mudar("amazon_horas_no_site")}
+          />
+          <Numero
+            rotulo='Avisos de "o preço subiu" para expirar'
+            sufixo="pessoas"
+            min={1}
+            max={20}
+            dica="Botão na página da oferta. Quando você (admin, logado) clica, a oferta expira na hora."
+            valor={c.avisos_para_expirar}
+            aoMudar={mudar("avisos_para_expirar")}
           />
         </div>
       </section>
