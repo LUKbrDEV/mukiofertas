@@ -20,6 +20,10 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { CONFIG_ROBO } from "../../lib/prazos.mjs";
+import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
+
+// Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
+const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
 
 // ===== AJUSTES =====
 const PADRAO = {
@@ -130,6 +134,7 @@ async function cuponsLomadee(existentes) {
     if (!c.code) continue; // cupom sem código (pessoal ainda não gerado): não serve
     const id = `cpl-${c.id}`;
     const marca = marcas.get(c.organizationId);
+    if (!permitida(marca?.name)) continue; // loja pequena/desconhecida: fora da aba Cupons
     let link = existentes.get(id)?.link ?? escolherCanal(c.channels)?.shortUrls?.[0] ?? null;
     if (!link && c.url && marca && linksNovos < MAX_LINKS_NOVOS_LOMADEE) {
       try {
@@ -191,6 +196,7 @@ async function cuponsAwin() {
     const codigo = p.voucher?.code;
     const link = p.urlTracking || p.url;
     if (!codigo || !link) continue; // sem código (programa não aprovado) ou sem link
+    if (!permitida(p.advertiser?.name)) continue; // loja fora da lista do painel
     itens.push(
       cupom({
         loja: p.advertiser?.name ?? "Awin",

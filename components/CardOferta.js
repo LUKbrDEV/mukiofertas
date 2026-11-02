@@ -53,6 +53,8 @@ export default function CardOferta({ oferta, previa = false }) {
   const mostrarEconomia = economia > 0 && !expirada && !ehCupom;
   const mostrarCupom = Boolean(oferta.cupom) && !expirada;
   const cupomComFita = ehCupom && mostrarCupom && !previa;
+  // Cupom sem código (de ativar na própria loja, comum na Amazon e no Mercado Livre)
+  const cupomDeResgatar = ehCupom && !oferta.cupom && !expirada && !previa;
 
   return (
     <article className={classes}>
@@ -145,6 +147,34 @@ export default function CardOferta({ oferta, previa = false }) {
           <div style={{ margin: "8px 0 6px" }}>
             <CupomRevelar codigo={oferta.cupom} />
           </div>
+        ) : cupomDeResgatar ? (
+          // mesmo visual da fita dos outros cupons, mas leva direto para a página do cupom na loja
+          <div style={{ margin: "8px 0 6px" }}>
+            <a
+              {...lojaProps}
+              aria-label={`Resgatar o cupom na ${oferta.loja}`}
+              style={{
+                boxSizing: "border-box",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                width: "100%",
+                height: 44,
+                border: "2px dashed #ff7a1a",
+                borderRadius: 10,
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 800,
+                textDecoration: "none",
+                background:
+                  "repeating-linear-gradient(-45deg, rgba(255,255,255,0.16) 0 8px, rgba(255,255,255,0) 8px 16px), linear-gradient(180deg, #ff8a2a, #f05a00)",
+                boxShadow: "inset 0 0 0 2px #fff7ed",
+              }}
+            >
+              🎁 Resgatar na loja →
+            </a>
+          </div>
         ) : (
         <div className="cartao-extras">
           <p className="economia">
@@ -168,8 +198,8 @@ export default function CardOferta({ oferta, previa = false }) {
         </p>
       </div>
 
-      {/* Cupom com código: sem botão (foto e título levam para a loja) */}
-      {!cupomComFita && (
+      {/* Cupom (com código ou de resgatar): sem botão (foto e título também levam para a loja) */}
+      {!cupomComFita && !cupomDeResgatar && (
         <a {...lojaProps} {...clicavel} className="botao cartao-botao">
           {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
         </a>

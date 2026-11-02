@@ -39,6 +39,7 @@ const PADRAO = {
   whatsapp_hora_fim: 23,
   whatsapp_frase_ia: true, // frase engraçada da IA no campo {frase} (sem IA: frase sorteada do banco)
   whatsapp_frase_estilo: ESTILO_PADRAO,
+  whatsapp_frase_palavras: 4, // a frase tem no máximo X palavras
   whatsapp_preco_minimo: 0,
   whatsapp_marca_dagua: true, // marca d'água (public/marca-dagua.png) na foto
   whatsapp_marca_posicao: "baixo", // baixo | baixo-direita | baixo-esquerda | topo | topo-direita | centro
@@ -209,6 +210,7 @@ async function main() {
         estilo: ajuste("whatsapp_frase_estilo"),
         usarIa: ajuste("whatsapp_frase_ia"),
         recentes,
+        maxPalavras: ajuste("whatsapp_frase_palavras"),
       });
       campos = { ...campos, frase };
       fraseUsada = frase;

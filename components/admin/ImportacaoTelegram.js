@@ -32,6 +32,11 @@ const MOTIVOS = {
   duplicada_titulo: { nome: "Repetida", dica: "Mesmo produto, loja e preço já estavam no site.", cor: "cinza" },
   sem_preco: { nome: "Sem preço", dica: "Não foi possível ler o preço na postagem.", cor: "vermelho" },
   sem_titulo_ou_link: { nome: "Não é oferta", dica: "Postagem sem título ou sem link (avisos, enquetes etc.).", cor: "cinza" },
+  cupom_loja_bloqueada: {
+    nome: "Cupom de loja fora da lista",
+    dica: "Só entram cupons das lojas escolhidas em Configurações → Cupons.",
+    cor: "cinza",
+  },
   marketplace_suspeito: {
     nome: "Shopee/AliExpress fora do padrão",
     dica: "Preço muito baixo ou desconto exagerado (preço \"de\" inflado). As regras ficam em Configurações → Shopee e AliExpress.",
@@ -50,7 +55,7 @@ const MOTIVOS = {
 const motivo = (m) => MOTIVOS[m] ?? { nome: m, dica: "", cor: "cinza" };
 const ENTRARAM = new Set(["salva", "renovada", "publicada_manual"]);
 // Recusas que dá para ignorar com o botão "Publicar mesmo assim"
-const PUBLICAVEIS = new Set(["sem_desconto", "desconto_baixo", "limite_por_hora", "importacao_pausada", "sem_categoria", "marketplace_suspeito"]);
+const PUBLICAVEIS = new Set(["sem_desconto", "desconto_baixo", "limite_por_hora", "importacao_pausada", "sem_categoria", "marketplace_suspeito", "cupom_loja_bloqueada"]);
 
 const PERIODOS = [
   [6, "6 horas"],

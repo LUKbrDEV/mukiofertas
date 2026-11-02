@@ -1,0 +1,39 @@
+name: Postar no WhatsApp
+
+# Robô separado só para o WhatsApp: roda a cada 15 minutos e leva 1 a 3 minutos.
+# Antes ele era o último passo da coleta e, quando a coleta demorava (catálogo da KaBuM!,
+# conferência de preços...) ou o GitHub atrasava, o envio ficava horas sem rodar.
+on:
+  schedule:
+    # minutos "quebrados": no minuto 0 o GitHub atrasa (ou pula) muitas execuções agendadas
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: whatsapp
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Postar no WhatsApp
+        run: node scripts/postar-whatsapp.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EVOLUTION_URL: ${{ secrets.EVOLUTION_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_INSTANCIA: ${{ secrets.EVOLUTION_INSTANCIA }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

@@ -13,6 +13,7 @@ import { MODELO_PADRAO, MODELO_CUPOM_PADRAO, camposDaOferta, montarMensagem } fr
 import { categorias } from "../../data/ofertas";
 import { PADRAO_VITRINE } from "../../lib/vitrine.mjs";
 import { PADRAO_QUALIDADE } from "../../lib/qualidade.mjs";
+import { LOJAS_GRANDES, LOJAS_CUPOM_PADRAO } from "../../lib/lojas-cupom.mjs";
 import { lojasDestaque } from "../../data/lojas";
 
 // Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
@@ -70,7 +71,7 @@ function PreviaMarca({ posicao, tamanho, opacidade }) {
 
 // Caixinhas para escolher quais departamentos / lojas vão para o grupo do WhatsApp.
 // Nada marcado = todos.
-function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar }) {
+function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar, semTodos = false }) {
   const todos = marcados.length === 0;
   const alternar = (id) => aoMudar(marcados.includes(id) ? marcados.filter((x) => x !== id) : [...marcados, id]);
   return (
@@ -78,13 +79,15 @@ function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar }) {
       <strong>{titulo}</strong>
       <p className="adm-sub" style={{ margin: "2px 0 8px" }}>{dica}</p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <button
-          type="button"
-          className={todos ? "adm-btn adm-btn--primario" : "adm-btn"}
-          onClick={() => aoMudar([])}
-        >
-          ✅ Todos
-        </button>
+        {!semTodos && (
+          <button
+            type="button"
+            className={todos ? "adm-btn adm-btn--primario" : "adm-btn"}
+            onClick={() => aoMudar([])}
+          >
+            ✅ Todos
+          </button>
+        )}
         {opcoes.map((o) => {
           const ligado = marcados.includes(o.id);
           return (
@@ -105,9 +108,8 @@ function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar }) {
 }
 
 // Frase de exemplo na prévia (no envio de verdade, a IA cria uma para cada produto)
-const FRASE_EXEMPLO = "Upgrade no setup, downgrade no preço 📉";
-const ESTILO_PADRAO =
-  "engraçada e leve, no estilo de meme brasileiro de grupo de promoções, sem palavrão, sem ofender ninguém";
+const FRASE_EXEMPLO = "Setup agradece demais 🖥️";
+const ESTILO_PADRAO = "simples, curta e divertida, sem palavrão";
 
 // Ofertas de exemplo para a prévia da mensagem do WhatsApp
 const EXEMPLO_OFERTA = {
@@ -207,11 +209,13 @@ const PADRAO = {
   whatsapp_lojas: [], // vazio = todas
   whatsapp_lojas_nomes: [], // gerado a partir das lojas (usado pelo robô)
   whatsapp_frase_estilo: ESTILO_PADRAO,
+  whatsapp_frase_palavras: 4,
   awin_desconto_tecnologia: 15,
   awin_max_tecnologia: 40,
   awin_max_por_categoria_tecnologia: 10,
   cupons_ativo: true,
   cupons_max_por_rede: 40,
+  cupons_lojas: LOJAS_CUPOM_PADRAO,
   aliexpress_ativo: true,
   aliexpress_preco_minimo: 50,
   aliexpress_avaliacao_minima: 90,
@@ -873,6 +877,17 @@ export default function Configuracoes() {
             placeholder={ESTILO_PADRAO}
             onChange={(e) => mudar("whatsapp_frase_estilo")(e.target.value)}
           />
+          <span style={{ maxWidth: 260 }}>
+            <Numero
+              rotulo="Tamanho da frase"
+              sufixo="palavras no máximo"
+              min={2}
+              max={15}
+              dica="A IA nunca cita preço, números ou a loja."
+              valor={c.whatsapp_frase_palavras}
+              aoMudar={mudar("whatsapp_frase_palavras")}
+            />
+          </span>
           <small className="adm-sub">
             Como a IA deve escrever. Ex.: "engraçada, com trocadilho", "empolgada, estilo locutor de futebol", "irônica e
             curta". Vazio = estilo padrão.
@@ -982,6 +997,14 @@ export default function Configuracoes() {
             aoMudar={mudar("cupons_max_por_rede")}
           />
         </div>
+        <EscolherVarios
+          titulo="Lojas que podem ter cupom no site"
+          dica="Cupons de outras lojas (vindos da Lomadee, da Awin ou do Telegram) não entram. Os cadastrados à mão na aba Cupons do painel sempre aparecem."
+          opcoes={LOJAS_GRANDES.map((l) => ({ id: l.nome, nome: l.nome }))}
+          marcados={c.cupons_lojas ?? LOJAS_CUPOM_PADRAO}
+          semTodos
+          aoMudar={mudar("cupons_lojas")}
+        />
       </section>
 
       <section className="adm-bloco">
