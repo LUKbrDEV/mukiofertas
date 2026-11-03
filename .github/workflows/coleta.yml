@@ -4,6 +4,7 @@ on:
   schedule:
     # minutos "quebrados": no minuto 0 o GitHub atrasa (ou pula) muitas execuções agendadas
     - cron: "11,41 * * * *"
+  # Reserva: quem aciona de verdade é a VPS (a cada 30 min, tarefa "automatico"), porque o GitHub atrasa e pula horários
   # Também pode ser acionado pelo painel admin (aba Saúde do robô) ou pelo GitHub
   workflow_dispatch:
     inputs:
@@ -13,6 +14,7 @@ on:
         default: tudo
         options:
           - tudo
+          - automatico
           - coletar
           - conferir-precos
           - postar-telegram
@@ -39,7 +41,7 @@ jobs:
 
       # Lomadee + Shopee + AliExpress + Awin (KaBuM!) + expirar por preço + renovar + apagar as expiradas antigas
       - name: Coletar ofertas (Lomadee, Shopee, AliExpress, KaBuM! e cupons)
-        if: ${{ !inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
+        if: ${{ !inputs.tarefa || inputs.tarefa == 'automatico' || inputs.tarefa == 'tudo' || inputs.tarefa == 'coletar' }}
         run: node scripts/coletar.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -67,7 +69,7 @@ jobs:
 
       # Confere o preço das ofertas do Telegram (fora Amazon), de 5 em 5 horas cada uma
       - name: Conferir preços (ofertas do Telegram)
-        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'conferir-precos') }}
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'automatico' || inputs.tarefa == 'tudo' || inputs.tarefa == 'conferir-precos') }}
         continue-on-error: true
         run: node scripts/conferir-precos.mjs
         env:
@@ -84,7 +86,7 @@ jobs:
       # (app/api/telegram-webhook), por isso não tem passo aqui.
 
       - name: Postar no Telegram
-        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'tudo' || inputs.tarefa == 'postar-telegram') }}
+        if: ${{ always() && (!inputs.tarefa || inputs.tarefa == 'automatico' || inputs.tarefa == 'tudo' || inputs.tarefa == 'postar-telegram') }}
         run: node scripts/postar-telegram.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
