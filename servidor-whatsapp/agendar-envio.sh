@@ -9,9 +9,19 @@ set -euo pipefail
 REPO="${1:-LUKbrDEV/mukiofertas}"
 BRANCH="${2:-main}"
 
-read -rsp "Cole o token do GitHub (GITHUB_TOKEN_ROBO) e aperte Enter: " TOKEN
-echo
-[ -n "$TOKEN" ] || { echo "Token vazio."; exit 1; }
+# O token pode já estar salvo em ~/.token-github-robo; se não estiver, o script pergunta
+TOKEN=""
+[ -s "$HOME/.token-github-robo" ] && TOKEN=$(cat "$HOME/.token-github-robo")
+if [ -z "$TOKEN" ]; then
+  echo "Cole o token do GitHub (GITHUB_TOKEN_ROBO) e aperte Enter."
+  echo "(no terminal do VS Code, cole com o botão direito do mouse ou Ctrl+Shift+V)"
+  read -r -p "Token: " TOKEN || true
+fi
+TOKEN=$(printf '%s' "$TOKEN" | tr -d '[:space:]')
+if [ -z "$TOKEN" ]; then
+  echo "Nenhum token foi colado. Rode de novo: bash agendar-envio.sh"
+  exit 1
+fi
 
 # Guarda o token só para o seu usuário
 printf '%s' "$TOKEN" > "$HOME/.token-github-robo"
