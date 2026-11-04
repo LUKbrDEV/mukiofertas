@@ -1,6 +1,7 @@
 import IconeRaio from "./IconeRaio";
 import BotaoCupom from "./BotaoCupom";
 import CupomRevelar from "./CupomRevelar";
+import VotosOferta from "./VotosOferta";
 import { lojaDoNome } from "../data/lojas";
 import {
   calcularDesconto,
@@ -204,6 +205,9 @@ export default function CardOferta({ oferta, previa = false }) {
           {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
         </a>
       )}
+
+      {/* Like / Deslike com os números (votos.sql) */}
+      <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} previa={previa} />
     </article>
   );
 }
