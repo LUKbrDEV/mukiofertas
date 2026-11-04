@@ -4,6 +4,7 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaRelampago from "../components/FaixaRelampago";
 import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
+import HomeComRanking from "../components/HomeComRanking";
 import { buscarOfertas, buscarLojasComCategorias, buscarConfigHome } from "../lib/ofertas";
 import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
@@ -193,6 +194,7 @@ export default async function Home() {
 
       <BannerBlackFriday />
 
+      <HomeComRanking>
       <Faixa
         id="titulo-em-alta"
         titulo="🔥 Em alta agora"
@@ -223,6 +225,7 @@ export default async function Home() {
       {faixasDoNicho.map((f) => (
         <Faixa key={f.id} id={`titulo-${f.id}`} titulo={f.titulo} href={f.href} ofertas={f.ofertas} />
       ))}
+      </HomeComRanking>
 
       <FaixaLojas lojas={montarLojas(contagemLojas)} />
 

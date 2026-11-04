@@ -10,6 +10,7 @@ import ListaSugestoes from "./ListaSugestoes";
 import AdminCupons from "./AdminCupons";
 import SaudeRobo from "./SaudeRobo";
 import Configuracoes from "./Configuracoes";
+import UsuariosTags from "./UsuariosTags";
 import "./admin.css";
 
 const MENU = [
@@ -17,6 +18,7 @@ const MENU = [
   { id: "ofertas", nome: "Ofertas", icone: "🏷️" },
   { id: "form", nome: "Nova oferta", icone: "➕" },
   { id: "comunidade", nome: "Comunidade", icone: "👥" },
+  { id: "usuarios", nome: "Usuários e tags", icone: "🏆" },
   { id: "cupons", nome: "Cupons", icone: "🎟️" },
   { id: "robo", nome: "Saúde do robô", icone: "🤖" },
   { id: "config", nome: "Configurações", icone: "⚙️" },
@@ -253,6 +255,7 @@ export default function AdminApp() {
           />
         )}
         {aba === "comunidade" && <ListaSugestoes aoRevisar={revisar} />}
+        {aba === "usuarios" && <UsuariosTags />}
         {aba === "cupons" && <AdminCupons />}
         {aba === "robo" && <SaudeRobo aoEditar={editar} />}
         {aba === "config" && <Configuracoes />}
