@@ -48,6 +48,7 @@ function iniciar(oferta, sugestao) {
       preco_atual: String(sugestao.preco_atual),
       preco_antigo: sugestao.preco_antigo ? String(sugestao.preco_antigo) : "",
       link: sugestao.link,
+      imagem: sugestao.imagem ?? "",
       cupom: sugestao.cupom ?? "",
       telegram: false,
     };
