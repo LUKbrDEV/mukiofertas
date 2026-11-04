@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { extrairOferta } from "../../../../lib/extrair-oferta.mjs";
 import { bancoServidor, contaDaRequisicao, passouDoLimite } from "../../../../lib/conta-da-requisicao.mjs";
-import { categorias } from "../../../../data/ofertas";
+import { classificar } from "../../../../lib/classificar.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,13 +32,18 @@ export async function POST(request) {
   let precoAntigo = dinheiro(corpo.preco_antigo);
   if (precoAntigo && precoAtual && precoAntigo <= precoAtual) precoAntigo = null;
   const cupom = String(corpo.cupom ?? "").trim().slice(0, 40) || null;
-  const categoria = categorias.some((c) => c.slug === corpo.categoria) ? corpo.categoria : null;
 
   if (titulo.length < 8) return NextResponse.json({ erro: "Escreva um título com pelo menos 8 letras." }, { status: 400 });
   if (!precoAtual) return NextResponse.json({ erro: "Informe o preço da oferta." }, { status: 400 });
 
   const dados = await extrairOferta(corpo.link);
   if (dados.erro) return NextResponse.json(dados, { status: 400 });
+
+  // Categoria escolhida pelo título final (o mesmo classificador dos robôs)
+  let categoria = null;
+  try {
+    categoria = classificar(titulo, dados.loja) || null;
+  } catch {}
 
   const nome = conta.user_metadata?.nome || conta.user_metadata?.full_name || conta.email?.split("@")[0] || "Membro";
   const registro = {
@@ -55,12 +60,29 @@ export async function POST(request) {
     status: "pendente",
   };
 
+  // Colunas obrigatórias que o formulário antigo preenchia (ex.: email): completa com os dados da conta
+  const PREENCHER = {
+    email: conta.email,
+    usuario_email: conta.email,
+    user_email: conta.email,
+    nome: nome,
+    nome_usuario: nome,
+    autor: nome,
+    descricao: "",
+    observacao: "",
+  };
+
   const db = bancoServidor();
   let { error } = await db.from("sugestoes").insert(registro);
-  // Banco ainda sem a coluna "imagem" (falta rodar o comunidade-envio.sql): grava sem ela
-  if (error && /imagem/i.test(error.message)) {
-    const { imagem, ...semImagem } = registro;
-    ({ error } = await db.from("sugestoes").insert(semImagem));
+  for (let tentativa = 0; error && tentativa < 6; tentativa++) {
+    const faltando = error.message.match(/null value in column "([^"]+)"/i)?.[1];
+    const naoExiste = error.message.match(/'([^']+)' column|column "?([a-z_]+)"? (?:of relation "sugestoes" )?does not exist/i);
+    if (faltando && faltando in PREENCHER && registro[faltando] === undefined) {
+      registro[faltando] = PREENCHER[faltando]; // coluna obrigatória: preenche
+    } else if (naoExiste && (naoExiste[1] || naoExiste[2]) in registro) {
+      delete registro[naoExiste[1] || naoExiste[2]]; // coluna que o banco não tem (ex.: imagem): tira
+    } else break;
+    ({ error } = await db.from("sugestoes").insert(registro));
   }
   if (error) return NextResponse.json({ erro: `Não foi possível enviar: ${error.message}` }, { status: 500 });
 

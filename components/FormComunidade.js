@@ -1,7 +1,7 @@
 "use client";
 
 // Formulário "Enviar promoção" no estilo passo a passo:
-//   1) cola o link  →  2) confere título, foto e categoria  →  3) confere o preço e envia
+//   1) cola o link  →  2) confere título e foto (a categoria sai do título)  →  3) confere o preço e envia
 // Ao colar o link, o site puxa as informações sozinho e troca pelo link de afiliado.
 // Salve como components/FormComunidade.js (substitui o atual).
 // Usa as rotas app/api/comunidade/extrair e app/api/comunidade/enviar.
@@ -9,9 +9,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { categorias } from "../data/ofertas";
 
-const CATEGORIAS = categorias.filter((c) => c.slug !== "cupons");
 
 const PASSOS = ["Cole o link da oferta", "Confira o título da oferta", "Confira o preço da oferta"];
 
@@ -118,7 +116,6 @@ export default function FormComunidade() {
   const [link, setLink] = useState("");
   const [dados, setDados] = useState(null); // resposta da leitura do link
   const [titulo, setTitulo] = useState("");
-  const [categoria, setCategoria] = useState("");
   const [precoAtual, setPrecoAtual] = useState("");
   const [precoAntigo, setPrecoAntigo] = useState("");
   const [cupom, setCupom] = useState("");
@@ -152,7 +149,6 @@ export default function FormComunidade() {
       const r = await chamar("/api/comunidade/extrair", { link: valor });
       setDados(r);
       setTitulo(r.titulo || "");
-      setCategoria(r.categoria || "");
       setPrecoAtual(formatar(r.preco_atual));
       setPrecoAntigo(formatar(r.preco_antigo));
       setPasso(2);
@@ -171,7 +167,6 @@ export default function FormComunidade() {
       await chamar("/api/comunidade/enviar", {
         link: dados.link_original,
         titulo,
-        categoria,
         preco_atual: precoAtual,
         preco_antigo: precoAntigo,
         cupom,
@@ -189,7 +184,6 @@ export default function FormComunidade() {
     setLink("");
     setDados(null);
     setTitulo("");
-    setCategoria("");
     setPrecoAtual("");
     setPrecoAntigo("");
     setCupom("");
@@ -314,19 +308,6 @@ export default function FormComunidade() {
                 required
               />
             </div>
-          </div>
-          <div>
-            <label className="fc-rotulo" htmlFor="fc-categoria">
-              Categoria
-            </label>
-            <select id="fc-categoria" className="fc-campo" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-              <option value="">Deixar a equipe escolher</option>
-              {CATEGORIAS.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.emoji} {c.pai ? `— ${c.nome}` : c.nome}
-                </option>
-              ))}
-            </select>
           </div>
           {dados?.avisos?.map((a) => (
             <p key={a} className="fc-aviso">
