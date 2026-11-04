@@ -27,7 +27,7 @@ export const revalidate = 60;
 // Quem aparece em Destaques: lib/vitrine.mjs (pontuação + variedade), com os números
 // ajustáveis no painel admin (Configurações → Página inicial).
 
-const NO_FEED = 36; // ofertas por aba do feed (o botão "Carregar mais" mostra de 12 em 12)
+const NO_FEED = 96; // ofertas por aba do feed (o botão "Carregar mais" mostra de 24 em 24)
 
 // Lojas que não aparecem na faixa "Relâmpago agora"
 const LOJAS_FORA_DO_RELAMPAGO = ["AliExpress"];
@@ -157,7 +157,7 @@ export default async function Home() {
   const [todas, cuponsNoAr, contagemLojas, config] = await Promise.all([
     // todas as ofertas no ar (sem cupons e sem as da comunidade); o feed é montado daqui
     buscarOfertas({ limite: 1000, limiteExpiradas: 0 }),
-    buscarOfertas({ categoria: "cupons", ordem: "recentes", limite: 24, limiteExpiradas: 0 }),
+    buscarOfertas({ categoria: "cupons", ordem: "recentes", limite: 48, limiteExpiradas: 0 }),
     buscarLojasComCategorias(),
     buscarConfigHome(),
   ]);
@@ -173,7 +173,7 @@ export default async function Home() {
 
   // ⭐ Destaques: pontuação (desconto confiável + cliques + marca + loja), com variedade
   let destaques = escolherComVariedade(noAr, r, { maximo: NO_FEED, horas: r.home_horas_destaque });
-  if (destaques.length < 12) destaques = escolherComVariedade(noAr, r, { maximo: NO_FEED });
+  if (destaques.length < 48) destaques = escolherComVariedade(noAr, r, { maximo: NO_FEED });
 
   // 🆕 Recentes: as que entraram por último
   const recentes = [...comDesconto]

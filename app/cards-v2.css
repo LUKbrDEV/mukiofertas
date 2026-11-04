@@ -69,6 +69,9 @@
   background: var(--marca-escura);
 }
 .cartao.cv2 .cv2-loja { overflow: hidden; text-overflow: ellipsis; font-weight: 700; color: var(--tinta); }
+/* no computador o selo relâmpago mostra só o raio, para o nome da loja caber */
+.cartao.cv2 .cv2-relampago-txt { display: none; }
+.cartao.cv2 .cv2-relampago { padding: 3px 6px; }
 .cartao.cv2 .cv2-quando { flex: none; }
 .cartao.cv2 .cv2-relampago {
   flex: none;
@@ -193,16 +196,143 @@
 .cartao.cv2.cartao--expirado:hover { transform: none; box-shadow: var(--cv2-sombra); }
 .cartao.cv2.cartao--expirado .cv2-off { color: var(--tinta-suave); background: #f1f5f9; }
 
-/* Celular: 2 por linha, mais compacto */
+/* Só aparecem no celular */
+.cartao.cv2 .cv2-compartilhar,
+.cartao.cv2 .cv2-autor { display: none; }
+
+/* ===== Celular: um card por linha, deitado (foto à esquerda, texto à direita) =====
+   Topo com loja e tempo, corpo com foto + título + preço + botão do WhatsApp,
+   pé com quem postou, votos e comentários. Foto e título levam para a página da oferta. */
 @media (max-width: 639px) {
-  .cartao.cv2 .cv2-topo { height: 32px; font-size: 0.7rem; gap: 5px; }
-  .cartao.cv2 .cv2-loja-logo { width: 18px; height: 18px; }
-  .cartao.cv2 .cv2-relampago-txt { display: none; }
-  .cartao.cv2 .cv2-quando { display: none; }
-  .cartao.cv2 .preco-antigo { display: block; font-size: 0.7rem; }
-  .cartao.cv2 .preco-atual { font-size: 1.12rem; }
-  .cartao.cv2 .cv2-linha-preco { gap: 5px; height: 26px; }
-  .cartao.cv2 .cv2-off { font-size: 0.68rem; padding: 2px 5px; }
-  .cartao.cv2 .cv2-comentarios { display: inline-flex; }
-  .cartao.cv2 .cartao-botao { padding: 9px 8px; font-size: 0.84rem; }
+  .grade-cartoes { grid-template-columns: minmax(0, 1fr) !important; gap: 10px; }
+
+  .cartao.cv2 {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    grid-template-areas:
+      "topo topo"
+      "img  corpo"
+      "pe   pe";
+    border-radius: 14px;
+  }
+  .cartao.cv2:hover { transform: none; }
+
+  .cartao.cv2 .cv2-topo {
+    grid-area: topo;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #f1f4f8;
+  }
+  .cartao.cv2 .cv2-loja-logo { width: 20px; height: 20px; }
+  .cartao.cv2 .cv2-quando { display: inline; margin-left: auto; }
+  .cartao.cv2 .cv2-ponto { display: none; }
+  .cartao.cv2 .cv2-relampago { margin-left: 6px; padding: 2px 7px; }
+  .cartao.cv2 .cv2-relampago-txt { display: inline; }
+
+  .cartao.cv2 .cartao-img,
+  .carrossel-item .cartao.cv2 .cartao-img {
+    grid-area: img;
+    align-self: center;
+    width: 88px;
+    height: 88px;
+    margin: 12px 0 12px 12px;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    border: 1px solid #f1f4f8;
+  }
+  .cartao.cv2 .cartao-img img { width: 90%; height: 90%; }
+  .cartao.cv2 .cartao-img .tag-expirado { top: 4px; right: 4px; padding: 2px 6px; font-size: 0.6rem; }
+  .cartao.cv2 .cartao-selo { display: none; }
+
+  .cartao.cv2 .cartao-corpo {
+    grid-area: corpo;
+    position: relative;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px 54px 12px 12px;
+  }
+  .cartao.cv2 .cartao-titulo,
+  .carrossel-item .cartao.cv2 .cartao-titulo {
+    height: auto;
+    max-height: calc(2 * 1.3em);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .cartao.cv2 .cartao-precos { margin-top: 4px; }
+  .cartao.cv2 .preco-antigo { height: 14px; font-size: 0.72rem; line-height: 14px; }
+  .cartao.cv2 .cv2-sem-antigo { display: none; }
+  .cartao.cv2 .cv2-linha-preco { height: auto; gap: 8px; }
+  .cartao.cv2 .preco-atual { font-size: 1.15rem; }
+  .cartao.cv2 .cv2-off { font-size: 0.7rem; }
+  .cartao.cv2 .cv2-selos { height: auto; min-height: 0; margin-top: 4px; }
+  .cartao.cv2 .cv2-selos:empty { display: none; }
+
+  /* Botão redondo do WhatsApp, à direita do texto */
+  .cartao.cv2 .cv2-compartilhar {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin-top: -19px;
+    color: #128c4a;
+    background: #fff;
+    border: 1px solid #dfe5ec;
+    border-radius: 50%;
+  }
+  .cartao.cv2 .cv2-compartilhar:active { background: #e7f6ee; }
+
+  /* Pé: quem postou à esquerda, votos e comentários à direita */
+  .cartao.cv2 .cv2-pe {
+    grid-area: pe;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 10px 6px 12px;
+  }
+  .cartao.cv2 .cv2-autor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-right: auto;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: var(--tinta-suave);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .cartao.cv2 .cv2-autor-foto {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    background: var(--marca-escura);
+    border-radius: 50%;
+  }
+  .cartao.cv2 .cv2-pe > div {
+    flex: none;
+    border: 1px solid #e3e8ef;
+    border-radius: 999px;
+  }
+  .cartao.cv2 .cv2-comentarios {
+    display: inline-flex;
+    width: 40px;
+    height: 36px;
+    border: 1px solid #e3e8ef;
+    border-radius: 999px;
+  }
+
+  /* O botão grande some (como nos apps de ofertas): foto e título levam para a página da oferta, que tem o botão da loja */
+  .cartao.cv2 .cartao-botao { display: none; }
+  /* Cupons (sem página de produto) continuam com o botão */
+  .cartao.cv2.cv2--cupom .cartao-botao { display: block; grid-column: 1 / -1; margin: 0 12px 12px; }
 }

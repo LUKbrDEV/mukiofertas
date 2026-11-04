@@ -4,6 +4,7 @@
 // filtro rápido por departamento e botão "Carregar mais".
 // Salve como components/FeedOfertas.js (usado no app/page.js).
 //
+// Rolagem infinita: ao chegar perto do fim, carrega mais sozinho (o botão continua como reserva).
 // Os cards já chegam prontos do servidor (o Google lê todos); aqui só escolhemos quais aparecem.
 //
 // abas = [{ id, rotulo, descricao, href, itens: [{ id, grupo, card }] }]
@@ -11,10 +12,13 @@
 // departamentos = { slug: { nome, emoji } }
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-const POR_VEZ = 12; // cards por "página" (3 linhas de 4 no computador)
+const POR_VEZ = 24; // cards por "página" (cerca de 5 linhas no computador)
 const MAX_FILTROS = 8; // quantos departamentos aparecem no filtro
+// Rolagem infinita: quando a pessoa chega perto do fim do feed, mais cards aparecem sozinhos.
+// Depois de AUTO_ATE cards, para de carregar sozinho e fica só o botão (para o rodapé continuar alcançável).
+const AUTO_ATE = 72;
 
 const CSS = `
   .feed { margin: 4px 0 32px; }
@@ -82,6 +86,7 @@ export default function FeedOfertas({ abas, departamentos = {} }) {
   const [filtro, setFiltro] = useState("todos");
   const [mostrar, setMostrar] = useState(POR_VEZ);
   const botoes = useRef({});
+  const marcador = useRef(null);
 
   const atual = lista.find((a) => a.id === ativa) ?? lista[0];
 
@@ -95,6 +100,26 @@ export default function FeedOfertas({ abas, departamentos = {} }) {
       .slice(0, MAX_FILTROS)
       .map(([slug, total]) => ({ slug, total, ...departamentos[slug] }));
   }, [atual, departamentos]);
+
+  // Quantos cards a aba atual tem com o filtro escolhido
+  const totalVisivel = atual
+    ? atual.itens.filter((i) => filtro === "todos" || i.grupo === filtro).length
+    : 0;
+  const temMais = totalVisivel > mostrar;
+
+  // Rolagem infinita: observa um marcador logo abaixo da grade
+  useEffect(() => {
+    const el = marcador.current;
+    if (!el || !temMais || mostrar >= AUTO_ATE || typeof IntersectionObserver === "undefined") return;
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) setMostrar((m) => m + POR_VEZ);
+      },
+      { rootMargin: "600px 0px" } // começa a carregar um pouco antes de chegar no fim
+    );
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [temMais, mostrar, ativa, filtro]);
 
   if (!atual) return null;
 
@@ -197,6 +222,8 @@ export default function FeedOfertas({ abas, departamentos = {} }) {
                 })}
               </div>
             )}
+
+            {eAtual && <div ref={marcador} aria-hidden="true" style={{ height: 1 }} />}
 
             <div className="feed-rodape">
               {eAtual && visiveis.length > mostrar && (
