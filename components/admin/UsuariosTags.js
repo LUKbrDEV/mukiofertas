@@ -108,7 +108,7 @@ export default function UsuariosTags() {
                       onClick={() => alternar(u, t.id)}
                       title={ativa ? "Clique para tirar" : "Clique para colocar"}
                     >
-                      {ativa ? "✓ " : "+ "}
+                      {ativa ? "" : "+ "}
                       {t.icone} {t.nome}
                     </button>
                   );
