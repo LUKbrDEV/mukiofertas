@@ -29,6 +29,31 @@ export default function Sobre() {
         <li>Quando uma promoção termina, ela fica marcada como Expirado e desce para o fim da lista.</li>
       </ul>
 
+      <h2>Como escolhemos e mantemos as ofertas</h2>
+      <ul>
+        <li>
+          Mostramos o preço anterior e a porcentagem de desconto só quando a própria loja informa esse
+          preço.
+        </li>
+        <li>
+          O robô do site volta à loja de tempos em tempos para conferir o preço da maioria das ofertas. Se ele subir, a oferta
+          ganha a tag Expirado.
+        </li>
+        <li>
+          Toda oferta expira em poucos dias e, depois, sai do site, para a vitrine mostrar só o que ainda
+          vale.
+        </li>
+        <li>Ofertas repetidas, com preço estranho ou sem foto são revisadas pela equipe no painel do site.</li>
+      </ul>
+
+      <h2>Guias de compra</h2>
+      <p>
+        Além das ofertas, a equipe escreve <Link href="/guias">guias de compra</Link> que explicam o que olhar
+        antes de comprar: como escolher monitor, SSD e celular, como saber se uma promoção é real, como usar
+        cupons e como comprar com segurança. Os guias são revisados periodicamente e mostram a data da última
+        atualização.
+      </p>
+
       <h2>Transparência</h2>
       <p>
         O {SITE.nome} pode receber comissão pelas compras feitas através dos links do site, sem

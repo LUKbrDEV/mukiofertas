@@ -10,6 +10,9 @@ import {
   tempoAtras,
 } from "../lib/ofertas";
 
+// Visual "cv2" (inspirado nos grandes sites de ofertas): loja e tempo no topo, foto limpa,
+// preço grande com a % OFF ao lado, selos (cupom, frete, economia), votos e botão grande.
+// Os estilos ficam em app/cards-v2.css.
 // previa = true: usado na prévia do painel admin (links desativados)
 export default function CardOferta({ oferta, previa = false }) {
   const desconto = calcularDesconto(oferta);
@@ -57,8 +60,34 @@ export default function CardOferta({ oferta, previa = false }) {
   // Cupom sem código (de ativar na própria loja, comum na Amazon e no Mercado Livre)
   const cupomDeResgatar = ehCupom && !oferta.cupom && !expirada && !previa;
 
+  // Logo da loja no topo do card (as lojas do data/lojas.js têm logo e cor)
+  const lojaInfo = lojaDoNome(oferta.loja);
+  const quando = oferta.publicada_em ?? oferta.atualizado_em;
+
   return (
-    <article className={classes}>
+    <article className={`${classes} cv2`}>
+      {/* Topo: loja e há quanto tempo a oferta entrou (como nos grandes sites de ofertas) */}
+      <div className="cv2-topo">
+        {lojaInfo?.logo ? (
+          <span className="cv2-loja-logo" style={{ background: lojaInfo.cor }} aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={lojaInfo.logo} alt="" loading="lazy" />
+          </span>
+        ) : (
+          <span className="cv2-loja-logo cv2-loja-logo--letra" aria-hidden="true">
+            {oferta.loja.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span className="cv2-loja">{oferta.loja}</span>
+        {quando && <span className="cv2-quando">· {tempoAtras(quando)}</span>}
+        {oferta.relampago && !expirada && (
+          <span className="cv2-relampago" title="Promoção relâmpago">
+            <IconeRaio tamanho={11} />
+            <span className="cv2-relampago-txt">Relâmpago</span>
+          </span>
+        )}
+      </div>
+
       <a {...paginaProps} {...clicavel} className="cartao-img" aria-hidden="true" tabIndex={-1}>
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -104,53 +133,45 @@ export default function CardOferta({ oferta, previa = false }) {
         ) : (
           <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
         )}
-        {desconto > 0 && !ehCupom && (
-          <span className="desconto" data-nivel={nivelDoDesconto(desconto)}>
-            -{desconto}%
-          </span>
-        )}
         {oferta.selo && <span className="selo-chamativo cartao-selo">{oferta.selo}</span>}
         {expirada && <span className="tag-expirado">Expirado</span>}
       </a>
 
       <div className="cartao-corpo">
-        <div className="cartao-meta">
-          <span className="loja">{oferta.loja}</span>
-          {oferta.relampago && !expirada && (
-            <span className="selo-relampago">
-              <IconeRaio tamanho={12} /> Relâmpago
-            </span>
-          )}
-        </div>
-
         <h3 className="cartao-titulo" title={oferta.titulo}>
           <a {...paginaProps} {...clicavel}>
             {oferta.titulo}
           </a>
         </h3>
 
+        {/* Preço: o antigo pequeno em cima, o atual grande com a % ao lado */}
         <div className="cartao-precos">
           {ehCupom ? (
             <span className="preco-atual">🎟️ Cupom</span>
           ) : (
             <>
-              <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
-              {desconto > 0 && (
-                <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
-              )}
+              <span className="preco-antigo">{desconto > 0 ? formatarPreco(oferta.preco_antigo) : " "}</span>
+              <span className="cv2-linha-preco">
+                <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
+                {desconto > 0 && (
+                  <span className="cv2-off" data-nivel={nivelDoDesconto(desconto)}>
+                    {desconto}% OFF
+                  </span>
+                )}
+              </span>
             </>
           )}
         </div>
 
-        {/* Espaço fixo para economia e cupom: todos os cards ficam com a mesma altura */}
+        {/* Espaço fixo para os selos e o cupom: todos os cards ficam com a mesma altura */}
         {/* Cupom (aba Cupons): código escondido pela fita; ao clicar, copia e revela */}
         {cupomComFita ? (
-          <div style={{ margin: "8px 0 6px" }}>
+          <div style={{ margin: "6px 0 2px" }}>
             <CupomRevelar codigo={oferta.cupom} />
           </div>
         ) : cupomDeResgatar ? (
           // mesmo visual da fita dos outros cupons, mas leva direto para a página do cupom na loja
-          <div style={{ margin: "8px 0 6px" }}>
+          <div style={{ margin: "6px 0 2px" }}>
             <a
               {...lojaProps}
               aria-label={`Resgatar o cupom na ${oferta.loja}`}
@@ -177,37 +198,33 @@ export default function CardOferta({ oferta, previa = false }) {
             </a>
           </div>
         ) : (
-        <div className="cartao-extras">
-          <p className="economia">
-            {mostrarEconomia ? `Economia de ${formatarPreco(economia)}` : " "}
-          </p>
-          <div className="cartao-cupom-espaco">
+          <div className="cv2-selos">
             {mostrarCupom && !previa && <BotaoCupom codigo={oferta.cupom} compacto />}
             {mostrarCupom && previa && <span className="cupom">Cupom {oferta.cupom}</span>}
+            {!mostrarCupom && oferta.frete_gratis && !expirada && <span className="cv2-selo cv2-selo--frete">🚚 Frete grátis</span>}
+            {!mostrarCupom && !oferta.frete_gratis && mostrarEconomia && (
+              <span className="cv2-selo cv2-selo--economia">Economize {formatarPreco(economia)}</span>
+            )}
           </div>
-        </div>
         )}
+      </div>
 
-        <p className="cartao-rodape">
-          <span>{tempoAtras(oferta.atualizado_em)}</span>
-          {oferta.autor && <span className="cartao-autor">por {oferta.autor}</span>}
-          {!ehCupom && (
-            <a {...paginaProps} className="cartao-comentarios">
-              💬 Comentários
-            </a>
-          )}
-        </p>
+      {/* Pé: votos e comentários na mesma linha, botão grande embaixo */}
+      <div className="cv2-pe">
+        <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} previa={previa} />
+        {!ehCupom && (
+          <a {...paginaProps} className="cartao-comentarios cv2-comentarios" aria-label="Ver comentários">
+            💬
+          </a>
+        )}
       </div>
 
       {/* Cupom (com código ou de resgatar): sem botão (foto e título também levam para a loja) */}
       {!cupomComFita && !cupomDeResgatar && (
         <a {...lojaProps} {...clicavel} className="botao cartao-botao">
-          {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
+          {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Pegar promoção"}
         </a>
       )}
-
-      {/* Like / Deslike com os números (votos.sql) */}
-      <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} previa={previa} />
     </article>
   );
 }

@@ -5,6 +5,7 @@ import "./ofertas-extra.css";
 import "./cartoes.css";
 import "./cards-compactos.css";
 import "./destaques.css";
+import "./cards-v2.css"; // visual novo dos cards de oferta (tire esta linha para voltar ao antigo)
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";

@@ -1,0 +1,159 @@
+/* Estilos dos guias de compra (/guias), da faixa de guias da página inicial
+   e do bloco "Análise do MukiOfertas" na página da oferta.
+   Salve como components/guias.css */
+
+.guias-pagina { max-width: 1100px; margin: 0 auto; padding: 8px 12px 40px; }
+.guias-pagina h1 {
+  margin: 8px 0 8px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.2;
+  color: var(--tinta, #0f172a);
+}
+.guias-intro { max-width: 720px; margin: 0 0 24px; color: var(--tinta-suave, #475569); line-height: 1.6; }
+
+.guias-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.guia-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 18px;
+  background: var(--superficie, #fff);
+  border: 1px solid var(--linha, #e3e8ef);
+  border-radius: 14px;
+  color: var(--tinta, #0f172a);
+  text-decoration: none;
+}
+.guia-card:hover { border-color: var(--marca, #ff7a1a); }
+.guia-tema {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--marca-escura, #c2410c);
+}
+.guia-card strong {
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+.guia-card p { margin: 0; font-size: 0.92rem; line-height: 1.55; color: var(--tinta-suave, #475569); }
+.guia-card small { margin-top: auto; font-size: 0.8rem; color: var(--tinta-suave, #475569); }
+
+/* Página do guia */
+.guia { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.guia-artigo {
+  flex: 999 1 560px;
+  min-width: 0;
+  padding: clamp(18px, 3vw, 36px);
+  background: var(--superficie, #fff);
+  border: 1px solid var(--linha, #e3e8ef);
+  border-radius: 16px;
+}
+.guia-lateral { flex: 1 1 260px; display: flex; flex-direction: column; gap: 16px; }
+.guia-trilha { font-size: 0.85rem; color: var(--tinta-suave, #475569); margin-bottom: 10px; }
+.guia-trilha a { color: inherit; }
+.guia-autor { margin: 0 0 18px; font-size: 0.9rem; color: var(--tinta-suave, #475569); }
+.guia-artigo p, .guia-artigo li { font-size: 1.02rem; line-height: 1.75; color: #334155; }
+.guia-artigo h2 {
+  margin: 28px 0 10px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.35rem;
+  color: var(--tinta, #0f172a);
+}
+.guia-artigo ul { padding-left: 20px; }
+.guia-resumo {
+  margin: 16px 0 8px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1px solid var(--linha, #e3e8ef);
+  border-radius: 12px;
+}
+.guia-resumo strong { display: block; margin-bottom: 6px; color: var(--tinta, #0f172a); }
+.guia-resumo ul { margin: 0; }
+.guia-faq h3 { margin: 18px 0 4px; font-size: 1.05rem; color: var(--tinta, #0f172a); }
+.guia-faq p { margin: 0; }
+.guia-aviso { margin-top: 28px; font-size: 0.85rem !important; color: var(--tinta-suave, #475569) !important; }
+.guia-caixa {
+  padding: 18px;
+  background: var(--superficie, #fff);
+  border: 1px solid var(--linha, #e3e8ef);
+  border-radius: 14px;
+}
+.guia-caixa h2 { margin: 0 0 10px; font-size: 1rem; font-family: var(--fonte-titulo), system-ui, sans-serif; }
+.guia-caixa ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.guia-caixa a { font-size: 0.92rem; line-height: 1.4; }
+.guia-ofertas { margin-top: 28px; }
+
+/* Faixa da página inicial */
+.home-guias { margin: 28px 12px 8px; }
+.home-confianca {
+  margin: 20px 12px;
+  padding: 22px;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 14px;
+}
+.home-confianca h2 {
+  margin: 0 0 16px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.3rem;
+}
+.home-confianca ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  counter-reset: passo;
+}
+.home-confianca li { counter-increment: passo; }
+.home-confianca li::before {
+  content: counter(passo);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+.home-confianca strong { display: block; margin-bottom: 4px; }
+.home-confianca p { margin: 0; font-size: 0.92rem; line-height: 1.55; color: #cbd5e1; }
+
+/* Análise na página da oferta */
+.analise-oferta {
+  margin-top: 24px;
+  padding: 22px 24px;
+  background: var(--superficie, #fff);
+  border: 1px solid var(--linha, #e3e8ef);
+  border-radius: 12px;
+}
+.analise-oferta h2 {
+  margin: 0 0 12px;
+  font-family: var(--fonte-titulo), system-ui, sans-serif;
+  font-size: 1.25rem;
+  color: var(--tinta, #0f172a);
+}
+.analise-veredito {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.analise-veredito[data-nivel="otimo"] { background: #dcfce7; color: #166534; }
+.analise-veredito[data-nivel="bom"] { background: #dbeafe; color: #1e3a8a; }
+.analise-veredito[data-nivel="normal"] { background: #f1f5f9; color: #334155; }
+.analise-veredito[data-nivel="encerrada"] { background: #f1f5f9; color: #475569; }
+.analise-oferta p, .analise-oferta li { font-size: 0.98rem; line-height: 1.7; color: #334155; }
+.analise-oferta ul { margin: 8px 0 0; padding-left: 20px; }
+.analise-guia { margin-top: 12px; font-weight: 700; }

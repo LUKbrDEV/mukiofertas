@@ -1,13 +1,16 @@
 // Mapa do site para o Google (fica em https://mukiofertas.com.br/sitemap.xml).
 // Salve como app/sitemap.js. Se já existir um app/sitemap.xml (arquivo fixo), apague-o.
 // Atualiza sozinho: páginas fixas, Black Friday, categorias com ofertas e as ofertas no ar.
-// As ofertas expiradas ficam de fora (elas também estão marcadas como "noindex").
+// As ofertas expiradas e as sem detalhes próprios ficam de fora (elas também estão marcadas
+// como "noindex"; regra em lib/indexacao.js). Os guias de compra entram todos.
 
 import { supabase } from "../lib/supabase";
 import { SITE } from "../lib/site";
 import { categorias } from "../data/ofertas";
 import { atalhos } from "../data/atalhos";
 import { estaExpirada } from "../lib/ofertas";
+import { guias } from "../data/guias";
+import { deveIndexarOferta } from "../lib/indexacao";
 
 export const revalidate = 3600; // refaz o mapa a cada 1 hora
 
@@ -37,7 +40,7 @@ export default async function sitemap() {
   for (let de = 0; de < MAX_OFERTAS; de += POR_PAGINA) {
     const { data, error } = await supabase
       .from("ofertas")
-      .select("id, categoria, atualizado_em, publicada_em, expires_at, origem")
+      .select("id, categoria, atualizado_em, publicada_em, expires_at, origem, sobre, especificacoes")
       .eq("ativa", true)
       .order("id", { ascending: false })
       .range(de, de + POR_PAGINA - 1);
@@ -63,12 +66,23 @@ export default async function sitemap() {
       priority: c.pai ? 0.6 : 0.7,
     }));
 
-  const paginasOfertas = noAr.map((o) => ({
-    url: `${base}/oferta/${o.id}`,
-    lastModified: o.atualizado_em ? new Date(o.atualizado_em) : agora,
-    changeFrequency: "daily",
-    priority: 0.5,
+  // Só as ofertas que o Google deve indexar (regra em lib/indexacao.js)
+  const paginasOfertas = noAr
+    .filter((o) => deveIndexarOferta(o, false))
+    .map((o) => ({
+      url: `${base}/oferta/${o.id}`,
+      lastModified: o.atualizado_em ? new Date(o.atualizado_em) : agora,
+      changeFrequency: "daily",
+      priority: 0.5,
+    }));
+
+  // Guias de compra (conteúdo próprio do site)
+  const paginasGuias = guias.map((g) => ({
+    url: `${base}/guias/${g.slug}`,
+    lastModified: new Date(`${g.atualizadoEm}T12:00:00-03:00`),
+    changeFrequency: "monthly",
+    priority: 0.8,
   }));
 
-  return [...fixas, ...paginasCategorias, ...paginasOfertas];
+  return [...fixas, ...paginasGuias, ...paginasCategorias, ...paginasOfertas];
 }
