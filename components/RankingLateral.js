@@ -32,7 +32,8 @@ const CSS = `
   .rk-pos { text-align: center; font-weight: 800; color: #64748b; font-size: 12px; }
   .rk-pos--medalha { font-size: 16px; }
   .rk-info { min-width: 0; }
-  .rk-nome { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; color: #0f172a; }
+  .rk-nome { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; color: #0f172a; text-decoration: none; }
+  a.rk-nome:hover { color: #0a4bb8; text-decoration: underline; }
   .rk-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
   .rk-xp { font-weight: 800; color: #ff7a1a; font-size: 12px; white-space: nowrap; text-align: right; }
   .rk--lenda .rk-xp { color: #b07d00; }
@@ -133,9 +134,15 @@ function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false }) {
                 </span>
                 <Avatar usuario={usuario} tamanho={28} borda={false} />
                 <span className="rk-info">
-                  <span className="rk-nome" title={u.nome}>
-                    {u.nome}
-                  </span>
+                  {u.nome && u.nome !== "Membro Muki" ? (
+                    <Link href={`/membro/${encodeURIComponent(u.nome)}`} className="rk-nome" title={`Ver o perfil de ${u.nome}`}>
+                      {u.nome}
+                    </Link>
+                  ) : (
+                    <span className="rk-nome" title={u.nome}>
+                      {u.nome}
+                    </span>
+                  )}
                   {tags.length > 0 && (
                     <span className="rk-tags">
                       {tags.map((t) => (

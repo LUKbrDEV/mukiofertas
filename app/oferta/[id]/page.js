@@ -18,8 +18,23 @@ import { paiDe } from "../../../lib/departamentos";
 import LinhaOfertas from "../../../components/LinhaOfertas";
 import SobreProduto from "../../../components/SobreProduto";
 import BotaoCupom from "../../../components/BotaoCupom";
+import GraficoPreco from "../../../components/GraficoPreco";
+import { buscarHistorico, resumirHistorico } from "../../../lib/historico";
 
 export const revalidate = 60;
+
+// Sugestão de alerta a partir do título: as 3 primeiras palavras que dizem o que é o produto
+// ("Air Fryer Mondial 4L Preta..." → "air fryer mondial")
+const PALAVRAS_FRACAS = new Set(["de", "da", "do", "das", "dos", "com", "para", "e", "a", "o", "em", "kit", "novo", "nova", "oferta"]);
+function termoDoAlerta(titulo) {
+  return String(titulo)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((p) => p.length > 1 && !PALAVRAS_FRACAS.has(p))
+    .slice(0, 3)
+    .join(" ");
+}
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
@@ -64,6 +79,10 @@ export default async function PaginaOferta({ params }) {
   const oferta = await buscarOfertaPorId(id);
   if (!oferta) notFound();
 
+  const historico = await buscarHistorico(oferta.id);
+  const resumoPreco = resumirHistorico(historico, oferta.preco_atual);
+  const mostrarGrafico = resumoPreco && (historico.length >= 2 || resumoPreco.diasDeHistorico >= 1);
+
   const desconto = calcularDesconto(oferta);
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
   const expirada = oferta.expirada;
@@ -78,11 +97,43 @@ export default async function PaginaOferta({ params }) {
   const validoAte = prazos.length ? new Date(Math.min(...prazos)).toISOString().slice(0, 10) : undefined;
 
   // Mais ofertas da mesma categoria (links internos ajudam o Google a encontrar as outras páginas)
-  const relacionadas = categoria
-    ? (await buscarOfertas({ categoria: categoria.slug, limite: 13, limiteExpiradas: 0 }))
-        .filter((o) => o.id !== oferta.id)
-        .slice(0, 12)
-    : [];
+  // Sem categoria: usa as ofertas da mesma loja. Oferta expirada mostra essas ofertas logo abaixo,
+  // para quem chegou por um link antigo (WhatsApp, Telegram, Google) achar algo que está no ar.
+  const relacionadas = (
+    await buscarOfertas(
+      categoria
+        ? { categoria: categoria.slug, limite: 13, limiteExpiradas: 0 }
+        : { loja: oferta.loja, limite: 13, limiteExpiradas: 0 }
+    )
+  )
+    .filter((o) => o.id !== oferta.id)
+    .slice(0, 12);
+  const tituloRelacionadas = expirada
+    ? "Esta oferta acabou, mas estas estão no ar"
+    : categoria
+      ? `Mais ofertas de ${categoria.nome}`
+      : `Mais ofertas da ${oferta.loja}`;
+  const linkRelacionadas = categoria ? `/categoria/${categoria.slug}` : "/";
+
+  const blocoRelacionadas =
+    relacionadas.length > 0 ? (
+      <section
+        id="ofertas-parecidas"
+        className="secao"
+        style={{ marginTop: expirada ? 16 : 28 }}
+        aria-labelledby="titulo-relacionadas"
+      >
+        <div className="secao-cabecalho">
+          <h2 id="titulo-relacionadas" className="titulo-secao">
+            {tituloRelacionadas}
+          </h2>
+          <Link href={linkRelacionadas} className="botao-ver-mais">
+            Ver todas
+          </Link>
+        </div>
+        <LinhaOfertas ofertas={relacionadas} />
+      </section>
+    ) : null;
 
   // Dados estruturados: produto com preço e o caminho da página
   const base = SITE.url.replace(/\/+$/, "");
@@ -181,6 +232,16 @@ export default async function PaginaOferta({ params }) {
               <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
             )}
           </div>
+          {resumoPreco?.menorPreco30 && !expirada && (
+            <p
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, margin: "6px 0 2px", padding: "4px 10px",
+                borderRadius: 999, background: "#dcfce7", color: "#166534", fontWeight: 800, fontSize: 13,
+              }}
+            >
+              📉 Menor preço dos últimos 30 dias
+            </p>
+          )}
           {economia > 0 && !expirada && (
             <p className="economia">Economia de {formatarPreco(economia)}</p>
           )}
@@ -192,10 +253,17 @@ export default async function PaginaOferta({ params }) {
           )}
 
           {expirada ? (
-            <p className="produto-aviso">
-              Esta oferta terminou e o preço pode ter mudado. Ainda dá para ver o que a
-              comunidade comentou.
-            </p>
+            <>
+              <p className="produto-aviso">
+                Esta oferta terminou e o preço pode ter mudado. Ainda dá para ver o que a
+                comunidade comentou.
+              </p>
+              {relacionadas.length > 0 && (
+                <a href="#ofertas-parecidas" className="botao produto-botao">
+                  Ver ofertas parecidas no ar
+                </a>
+              )}
+            </>
           ) : (
             <a
               href={`/ir/${oferta.id}`}
@@ -206,30 +274,34 @@ export default async function PaginaOferta({ params }) {
               Ir para a oferta na {oferta.loja}
             </a>
           )}
-               {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
+          {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
+          <Link
+            href={`/alertas?termo=${encodeURIComponent(termoDoAlerta(oferta.titulo))}`}
+            style={{ display: "inline-block", marginTop: 10, color: "#0a4bb8", fontWeight: 700, textDecoration: "none" }}
+          >
+            🔔 {expirada ? "Me avise quando voltar" : "Criar alerta para ofertas parecidas"}
+          </Link>
 
           <p className="cartao-rodape">
             <span>{tempoAtras(oferta.atualizado_em)}</span>
-            {oferta.autor && <span className="cartao-autor">por {oferta.autor}</span>}
+            {oferta.autor && (
+              <span className="cartao-autor">
+                por <Link href={`/membro/${encodeURIComponent(oferta.autor)}`}>{oferta.autor}</Link>
+              </span>
+            )}
           </p>
         </div>
       </article>
 
+      {expirada && blocoRelacionadas}
+
+      {mostrarGrafico && (
+        <GraficoPreco pontos={historico} precoAtual={oferta.preco_atual} resumo={resumoPreco} />
+      )}
+
       <SobreProduto oferta={oferta} />
 
-      {relacionadas.length > 0 && (
-        <section className="secao" style={{ marginTop: 28 }} aria-labelledby="titulo-relacionadas">
-          <div className="secao-cabecalho">
-            <h2 id="titulo-relacionadas" className="titulo-secao">
-              Mais ofertas de {categoria.nome}
-            </h2>
-            <Link href={`/categoria/${categoria.slug}`} className="botao-ver-mais">
-              Ver todas
-            </Link>
-          </div>
-          <LinhaOfertas ofertas={relacionadas} />
-        </section>
-      )}
+      {!expirada && blocoRelacionadas}
 
       <Comentarios ofertaId={oferta.id} />
     </>

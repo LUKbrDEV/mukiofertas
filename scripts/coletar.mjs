@@ -19,6 +19,8 @@ import {
   descontoMinimoDa,
   podeRenovar,
   camposDaRenovacao,
+  momentoExpiracao,
+  podeVoltar,
   aplicarConfigDoBanco,
   registrarExecucao,
 } from "../lib/prazos.mjs";
@@ -64,6 +66,7 @@ async function main() {
   let publicadas = 0;
   let expiradasPorPreco = 0;
   let renovadas = 0;
+  let voltaram = 0;
   const falhas = [];
 
   // Ofertas dos últimos dias, para reconhecer duplicadas (de qualquer fonte)
@@ -80,13 +83,19 @@ async function main() {
   const qualidade = regrasDeQualidade(config);
   const { data: marketplaceNoAr } = await supabase
     .from("ofertas")
-    .select("loja, id_externo")
+    .select("loja, id_externo, publicada_em, expires_at")
     .eq("ativa", true)
     .in("loja", ["Shopee", "AliExpress", "Aliexpress"])
+    .gte("publicada_em", limiteSite.toISOString())
     .limit(5000);
-  const jaNoAr = new Set((marketplaceNoAr ?? []).map((o) => `${o.loja.toLowerCase()}|${o.id_externo}`));
+  // Só contam as que ainda não expiraram (as expiradas continuam no banco, mas não ocupam vaga)
+  const marketplaceValidas = (marketplaceNoAr ?? []).filter((o) => {
+    const expira = momentoExpiracao(o);
+    return expira === null || expira > Date.now();
+  });
+  const jaNoAr = new Set(marketplaceValidas.map((o) => `${o.loja.toLowerCase()}|${o.id_externo}`));
   const vagas = new Map();
-  for (const o of marketplaceNoAr ?? []) vagas.set(o.loja.toLowerCase(), (vagas.get(o.loja.toLowerCase()) ?? 0) + 1);
+  for (const o of marketplaceValidas) vagas.set(o.loja.toLowerCase(), (vagas.get(o.loja.toLowerCase()) ?? 0) + 1);
   for (const [loja, n] of vagas) vagas.set(loja, Math.max(0, maximoNoAr(loja, qualidade) - n));
   let recusadasQualidade = 0;
   let semVaga = 0;
@@ -173,11 +182,14 @@ async function main() {
         (existentes ?? []).map((o) => [`${o.loja}|${o.id_externo}`, o])
       );
 
-      // Não reativa ofertas que você ocultou no painel nem as que já passaram do prazo no site
+      // Não reativa ofertas que você ocultou no painel nem as que já passaram do prazo no site.
+      // Exceção: a oferta que saiu das listas há bastante tempo (podeVoltar) pode voltar, na mesma página.
       const bloqueadas = new Set(
         (existentes ?? [])
           .filter(
-            (o) => o.oculta_manual || (o.publicada_em && new Date(o.publicada_em) < limiteSite)
+            (o) =>
+              o.oculta_manual ||
+              (o.publicada_em && new Date(o.publicada_em) < limiteSite && !podeVoltar(o))
           )
           .map((o) => o.id_externo)
       );
@@ -193,6 +205,16 @@ async function main() {
         const existente = existentePor.get(`${l.loja}|${l.id_externo}`);
         if (!existente || !existente.publicada_em) {
           l.preco_conferido_em = agora; // oferta nova
+          return true;
+        }
+
+        // Oferta antiga voltando ao site: entra como nova, mas na mesma página (mesmo id)
+        if (podeVoltar(existente)) {
+          l.publicada_em = agora;
+          l.preco_conferido_em = agora;
+          l.renovacoes = 0;
+          l.postada_telegram_em = null; // volta para a fila de postagem do canal
+          voltaram++;
           return true;
         }
 
@@ -270,7 +292,7 @@ async function main() {
     .or(`expires_at.is.null,expires_at.gt.${agora}`);
   if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
 
-  // Apaga as ofertas que já estão expiradas há mais de DIAS_EXPIRADA_VISIVEL dias
+  // As expiradas não são mais apagadas (a página delas continua no ar); só conta as arquivadas
   const limpeza = await limparExpiradas(supabase);
 
   if (recusadasQualidade || semVaga)
@@ -282,7 +304,7 @@ async function main() {
   const resumo =
     (SO ? `Só ${SO === "awin" ? "KaBuM!" : SO} (pelo painel): ` : "") +
     `${publicadas} publicadas/atualizadas, ${expiradasPorPreco} expiradas por preço, ` +
-    `${renovadas} renovadas, ${limpeza.total} apagadas` +
+    `${renovadas} renovadas, ${voltaram} voltaram, ${limpeza.arquivadas} arquivadas (página mantida)` +
     (falhas.length ? ` | falha: ${falhas.join("; ")}` : "");
   await registrarExecucao(supabase, "coletar", falhas.length === 0, resumo);
 
@@ -291,7 +313,8 @@ async function main() {
       `${expiradasPorPreco} expiradas porque o preço subiu mais de ${TOLERANCIA_PERCENTUAL}% ` +
       `(conferência a cada ${HORAS_ENTRE_CONFERENCIAS}h), ` +
       `${renovadas} renovadas por manter o preço, ` +
-      `${limpeza.total} apagadas (expiradas há mais de ${DIAS_EXPIRADA_VISIVEL} dias).`
+      `${voltaram} voltaram ao site na mesma página, ` +
+      `${limpeza.arquivadas} fora das listas (expiradas há mais de ${DIAS_EXPIRADA_VISIVEL} dias; páginas mantidas).`
   );
 }
 

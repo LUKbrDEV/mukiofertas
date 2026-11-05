@@ -8,6 +8,7 @@ import "./destaques.css";
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
+import AvisosMembro from "../components/AvisosMembro";
 import BotaoComunidade from "../components/BotaoComunidade";
 import Halloween from "../components/Halloween";
 import { buscarTotaisPorCategoria } from "../lib/ofertas";
@@ -129,6 +130,7 @@ export default async function RootLayout({ children }) {
           {children}
         </CascaCondicional>
         <AvisoCookies />
+        <AvisosMembro />
         {/* Enfeite de Halloween: some sozinho depois de 01/11 */}
         <Halloween />
         <BotaoComunidade
