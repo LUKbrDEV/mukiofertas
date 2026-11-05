@@ -7,7 +7,7 @@
 import RankingLateral from "./RankingLateral";
 
 const CSS = `
-  .home-grade { display: grid; grid-template-columns: minmax(0, 1fr) 236px; gap: 22px; align-items: start; }
+  .home-grade { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 22px; align-items: start; }
   .home-grade-principal { min-width: 0; }
   .home-grade-lateral {
     position: sticky;
@@ -15,9 +15,11 @@ const CSS = `
     margin-top: 18px;
     max-height: calc(100vh - var(--mk-topo-fixo, 0px) - 28px);
     overflow-y: auto;
-    scrollbar-width: thin;
+    scrollbar-width: none; /* rola com a roda do mouse, sem mostrar a barra */
+    overscroll-behavior: contain;
     transition: top .15s ease;
   }
+  .home-grade-lateral::-webkit-scrollbar { display: none; }
   @media (max-width: 1199px) {
     .home-grade { grid-template-columns: minmax(0, 1fr); }
     .home-grade-lateral { position: static; max-height: none; overflow: visible; max-width: 420px; width: 100%; margin: 8px auto 0; }

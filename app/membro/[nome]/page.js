@@ -105,6 +105,14 @@ export default async function PaginaMembro({ params }) {
             <strong>{perfil.ofertas}</strong>
             <span>{perfil.ofertas === 1 ? "oferta aprovada" : "ofertas aprovadas"}</span>
           </div>
+          <div className="mb-numero">
+            <strong>{perfil.likes ?? 0}</strong>
+            <span>produtos curtidos</span>
+          </div>
+          <div className="mb-numero">
+            <strong>{perfil.comentarios ?? 0}</strong>
+            <span>produtos comentados</span>
+          </div>
         </div>
       </section>
 

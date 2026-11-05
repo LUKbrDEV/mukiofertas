@@ -1,282 +1,99 @@
-"use client";
-
-// Banner do topo da página /black-friday: texto + cronômetro ao vivo + Black November da KaBuM!
+// Banner do topo da página /black-friday (arte própria do MukiOfertas, sem imagem de loja e sem cronômetro).
 // Salve como components/HeroBlackFriday.js. Usado pelo app/black-friday/page.js.
-//
-// Efeitos leves (só CSS, não pesam): brilho que passa devagar, borda laranja animada,
-// luzes flutuando ao fundo e o banner da KaBuM! se dissolvendo num degradê inclinado ( / ).
+// Mesmo visual do banner da página inicial (components/BannerBlackFriday.js).
 // Quem prefere menos movimento (configuração do celular/PC) vê tudo parado.
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-
-// Banner da KaBuM! (o mesmo do BannerBlackFriday). Cole o seu link de afiliado da Awin para a
-// página da Black November (Awin → Links → Link Builder). Vazio = ofertas da KaBuM! no site.
-// Versão grande (1400x520, fundo transparente), montada a partir do banner original da KaBuM!
-const KABUM_BANNER = "/banners/kabum-black-november-grande.png";
-const KABUM_LINK = "";
 
 const CSS = `
   .hbf {
-    position: relative;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    margin-bottom: 22px;
-    border-radius: 18px;
-    color: #fff;
+    position: relative; overflow: hidden; isolation: isolate;
+    display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: center; gap: 24px;
+    margin-bottom: 22px; padding: 24px 32px; border-radius: 18px; color: #fff;
     background:
-      radial-gradient(90% 120% at 0% 0%, rgba(255, 122, 26, 0.28), rgba(255, 122, 26, 0) 55%),
-      linear-gradient(120deg, #05070d 0%, #0b1530 50%, #062a66 100%);
-    box-shadow: 0 16px 40px rgba(5, 10, 30, 0.35);
-    isolation: isolate;
+      radial-gradient(60% 120% at 100% 100%, rgba(255, 122, 26, .28), transparent 60%),
+      radial-gradient(50% 90% at 0% 0%, rgba(10, 75, 184, .5), transparent 65%),
+      #07090f;
+    box-shadow: 0 14px 36px rgba(5, 10, 30, .35);
   }
-  /* borda laranja/dourada que corre devagar */
   .hbf::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    padding: 2px;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #ff7a1a, #ffd166, #ff7a1a, #ff4d00);
-    background-size: 300% 100%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    animation: hbf-borda 6s linear infinite;
-    pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: -1; opacity: .07;
+    background: repeating-linear-gradient(-55deg, #fff 0 1px, transparent 1px 22px);
   }
-  /* luzes desfocadas flutuando ao fundo */
-  .hbf-luz {
-    position: absolute;
-    z-index: 0;
-    width: 260px;
-    height: 260px;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.35;
-    pointer-events: none;
-    animation: hbf-flutuar 12s ease-in-out infinite alternate;
+  .hbf::after {
+    content: ""; position: absolute; inset: -40% auto -40% -30%; width: 28%; z-index: -1;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent);
+    transform: skewX(-20deg); animation: hbf-brilho 7s ease-in-out infinite;
   }
-  .hbf-luz--1 { top: -90px; left: 30%; background: #ff7a1a; }
-  .hbf-luz--2 { bottom: -120px; left: 4%; background: #1d6bff; animation-delay: -6s; }
+  @keyframes hbf-brilho { 0%, 55% { left: -30%; } 100% { left: 130%; } }
 
-  .hbf-texto { position: relative; z-index: 2; padding: 30px 8px 30px 32px; }
   .hbf-selo {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 12px;
-    padding: 4px 12px;
-    font-size: 0.78rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: #0b1220;
-    background: linear-gradient(90deg, #ff7a1a, #ffb347);
-    border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px;
+    border: 1px solid rgba(255, 122, 26, .6); color: #ffb37a; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
   }
-  .hbf-texto h1 {
-    margin: 0 0 10px;
-    font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: clamp(1.7rem, 3.4vw, 2.6rem);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
-  }
-  .hbf-texto h1 span {
-    background: linear-gradient(90deg, #ff8a1f, #ffd166, #ff8a1f);
-    background-size: 200% 100%;
-    -webkit-background-clip: text;
-            background-clip: text;
-    color: transparent;
-    animation: hbf-brilho-texto 5s ease-in-out infinite;
-  }
-  .hbf-texto p { max-width: 560px; margin: 0; font-size: 1rem; line-height: 1.55; color: #d5e1ff; }
-
-  .hbf-relogio { display: flex; gap: 8px; margin: 18px 0 4px; }
-  .hbf-bloco {
-    width: 64px;
-    padding: 8px 0 6px;
-    text-align: center;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-  }
-  .hbf-numero {
-    display: block;
-    font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: 1.7rem;
-    font-weight: 800;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .hbf-rotulo { display: block; margin-top: 4px; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #ffb27a; }
-  .hbf-agora { margin: 18px 0 4px; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: 1.3rem; font-weight: 800; color: #ffd166; animation: hbf-pulso 1.6s ease-in-out infinite; }
-
-  .hbf-acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .hbf h1 { margin: 10px 0 8px; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: clamp(1.5rem, 2.8vw, 2.2rem);
+            font-weight: 800; line-height: 1.12; }
+  .hbf h1 span { color: #ff7a1a; }
+  .hbf p { margin: 0 0 16px; max-width: 560px; color: #cbd5e1; font-size: .98rem; line-height: 1.5; }
+  .hbf-acoes { display: flex; flex-wrap: wrap; gap: 10px; }
   .hbf-acoes a {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 18px;
-    font-weight: 800;
-    font-size: 0.95rem;
-    border-radius: 999px;
-    color: #0b1220;
-    background: #fff;
-    text-decoration: none;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 18px; border-radius: 999px;
+    background: #fff; color: #0f172a; font-weight: 800; font-size: .92rem; text-decoration: none; transition: transform .15s, filter .15s;
   }
-  .hbf-acoes a:hover { transform: translateY(-2px); }
-  .hbf-acoes a.hbf-principal { color: #fff; background: #ff7a1a; box-shadow: 0 8px 20px rgba(255, 122, 26, 0.45); }
-  .hbf-acoes a.hbf-whats { color: #fff; background: #25d366; }
+  .hbf-acoes a:hover { transform: translateY(-1px); filter: brightness(.96); }
+  .hbf-acoes .hbf-principal { background: #ff7a1a; color: #fff; box-shadow: 0 8px 22px rgba(255, 122, 26, .35); }
+  .hbf-acoes .hbf-whats { background: #22c55e; color: #fff; }
 
-  /* metade direita: KaBuM! (o banner se dissolve no fundo; um risco de luz inclinado ( / ) separa as metades) */
-  .hbf-kabum {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    min-height: 240px;
-    padding: 10px 14px 10px 46px;
-    /* a imagem da KaBuM! tem fundo transparente: ela "flutua" sobre o fundo do banner, sem corte */
-    background: radial-gradient(60% 70% at 60% 50%, rgba(255, 90, 0, 0.12), rgba(255, 90, 0, 0) 70%);
+  /* arte: BLACK / FRIDAY */
+  .hbf-arte { position: relative; justify-self: center; display: flex; flex-direction: column; width: max-content; max-width: 100%;
+              padding-right: 104px; line-height: .86; user-select: none; }
+  .hbf-black, .hbf-friday { font-family: var(--fonte-titulo), system-ui, sans-serif; font-weight: 900; letter-spacing: -.02em;
+                            font-size: clamp(2.4rem, 5vw, 4rem); text-transform: uppercase; }
+  .hbf-black { color: #fff; }
+  .hbf-friday { color: transparent; -webkit-text-stroke: 2px #ff7a1a; text-shadow: 0 0 28px rgba(255, 122, 26, .35); }
+  .hbf-ano { align-self: flex-start; margin-top: 8px; padding: 3px 10px; border-radius: 6px; background: #ff7a1a; color: #07090f;
+             font-weight: 900; font-size: .85rem; letter-spacing: .3em; }
+  .hbf-tag {
+    position: absolute; display: inline-flex; align-items: center; height: 28px; padding: 0 11px 0 16px;
+    border-radius: 6px 999px 999px 6px; background: #fff; color: #07090f; font-weight: 900; font-size: .9rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
   }
-  .hbf-kabum::before {
-    content: "";
-    position: absolute;
-    top: -10%;
-    bottom: -10%;
-    left: 34px;
-    width: 3px;
-    background: linear-gradient(180deg, rgba(255, 122, 26, 0), #ff7a1a 35%, #ffd166 55%, rgba(255, 122, 26, 0));
-    transform: skewX(-28deg);
-    box-shadow: 0 0 16px rgba(255, 122, 26, 0.85);
-    opacity: 0.9;
-    pointer-events: none;
-  }
-  .hbf-kabum img {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: auto;
-    filter: drop-shadow(0 8px 26px rgba(255, 90, 0, 0.22));
-    transition: transform 0.35s ease;
-  }
-  .hbf-kabum:hover img { transform: scale(1.03); }
-  /* faixa de luz que atravessa o banner da KaBuM! */
-  .hbf-kabum::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(62deg, transparent 35%, rgba(255, 255, 255, 0.14) 48%, transparent 60%);
-    background-size: 260% 100%;
-    animation: hbf-reflexo 5.5s ease-in-out infinite;
-    pointer-events: none;
-  }
-  .hbf-kabum-selo {
-    position: absolute;
-    right: 14px;
-    bottom: 12px;
-    z-index: 2;
-    padding: 4px 10px;
-    font-size: 0.74rem;
-    font-weight: 800;
-    color: #fff;
-    background: rgba(0, 96, 177, 0.9);
-    border-radius: 999px;
-  }
+  .hbf-tag::before { content: ""; position: absolute; left: 6px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: #07090f; }
+  .hbf-tag--1 { right: 0; top: 4px; transform: rotate(8deg); background: #ff7a1a; color: #fff; }
+  .hbf-tag--1::before { background: #fff; }
+  .hbf-tag--2 { right: 12px; bottom: 30px; transform: rotate(-6deg); }
 
-  @keyframes hbf-borda { to { background-position: 300% 0; } }
-  @keyframes hbf-flutuar { to { transform: translate(60px, 30px) scale(1.15); } }
-  @keyframes hbf-brilho-texto { 50% { background-position: 100% 0; } }
-  @keyframes hbf-reflexo { 0% { background-position: 130% 0; } 55%, 100% { background-position: -130% 0; } }
-  @keyframes hbf-pulso { 50% { opacity: 0.55; } }
-  @media (prefers-reduced-motion: reduce) {
-    .hbf::before, .hbf-luz, .hbf-texto h1 span, .hbf-kabum::after, .hbf-agora { animation: none; }
+  @media (max-width: 860px) {
+    .hbf { grid-template-columns: 1fr; padding: 20px 18px; gap: 16px; }
+    .hbf-arte { order: -1; justify-self: start; padding-right: 92px; }
+    .hbf-tag--2 { display: none; }
   }
-
-  /* celular e tablet: KaBuM! em cima, texto embaixo */
-  @media (max-width: 900px) {
-    .hbf { grid-template-columns: minmax(0, 1fr); }
-    .hbf-kabum {
-      order: -1;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-      min-height: 0;
-      padding: 0 0 6px;
-      background: none;
-    }
-    .hbf-kabum::before { display: none; }
-    .hbf-kabum img { -webkit-mask-image: none; mask-image: none; }
-    .hbf-kabum-selo { position: static; align-self: center; }
-    .hbf-texto { padding: 6px 18px 22px; }
-  }
-  @media (max-width: 480px) {
-    .hbf-relogio { justify-content: space-between; }
-    .hbf-bloco { flex: 1; width: auto; }
-    .hbf-acoes a { flex: 1 1 auto; justify-content: center; }
-  }
+  @media (prefers-reduced-motion: reduce) { .hbf::after { animation: none; display: none; } }
 `;
 
-const doisDigitos = (n) => String(n).padStart(2, "0");
-function partes(ms) {
-  const t = Math.max(0, Math.floor(ms / 1000));
-  return { dias: Math.floor(t / 86400), horas: Math.floor((t % 86400) / 3600), minutos: Math.floor((t % 3600) / 60), segundos: t % 60 };
-}
-
-export default function HeroBlackFriday({ ano, inicioIso, fimIso, dataTexto, titulo, whatsapp, telegram }) {
-  const inicio = new Date(inicioIso).getTime();
-  const fim = new Date(fimIso).getTime();
-  const [agora, setAgora] = useState(null); // null até abrir no navegador
-
-  useEffect(() => {
-    setAgora(Date.now());
-    const id = setInterval(() => setAgora(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const acontecendo = agora !== null && agora >= inicio && agora < fim;
-  const terminou = agora !== null && agora >= fim;
-  const t = agora === null ? null : partes(inicio - agora);
+export default function HeroBlackFriday({ ano, titulo, whatsapp, telegram }) {
+  const [antes, ...resto] = String(titulo).split(":");
+  const depois = resto.join(":").trim();
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <header className="hbf">
-        <span className="hbf-luz hbf-luz--1" aria-hidden="true" />
-        <span className="hbf-luz hbf-luz--2" aria-hidden="true" />
-
         <div className="hbf-texto">
           <span className="hbf-selo">🖤 Black Friday {ano}</span>
           <h1>
-            {titulo.split(":")[0]}: <span>{titulo.split(":").slice(1).join(":").trim()}</span>
+            {depois ? (
+              <>
+                {antes}: <span>{depois}</span>
+              </>
+            ) : (
+              antes
+            )}
           </h1>
           <p>
-            Desconto real nas maiores lojas do Brasil, atualizado o dia todo. A data oficial é {dataTexto}, mas as
-            promoções já começaram.
+            As melhores ofertas da Black Friday já começaram. Desconto real nas maiores lojas do Brasil, com preço
+            conferido e histórico de preço para você comprar sem cair em desconto falso.
           </p>
-
-          {terminou ? null : acontecendo ? (
-            <p className="hbf-agora">🔥 Está acontecendo agora!</p>
-          ) : (
-            <div className="hbf-relogio" role="timer" aria-label={`Tempo até a Black Friday ${ano}`}>
-              {[
-                ["dias", "Dias"],
-                ["horas", "Horas"],
-                ["minutos", "Min"],
-                ["segundos", "Seg"],
-              ].map(([k, r]) => (
-                <div key={k} className="hbf-bloco">
-                  <span className="hbf-numero">{t ? doisDigitos(t[k]) : "--"}</span>
-                  <span className="hbf-rotulo">{r}</span>
-                </div>
-              ))}
-            </div>
-          )}
 
           <div className="hbf-acoes">
             <a href="#destaques" className="hbf-principal">
@@ -296,16 +113,13 @@ export default function HeroBlackFriday({ ano, inicioIso, fimIso, dataTexto, tit
           </div>
         </div>
 
-        <a
-          className="hbf-kabum"
-          href={KABUM_LINK || "/categoria/hardware?loja=kabum"}
-          {...(KABUM_LINK ? { target: "_blank", rel: "sponsored noopener noreferrer" } : {})}
-          aria-label="Black November da KaBuM!: até 70% off"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={KABUM_BANNER} alt="Black das Blacks KaBuM!: até 70% off" width={1400} height={520} />
-          <span className="hbf-kabum-selo">Black November KaBuM! →</span>
-        </a>
+        <div className="hbf-arte" aria-hidden="true">
+          <span className="hbf-black">Black</span>
+          <span className="hbf-friday">Friday</span>
+          <span className="hbf-ano">{ano}</span>
+          <span className="hbf-tag hbf-tag--1">-70%</span>
+          <span className="hbf-tag hbf-tag--2">-50%</span>
+        </div>
       </header>
     </>
   );

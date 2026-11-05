@@ -250,9 +250,15 @@ async function main() {
     });
 
     if (paraGravar.length > 0) {
-      const { error } = await supabase
+      let { error } = await supabase
         .from("ofertas")
         .upsert(paraGravar, { onConflict: "loja,id_externo" });
+      // Banco ainda sem as colunas nota/vendas (supabase-notas.sql não rodado): grava sem elas
+      if (error && /\b(nota|vendas)\b/.test(error.message)) {
+        ({ error } = await supabase
+          .from("ofertas")
+          .upsert(paraGravar.map(({ nota: _n, vendas: _v, ...l }) => l), { onConflict: "loja,id_externo" }));
+      }
       if (error) console.error("Erro ao gravar:", error.message);
       else publicadas += paraGravar.length;
     }

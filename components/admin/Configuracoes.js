@@ -165,8 +165,9 @@ function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
 }
 
 const PADRAO = {
-  relampago_preco_minimo: 500,
+  relampago_preco_minimo: 500, // (agora é a regra do Super desconto; o nome ficou para não perder o que já foi salvo)
   relampago_desconto_minimo: 40,
+  relampago_horas_padrao: 6, // postagem do Telegram com "relâmpago" e sem hora: dura isso
   destaque_desconto_minimo: 60,
   desconto_minimo_publicar: 20,
   desconto_minimo_tecnologia: 15,
@@ -333,7 +334,7 @@ export default function Configuracoes() {
 
   async function aplicarAtuais() {
     if (alterado) return setAviso("Salve as alterações antes de aplicar às ofertas atuais.");
-    if (!confirm("Recalcular Relâmpago e Destaque de todas as ofertas com as regras atuais? As marcações feitas à mão serão substituídas.")) return;
+    if (!confirm("Recalcular Super desconto e Destaque de todas as ofertas com as regras atuais? As marcações feitas à mão serão substituídas.")) return;
     setAplicando(true);
     const { data, error } = await supabase.rpc("reaplicar_regras_destaque");
     setAplicando(false);
@@ -378,7 +379,26 @@ export default function Configuracoes() {
 
       <section className="adm-bloco">
         <h2>⚡ Promoção relâmpago</h2>
-        <p>A tag Relâmpago e a faixa do topo da página inicial. A oferta precisa ter as duas coisas.</p>
+        <p>
+          Como nas grandes lojas, relâmpago é <strong>oferta com hora para acabar</strong> (não desconto alto).
+          A tag e a contagem regressiva aparecem quando a postagem do Telegram fala em &quot;relâmpago&quot; ou
+          &quot;flash sale&quot; (se disser &quot;termina às 18h&quot; ou &quot;acaba em 2 horas&quot;, vale essa hora) ou
+          quando você marca no cadastro da oferta. Quando a hora passa, a tag some sozinha.
+        </p>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Sem hora na postagem, dura"
+            sufixo="horas"
+            max={48}
+            valor={c.relampago_horas_padrao}
+            aoMudar={mudar("relampago_horas_padrao")}
+          />
+        </div>
+      </section>
+
+      <section className="adm-bloco">
+        <h2>🔥 Super desconto</h2>
+        <p>A tag Super desconto aparece na foto da oferta. A oferta precisa ter as duas coisas.</p>
         <div className="adm-duas-colunas">
           <Numero
             rotulo="Preço acima de"
@@ -411,7 +431,7 @@ export default function Configuracoes() {
         </div>
         <div className="adm-bloco-rodape">
           <button className="adm-btn" onClick={aplicarAtuais} disabled={aplicando}>
-            {aplicando ? "Aplicando..." : "Aplicar Relâmpago e Destaque às ofertas atuais"}
+            {aplicando ? "Aplicando..." : "Aplicar Super desconto e Destaque às ofertas atuais"}
           </button>
           <small>As regras sempre valem para ofertas novas e quando o preço muda. Este botão recalcula as que já estão no site.</small>
         </div>

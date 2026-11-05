@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
 import BotaoConta from "./BotaoConta";
 import IconesTopo from "./IconesTopo";
+import { LinhaBlackFriday } from "./BannerBlackFriday";
 import MenuDepartamentos from "./MenuDepartamentos";
 import { atalhos } from "../data/atalhos";
 import { EnfeiteCabecalho } from "./Halloween";
@@ -299,6 +300,7 @@ export default function Casca({ departamentos, telegram, children }) {
       <style dangerouslySetInnerHTML={{ __html: CSS_CABECALHO }} />
 
       <div className="cabecalho-fixo">
+        <LinhaBlackFriday />
         <header className="topo">
           <div className="topo-interno">
             <Link href="/" className="logo" aria-label="MukiOfertas, página inicial">

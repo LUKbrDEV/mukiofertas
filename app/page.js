@@ -13,6 +13,7 @@ import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { guias } from "../data/guias";
 import { regrasDaVitrine, escolherComVariedade, descontoDe } from "../lib/vitrine.mjs";
+import { ehRelampago } from "../lib/relampago.mjs";
 
 export const revalidate = 60;
 
@@ -93,6 +94,40 @@ function itensDoFeed(ofertas) {
   }));
 }
 
+// "Escolhas do Muki": os produtos mais bem avaliados (nota da loja e likes da comunidade)
+function escolhasDoMuki(ofertas, maximo = 12) {
+  const pontuadas = ofertas
+    .filter((o) => Number(o.preco_atual) >= 30)
+    .map((o) => {
+      const nota = Number(o.nota) || 0;
+      const likes = Number(o.likes) || 0;
+      const dislikes = Number(o.dislikes) || 0;
+      const aprovada = (nota >= 4.6) || (likes >= 1 && likes > dislikes);
+      const pontos =
+        (nota ? (nota - 4) * 60 : 0) +
+        (likes - dislikes * 2) * 12 +
+        Math.min(o.cliques ?? 0, 60) * 0.6 +
+        calcularDesconto(o) * 0.3 +
+        (o.destaque ? 10 : 0);
+      return { o, pontos, aprovada };
+    })
+    .sort((a, b) => b.pontos - a.pontos);
+
+  // primeiro as bem avaliadas; se faltar, completa com as melhores do resto (sem nota ruim)
+  const ordem = [...pontuadas.filter((x) => x.aprovada), ...pontuadas.filter((x) => !x.aprovada && !(x.o.nota && x.o.nota < 4.3))];
+  const porLoja = {};
+  const porCategoria = {};
+  const lista = [];
+  for (const { o } of ordem) {
+    if ((porLoja[o.loja] ?? 0) >= 2 || (porCategoria[o.categoria] ?? 0) >= 2) continue;
+    porLoja[o.loja] = (porLoja[o.loja] ?? 0) + 1;
+    porCategoria[o.categoria] = (porCategoria[o.categoria] ?? 0) + 1;
+    lista.push(o);
+    if (lista.length >= maximo) break;
+  }
+  return lista;
+}
+
 // "Mais quentes": cliques e destaque pesam mais que o desconto
 function maisQuentes(ofertas) {
   return [...ofertas]
@@ -131,8 +166,8 @@ function LateralExtra({ whatsapp, telegram }) {
 
 export default async function Home() {
   const [todas, cuponsNoAr, contagemLojas, config] = await Promise.all([
-    // todas as ofertas no ar (sem cupons e sem as da comunidade); o feed é montado daqui
-    buscarOfertas({ limite: 1000, limiteExpiradas: 0 }),
+    // todas as ofertas no ar (sem cupons), JUNTO com as da comunidade; o feed é montado daqui
+    buscarOfertas({ limite: 1000, limiteExpiradas: 0, comComunidade: true }),
     buscarOfertas({ categoria: "cupons", ordem: "recentes", limite: 48, limiteExpiradas: 0 }),
     buscarLojasComCategorias(),
     buscarConfigHome(),
@@ -141,15 +176,26 @@ export default async function Home() {
   const noAr = todas.filter((o) => !o.expirada);
   const comDesconto = noAr.filter((o) => descontoDe(o) > 0);
 
-  // ⚡ Relâmpago agora (linha do topo)
-  const relampagosNoAr = noAr.filter((o) => o.relampago && !LOJAS_FORA_DO_RELAMPAGO.includes(o.loja));
-  let relampagos = escolherComVariedade(relampagosNoAr, r, { maximo: 12, horas: r.home_horas_relampago });
-  if (relampagos.length < 4)
-    relampagos = escolherComVariedade(relampagosNoAr, r, { maximo: 12, horas: r.home_horas_relampago * 2 });
+  // ⚡ Relâmpago agora (linha do topo): só as que têm hora para acabar, as que acabam antes primeiro.
+  // Sem nenhuma relâmpago no ar, a faixa não aparece.
+  const relampagos = noAr
+    .filter((o) => ehRelampago(o) && !LOJAS_FORA_DO_RELAMPAGO.includes(o.loja))
+    .sort((a, b) => new Date(a.relampago_ate) - new Date(b.relampago_ate))
+    .slice(0, 12);
+
+  // ⭐ Escolhas do Muki: nota alta na loja (Shopee/AliExpress) + aprovação da comunidade (likes)
+  // + interesse (cliques) + desconto. No máximo 2 por loja e 2 por categoria, para variar.
+  // 📌 Fixadas no painel admin (aba Página inicial): aparecem primeiro, na ordem escolhida
+  const fixadas = noAr
+    .filter((o) => o.fixada_home)
+    .sort((a, b) => (a.fixada_ordem ?? 999) - (b.fixada_ordem ?? 999));
+  const semFixadas = (lista) => lista.filter((o) => !o.fixada_home);
+  const escolhas = [...fixadas, ...escolhasDoMuki(semFixadas(comDesconto))].slice(0, 12);
 
   // ⭐ Destaques: pontuação (desconto confiável + cliques + marca + loja), com variedade
-  let destaques = escolherComVariedade(noAr, r, { maximo: NO_FEED, horas: r.home_horas_destaque });
-  if (destaques.length < 48) destaques = escolherComVariedade(noAr, r, { maximo: NO_FEED });
+  let destaques = escolherComVariedade(semFixadas(noAr), r, { maximo: NO_FEED, horas: r.home_horas_destaque });
+  if (destaques.length < 48) destaques = escolherComVariedade(semFixadas(noAr), r, { maximo: NO_FEED });
+  destaques = [...fixadas, ...destaques].slice(0, NO_FEED);
 
   // 🆕 Recentes: as que entraram por último
   const recentes = [...comDesconto]
@@ -230,6 +276,22 @@ export default async function Home() {
               </Link>
             </div>
             <LinhaOfertas ofertas={relampagos} />
+          </section>
+        )}
+
+        {escolhas.length >= 4 && (
+          <section className="destaques" aria-labelledby="titulo-escolhas">
+            <div className="secao-cabecalho">
+              <div>
+                <h2 id="titulo-escolhas" className="secao-titulo">
+                  ⭐ Escolhas do Muki
+                </h2>
+                <p style={{ margin: "2px 0 0", fontSize: "0.88rem", color: "#475569" }}>
+                  Nota alta na loja, aprovadas pela comunidade e com desconto de verdade
+                </p>
+              </div>
+            </div>
+            <LinhaOfertas ofertas={escolhas} />
           </section>
         )}
 

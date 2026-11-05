@@ -11,18 +11,20 @@ import AdminCupons from "./AdminCupons";
 import SaudeRobo from "./SaudeRobo";
 import Configuracoes from "./Configuracoes";
 import UsuariosTags from "./UsuariosTags";
+import PaginaInicial from "./PaginaInicial";
 import "./admin.css";
 
 const MENU = [
-  { id: "resumo", nome: "Resumo", icone: "📊" },
-  { id: "ofertas", nome: "Ofertas", icone: "🏷️" },
-  { id: "form", nome: "Nova oferta", icone: "➕" },
-  { id: "comunidade", nome: "Comunidade", icone: "👥" },
-  { id: "usuarios", nome: "Usuários e tags", icone: "🏆" },
-  { id: "cupons", nome: "Cupons", icone: "🎟️" },
-  { id: "robo", nome: "Saúde do robô", icone: "🤖" },
-  { id: "config", nome: "Configurações", icone: "⚙️" },
-  { id: "vendas", nome: "Vendas", icone: "💰" },
+  { id: "resumo", nome: "Resumo", icone: "📊", grupo: "Geral" },
+  { id: "ofertas", nome: "Ofertas", icone: "🏷️", grupo: "Conteúdo" },
+  { id: "form", nome: "Nova oferta", icone: "➕", grupo: "Conteúdo" },
+  { id: "inicial", nome: "Página inicial", icone: "🏠", grupo: "Conteúdo" },
+  { id: "cupons", nome: "Cupons", icone: "🎟️", grupo: "Conteúdo" },
+  { id: "comunidade", nome: "Comunidade", icone: "👥", grupo: "Pessoas" },
+  { id: "usuarios", nome: "Usuários e tags", icone: "🏆", grupo: "Pessoas" },
+  { id: "robo", nome: "Saúde do robô", icone: "🤖", grupo: "Sistema" },
+  { id: "config", nome: "Configurações", icone: "⚙️", grupo: "Sistema" },
+  { id: "vendas", nome: "Vendas", icone: "💰", grupo: "Sistema" },
 ];
 
 // Tela para quem entrou com uma conta que não é de administrador
@@ -210,9 +212,10 @@ export default function AdminApp() {
         </div>
 
         <nav>
-          {MENU.map((item) => (
+          {MENU.map((item, i) => (
+            <div key={item.id} style={{ display: "contents" }}>
+              {item.grupo !== MENU[i - 1]?.grupo && <span className="adm2-grupo">{item.grupo}</span>}
             <button
-              key={item.id}
               className={aba === item.id ? "adm-menu adm-menu--ativo" : "adm-menu"}
               onClick={() => irPara(item.id)}
             >
@@ -228,6 +231,7 @@ export default function AdminApp() {
               </span>
               {item.id === "comunidade" && pendentes > 0 && <span className="adm-menu-badge">{pendentes}</span>}
             </button>
+            </div>
           ))}
         </nav>
 
@@ -246,6 +250,7 @@ export default function AdminApp() {
       <main className="adm-conteudo">
         {aba === "resumo" && <Resumo irPara={irPara} />}
         {aba === "ofertas" && <ListaAdmin aoEditar={editar} />}
+        {aba === "inicial" && <PaginaInicial />}
         {aba === "form" && (
           <FormOferta
             key={editando ? `e${editando.id}` : sugestao ? `s${sugestao.id}` : "nova"}

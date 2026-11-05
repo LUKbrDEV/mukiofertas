@@ -27,9 +27,16 @@ const vazio = {
   selo: "",
   cupom: "",
   relampago: false,
+  relampago_horas: "6",
   destaque: false,
   telegram: true,
 };
+
+// Relâmpago com hora para acabar: horas que ainda faltam (para editar uma oferta que já é relâmpago)
+function horasQueFaltam(ate) {
+  const ms = ate ? new Date(ate).getTime() - Date.now() : 0;
+  return ms > 0 ? String(Math.max(1, Math.round(ms / 3600000))) : "6";
+}
 
 // Aceita "1.299,90" e também "1299.90"
 function numero(valor) {
@@ -64,7 +71,8 @@ function iniciar(oferta, sugestao) {
     imagem: oferta.imagem ?? "",
     selo: oferta.selo ?? "",
     cupom: oferta.cupom ?? "",
-    relampago: Boolean(oferta.relampago),
+    relampago: Boolean(oferta.relampago_ate && new Date(oferta.relampago_ate) > new Date()),
+    relampago_horas: horasQueFaltam(oferta.relampago_ate),
     destaque: Boolean(oferta.destaque),
     telegram: false,
   };
@@ -105,6 +113,7 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
     selo: f.selo.trim(),
     cupom: f.cupom.trim(),
     relampago: f.relampago,
+    relampago_ate: f.relampago ? new Date(Date.now() + (numero(f.relampago_horas) || 6) * 3600000).toISOString() : null,
     destaque: f.destaque,
     atualizado_em: new Date().toISOString(),
   };
@@ -135,7 +144,10 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
       imagem: f.imagem.trim() || null,
       selo: f.selo.trim() || null,
       cupom: f.cupom.trim() || null,
-      relampago: f.relampago,
+      // Relâmpago: o banco liga/desliga a tag sozinho pela hora de fim (supabase-relampago.sql)
+      relampago_ate: f.relampago
+        ? new Date(Date.now() + Math.max(0.25, numero(f.relampago_horas) || 6) * 3600000).toISOString()
+        : null,
       destaque: f.destaque,
       atualizado_em: new Date().toISOString(),
     };
@@ -328,6 +340,19 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
               />
               Promoção relâmpago
             </label>
+            {f.relampago && (
+              <label>
+                acaba em
+                <input
+                  className="adm-input"
+                  style={{ width: 70, margin: "0 6px" }}
+                  inputMode="decimal"
+                  value={f.relampago_horas}
+                  onChange={(e) => mudar("relampago_horas", e.target.value)}
+                />
+                horas (aparece a contagem regressiva)
+              </label>
+            )}
             <label>
               <input
                 type="checkbox"

@@ -352,6 +352,9 @@ export async function buscar({ palavras } = {}) {
     const existente = existentes.get(o.id_externo);
     return {
       ...o,
+      // avaliação positiva do AliExpress (ex.: 96,5%) vira nota de 0 a 5 (4,8), como nas outras lojas
+      nota: _avaliacao ? Math.round((_avaliacao / 20) * 10) / 10 : null,
+      vendas: _vendas || null,
       // mantém o link e a data original das ofertas que já estavam no site
       link: existente?.link || o.link,
       publicada_em: existente?.publicada_em ?? agora,

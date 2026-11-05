@@ -43,6 +43,25 @@ function idDoAparelho() {
   }
 }
 
+// XP por like: quem está logado e curte um produto ganha XP (supabase-xp.sql, tabela likes_usuarios).
+// Conta 1 vez por produto: curtir de novo não soma, e tirar o like tira o XP.
+async function registrarLikeNaConta(ofertaId, curtiu) {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const userId = data?.session?.user?.id;
+    if (!userId) return; // sem login o like vale, mas não dá XP
+    if (curtiu) {
+      await supabase
+        .from("likes_usuarios")
+        .upsert({ user_id: userId, oferta_id: Number(ofertaId) }, { onConflict: "user_id,oferta_id", ignoreDuplicates: true });
+    } else {
+      await supabase.from("likes_usuarios").delete().eq("oferta_id", Number(ofertaId)).eq("user_id", userId);
+    }
+  } catch {
+    // o XP é só um extra: se falhar, o voto continua valendo
+  }
+}
+
 const curto = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".", ",")} mil` : String(n));
 
 export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa = false }) {
@@ -85,6 +104,7 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
     const r = Array.isArray(data) ? data[0] : data;
     if (r) setContagem({ likes: r.likes, dislikes: r.dislikes });
     guardarVoto(ofertaId, novo);
+    registrarLikeNaConta(ofertaId, novo === 1);
   }
 
   const botao = (ativo, cor) => ({

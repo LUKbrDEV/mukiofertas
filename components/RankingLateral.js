@@ -46,6 +46,10 @@ const CSS = `
   .rk-como { padding: 12px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; color: #7c2d12; }
   .rk-como strong { display: block; margin-bottom: 4px; font-size: 13px; }
   .rk-como p { margin: 0 0 10px; font-size: 12px; line-height: 1.4; }
+  .rk-regras { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+  .rk-regras li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 8px;
+                  border-radius: 8px; background: #fff; font-size: 12px; }
+  .rk-regras b { flex: none; color: #ff7a1a; font-weight: 800; }
   .rk-botao { display: block; padding: 8px 10px; border-radius: 9px; background: #ff7a1a; color: #fff;
               font-weight: 800; text-align: center; text-decoration: none; font-size: 12.5px; }
   .rk-botao:hover { background: #f06a0a; }
@@ -154,7 +158,7 @@ function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false }) {
                 <span className="rk-xp">
                   {u.xp} XP
                   <small>
-                    {u.ofertas} {u.ofertas === 1 ? "oferta" : "ofertas"}
+                    {u.ofertas > 0 ? `${u.ofertas} ${u.ofertas === 1 ? "oferta" : "ofertas"}` : ""}
                   </small>
                 </span>
               </li>
@@ -179,7 +183,7 @@ export default function RankingLateral({ limite = 5 }) {
       <Bloco
         id="rk-mes"
         titulo={`🏆 Ranking de ${mes}`}
-        subtitulo="Quem mais posta ofertas ganha XP"
+        subtitulo="Poste, curta e comente para ganhar XP"
         lista={doMes}
         vazio="Ninguém pontuou este mês ainda. Seja o primeiro!"
       />
@@ -195,7 +199,21 @@ export default function RankingLateral({ limite = 5 }) {
 
       <div className="rk-como">
         <strong>⚡ Como ganhar XP</strong>
-        <p>Cada oferta sua aprovada vale XP. Os melhores do mês aparecem aqui para todo mundo ver.</p>
+        <ul className="rk-regras">
+          <li>
+            <span>📦 Oferta aprovada</span>
+            <b>+10 XP</b>
+          </li>
+          <li>
+            <span>👍 Curtir um produto</span>
+            <b>+2 XP</b>
+          </li>
+          <li>
+            <span>💬 Comentar em um produto</span>
+            <b>+5 XP</b>
+          </li>
+        </ul>
+        <p>Likes e comentários valem 1 vez por produto. Entre na sua conta para somar. O ranking do mês zera todo dia 1.</p>
         <Link href="/comunidade/enviar" className="rk-botao">
           ➕ Enviar oferta
         </Link>

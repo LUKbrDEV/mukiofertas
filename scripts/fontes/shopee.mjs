@@ -276,6 +276,9 @@ export async function buscar({ palavras } = {}) {
 
   const itens = candidatos.map(({ _desconto, _nota, _vendas, _vendedor, ...o }) => ({
     ...o,
+    // nota (0 a 5 estrelas) e vendas da Shopee: usadas na faixa "Mais bem avaliadas"
+    nota: _nota ? Math.round(_nota * 10) / 10 : null,
+    vendas: _vendas || null,
     // mantém a data original das ofertas que já estavam no site
     publicada_em: existentes.get(o.id_externo)?.publicada_em ?? agora,
   }));

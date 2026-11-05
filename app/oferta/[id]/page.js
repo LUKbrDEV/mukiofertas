@@ -19,6 +19,9 @@ import LinhaOfertas from "../../../components/LinhaOfertas";
 import SobreProduto from "../../../components/SobreProduto";
 import BotaoCupom from "../../../components/BotaoCupom";
 import AcoesOferta from "../../../components/AcoesOferta";
+import ContagemRelampago from "../../../components/ContagemRelampago";
+import SeloSuperDesconto from "../../../components/SeloSuperDesconto";
+import { ehRelampago } from "../../../lib/relampago.mjs";
 import VotosOferta from "../../../components/VotosOferta";
 import GraficoPreco from "../../../components/GraficoPreco";
 import { buscarHistorico, resumirHistorico } from "../../../lib/historico";
@@ -261,11 +264,12 @@ export default async function PaginaOferta({ params }) {
           <div className="pd-topo">
             <div className="cartao-meta">
               <span className="pd-loja">{oferta.loja}</span>
-              {oferta.relampago && !expirada && (
+              {ehRelampago(oferta) && !expirada && (
                 <span className="selo-relampago">
                   <IconeRaio tamanho={12} /> Relâmpago
                 </span>
               )}
+              {oferta.super_desconto && !expirada && <SeloSuperDesconto grande />}
               {categoria && (
                 <Link href={`/categoria/${categoria.slug}`} className="pd-categoria">
                   {categoria.nome}
@@ -298,6 +302,7 @@ export default async function PaginaOferta({ params }) {
                 {economia > 0 && !expirada && <strong> · você economiza {formatarPreco(economia)}</strong>}
               </p>
             )}
+            {ehRelampago(oferta) && !expirada && <ContagemRelampago ate={oferta.relampago_ate} variante="pagina" />}
             {resumoPreco?.menorPreco30 && !expirada && <p className="pd-selo">📉 Menor preço dos últimos 30 dias</p>}
             {oferta.cupom && !expirada && (
               <div className="pd-cupom">

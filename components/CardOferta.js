@@ -3,6 +3,9 @@ import BotaoCupom from "./BotaoCupom";
 import CupomRevelar from "./CupomRevelar";
 import VotosOferta from "./VotosOferta";
 import BotaoDesejo from "./BotaoDesejo";
+import ContagemRelampago from "./ContagemRelampago";
+import SeloSuperDesconto from "./SeloSuperDesconto";
+import { ehRelampago } from "../lib/relampago.mjs";
 import { lojaDoNome } from "../data/lojas";
 import { SITE } from "../lib/site";
 import {
@@ -94,12 +97,7 @@ export default function CardOferta({ oferta, previa = false }) {
             {tempoAtras(quando)}
           </span>
         )}
-        {oferta.relampago && !expirada && (
-          <span className="cv2-relampago" title="Promoção relâmpago">
-            <IconeRaio tamanho={11} />
-            <span className="cv2-relampago-txt">Relâmpago</span>
-          </span>
-        )}
+        {ehRelampago(oferta) && !expirada && <ContagemRelampago ate={oferta.relampago_ate} />}
         {!previa && !ehCupom && <BotaoDesejo ofertaId={oferta.id} />}
       </div>
 
@@ -149,6 +147,23 @@ export default function CardOferta({ oferta, previa = false }) {
           <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
         )}
         {oferta.selo && <span className="selo-chamativo cartao-selo">{oferta.selo}</span>}
+        {Number(oferta.nota) >= 4 && !ehCupom && (
+          <span
+            title={`Nota ${String(oferta.nota).replace(".", ",")} de 5 na ${oferta.loja}`}
+            style={{
+              position: "absolute", right: 8, bottom: 8, zIndex: 1, display: "inline-flex", alignItems: "center", gap: 3,
+              height: 20, padding: "0 7px", borderRadius: 999, background: "rgba(255,255,255,.95)",
+              boxShadow: "0 1px 4px rgba(15,23,42,.18)", color: "#0f172a", fontSize: "0.7rem", fontWeight: 800,
+            }}
+          >
+            <span style={{ color: "#f59e0b" }}>★</span> {Number(oferta.nota).toFixed(1).replace(".", ",")}
+          </span>
+        )}
+        {oferta.super_desconto && !expirada && !ehCupom && (
+          <span style={{ position: "absolute", left: 8, bottom: 8, zIndex: 1 }}>
+            <SeloSuperDesconto />
+          </span>
+        )}
         {expirada && <span className="tag-expirado">Expirado</span>}
       </a>
 

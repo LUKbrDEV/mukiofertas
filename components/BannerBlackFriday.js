@@ -1,329 +1,137 @@
-"use client";
-
-// Banner da Black Friday com contagem regressiva. Salve como components/BannerBlackFriday.js.
-// Uso na página inicial (app/page.js), logo acima da faixa de Promoções relâmpago:
-//   import BannerBlackFriday from "../components/BannerBlackFriday";
-//   <BannerBlackFriday />
+// Banner da Black Friday do MukiOfertas (arte própria, sem imagem de loja e sem cronômetro).
+// Salve como components/BannerBlackFriday.js. Usado na página inicial (app/page.js).
 //
-// Antes da data: mostra o cronômetro. Durante a Black Friday (até o fim da Cyber Monday):
-// mostra "Está acontecendo agora". Depois disso, o banner some sozinho.
-//
-// Metade esquerda: banner da Black November da KaBuM! (public/banners/kabum-black-november.png),
-// que se mistura ao fundo escuro com um degradê inclinado ( / ).
+// "As melhores ofertas da Black Friday já começaram". Depois da Cyber Monday, o banner some sozinho.
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 const ANO = 2026;
-const INICIO = new Date("2026-11-27T00:00:00-03:00").getTime(); // sexta-feira, 0h (horário de Brasília)
-const FIM = new Date("2026-12-01T00:00:00-03:00").getTime(); // fim da Cyber Monday
-
-// Banner da KaBuM! (metade esquerda). Para onde vai o clique nele:
-// cole aqui o seu link de afiliado da Awin para a página da Black November da KaBuM!
-// (Awin → Links → Link Builder). Vazio = abre as ofertas da KaBuM! aqui no site.
-const KABUM_BANNER = "/banners/kabum-black-november.png";
-const KABUM_LINK = "";
+export const BF_INICIO = new Date("2026-11-27T00:00:00-03:00").getTime(); // sexta-feira, 0h (Brasília)
+export const BF_FIM = new Date("2026-12-01T00:00:00-03:00").getTime(); // fim da Cyber Monday
 
 const CSS = `
   .bfb {
-    position: relative;
-    overflow: hidden;
-    display: grid;
-    /* metade esquerda: KaBuM! | direita: mascote, texto e cronômetro */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
-    margin: 0 0 26px;
-    min-height: 150px;
-    border-radius: 16px;
-    color: #fff;
+    position: relative; overflow: hidden; isolation: isolate;
+    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 24px;
+    margin: 0 0 22px; padding: 16px 28px;
+    border-radius: 18px; color: #fff; text-decoration: none;
     background:
-      radial-gradient(120% 140% at 100% 0%, rgba(255, 122, 26, 0.35) 0%, rgba(255, 122, 26, 0) 55%),
-      linear-gradient(120deg, #05070d 0%, #0b1530 55%, #062a66 100%);
-    box-shadow: 0 10px 30px rgba(5, 10, 30, 0.35);
+      radial-gradient(60% 120% at 0% 100%, rgba(255, 122, 26, .28), transparent 60%),
+      radial-gradient(50% 90% at 100% 0%, rgba(10, 75, 184, .55), transparent 65%),
+      #07090f;
+    box-shadow: 0 14px 36px rgba(5, 10, 30, .35);
   }
-  /* ---- metade esquerda: banner da KaBuM! ---- */
-  .bfb-kabum {
-    position: relative;
-    display: block;
-    min-height: 150px;
-    background: #040608; /* mesma cor do fundo do banner da KaBuM! */
-    /* degradê inclinado ( / ): o banner se dissolve no fundo escuro da direita */
-    -webkit-mask-image: linear-gradient(118deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.5) 84%, transparent 98%);
-            mask-image: linear-gradient(118deg, #000 0%, #000 72%, rgba(0, 0, 0, 0.5) 84%, transparent 98%);
-  }
-  .bfb-kabum img {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 82%;
-    height: auto;
-    transform: translateY(-50%);
-    transition: transform 0.3s ease;
-  }
-  .bfb-kabum:hover img { transform: translateY(-50%) scale(1.02); }
-  /* faixa de luz inclinada que passa pelo banner */
-  .bfb-kabum::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.10) 45%, transparent 60%);
-    background-size: 250% 100%;
-    animation: bfb-brilho 5s ease-in-out infinite;
-    pointer-events: none;
-  }
-  /* ---- metade direita: o banner de sempre ---- */
-  .bfb-info {
-    position: relative;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 18px;
-    padding: 18px 24px 18px 0;
-    color: #fff;
-    text-decoration: none;
-  }
-  /* risco de luz laranja inclinado ( / ) na divisa entre as duas metades */
-  .bfb-info::before {
-    content: "";
-    position: absolute;
-    top: -10%;
-    bottom: -10%;
-    left: -46px;
-    width: 3px;
-    background: linear-gradient(180deg, rgba(255, 122, 26, 0), #ff7a1a 35%, #ffd166 55%, rgba(255, 122, 26, 0));
-    transform: skewX(-28deg);
-    filter: blur(0.5px);
-    box-shadow: 0 0 14px rgba(255, 122, 26, 0.8);
-    opacity: 0.85;
-    pointer-events: none;
-  }
+  /* listras diagonais bem leves no fundo */
   .bfb::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    padding: 2px;
-    background: linear-gradient(90deg, #ff7a1a, #ffd166, #ff7a1a);
-    background-size: 200% 100%;
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-            mask-composite: exclude;
-    animation: bfb-borda 4s linear infinite;
-    pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: -1; opacity: .07;
+    background: repeating-linear-gradient(-55deg, #fff 0 1px, transparent 1px 22px);
   }
-  .bfb-mascote {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: 3px solid #ff7a1a;
-    box-shadow: 0 0 0 6px rgba(255, 122, 26, 0.18);
-    background: #fff;
-    flex: none;
+  /* brilho que passa devagar */
+  .bfb::after {
+    content: ""; position: absolute; inset: -40% auto -40% -30%; width: 28%; z-index: -1;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent);
+    transform: skewX(-20deg); animation: bfb-brilho 7s ease-in-out infinite;
   }
-  .bfb-texto { min-width: 0; }
+  @keyframes bfb-brilho { 0%, 55% { left: -30%; } 100% { left: 130%; } }
+
+  /* ---- arte: BLACK / FRIDAY ---- */
+  .bfb-arte { position: relative; display: flex; flex-direction: column; width: max-content; max-width: 100%;
+              padding-right: 96px; line-height: .86; user-select: none; justify-self: center; }
+  .bfb-black, .bfb-friday {
+    font-family: var(--fonte-titulo), system-ui, sans-serif; font-weight: 900; letter-spacing: -.02em;
+    font-size: clamp(2rem, 4vw, 3.2rem); text-transform: uppercase;
+  }
+  .bfb-black { color: #fff; }
+  .bfb-friday { color: transparent; -webkit-text-stroke: 2px #ff7a1a; text-shadow: 0 0 28px rgba(255, 122, 26, .35); }
+  .bfb-ano {
+    align-self: flex-start; margin-top: 7px; padding: 3px 9px; border-radius: 6px;
+    background: #ff7a1a; color: #07090f; font-weight: 900; font-size: .78rem; letter-spacing: .3em;
+  }
+  /* etiquetas de desconto soltas */
+  .bfb-tag {
+    position: absolute; display: inline-flex; align-items: center; height: 26px; padding: 0 10px 0 15px;
+    border-radius: 6px 999px 999px 6px; background: #fff; color: #07090f; font-weight: 900; font-size: .85rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+  }
+  .bfb-tag::before { content: ""; position: absolute; left: 6px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
+                     border-radius: 50%; background: #07090f; }
+  .bfb-tag--1 { right: 0; top: 2px; transform: rotate(8deg); background: #ff7a1a; color: #fff; }
+  .bfb-tag--1::before { background: #fff; }
+  .bfb-tag--2 { right: 12px; bottom: 26px; transform: rotate(-6deg); }
+
+  /* ---- texto ---- */
+  .bfb-texto { position: relative; }
   .bfb-selo {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-    padding: 3px 10px;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #0b1220;
-    background: linear-gradient(90deg, #ff7a1a, #ffb347);
-    border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px;
+    border: 1px solid rgba(255, 122, 26, .6); color: #ffb37a; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
   }
-  .bfb-titulo {
-    margin: 0;
-    font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: clamp(1.15rem, 1.6vw, 1.65rem);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-  }
-  .bfb-titulo span { color: #ff8a1f; }
-  .bfb-sub { margin: 6px 0 0; font-size: 0.88rem; color: #c9d6f5; }
-  .bfb-lado { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .bfb-relogio { display: flex; gap: 8px; }
-  .bfb-bloco {
-    width: 66px;
-    padding: 8px 0 6px;
-    text-align: center;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    backdrop-filter: blur(2px);
-  }
-  .bfb-numero {
-    display: block;
-    font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: 1.8rem;
-    font-weight: 800;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-    color: #fff;
-  }
-  .bfb-rotulo {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #ffb27a;
-  }
+  .bfb-titulo { margin: 8px 0 4px; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: clamp(1.15rem, 1.9vw, 1.5rem);
+                font-weight: 800; line-height: 1.15; }
+  .bfb-titulo span { color: #ff7a1a; }
+  .bfb-sub { margin: 0 0 12px; color: #cbd5e1; font-size: .9rem; line-height: 1.4; }
   .bfb-botao {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: #fff;
-    background: #ff7a1a;
-    border-radius: 999px;
-    box-shadow: 0 6px 18px rgba(255, 122, 26, 0.45);
-    transition: transform 0.15s, background 0.15s;
-    white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px; border-radius: 999px;
+    background: #ff7a1a; color: #fff; font-weight: 800; font-size: .92rem; box-shadow: 0 8px 22px rgba(255, 122, 26, .35);
+    transition: transform .15s, background .15s;
   }
-  .bfb-info:hover .bfb-botao { background: #ff8d3a; transform: translateY(-1px); }
-  .bfb-agora {
-    font-family: var(--fonte-titulo), system-ui, sans-serif;
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: #ffd166;
-    animation: bfb-pulso 1.6s ease-in-out infinite;
+  .bfb:hover .bfb-botao { background: #f06a0a; transform: translateX(3px); }
+
+  @media (max-width: 860px) {
+    .bfb { grid-template-columns: 1fr; padding: 18px 18px; gap: 12px; }
+    .bfb-tag--2 { display: none; }
+    .bfb-arte { justify-self: start; padding-right: 96px; }
   }
-  @keyframes bfb-borda { to { background-position: 200% 0; } }
-  @keyframes bfb-brilho { 0% { background-position: 120% 0; } 60%, 100% { background-position: -120% 0; } }
-  @keyframes bfb-pulso { 50% { opacity: 0.55; } }
-  @media (prefers-reduced-motion: reduce) {
-    .bfb::before, .bfb-agora, .bfb-kabum::after { animation: none; }
-  }
-  /* telas médias: o cronômetro desce para baixo do texto */
-  @media (max-width: 1280px) {
-    .bfb-info { grid-template-columns: auto minmax(0, 1fr); }
-    .bfb-lado { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; flex-wrap: wrap; }
-  }
-  /* celular e tablet: KaBuM! em cima (degradê para baixo), o resto embaixo */
-  @media (max-width: 900px) {
-    .bfb { grid-template-columns: minmax(0, 1fr); }
-    .bfb-kabum {
-      min-height: 0;
-      aspect-ratio: 695 / 100;
-      -webkit-mask-image: linear-gradient(170deg, #000 0%, #000 70%, transparent 100%);
-              mask-image: linear-gradient(170deg, #000 0%, #000 70%, transparent 100%);
-    }
-    .bfb-kabum img { width: 100%; }
-    .bfb-info { padding: 4px 16px 16px; }
-    .bfb-info::before { display: none; }
-  }
-  @media (max-width: 560px) {
-    .bfb-info { gap: 14px; }
-    .bfb-mascote { width: 56px; height: 56px; }
-    .bfb-sub { display: none; }
-    .bfb-lado { flex-direction: column; align-items: stretch; }
-    .bfb-relogio { justify-content: space-between; }
-    .bfb-bloco { flex: 1; width: auto; }
-    .bfb-numero { font-size: 1.5rem; }
-    .bfb-botao { justify-content: center; }
-  }
+  @media (prefers-reduced-motion: reduce) { .bfb::after { animation: none; display: none; } }
 `;
 
-function partes(ms) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  return {
-    dias: Math.floor(total / 86400),
-    horas: Math.floor((total % 86400) / 3600),
-    minutos: Math.floor((total % 3600) / 60),
-    segundos: total % 60,
-  };
-}
-
-const doisDigitos = (n) => String(n).padStart(2, "0");
-
 export default function BannerBlackFriday() {
-  // null até montar no navegador (evita diferença entre o servidor e o navegador)
-  const [agora, setAgora] = useState(null);
-
-  useEffect(() => {
-    setAgora(Date.now());
-    const id = setInterval(() => setAgora(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (agora !== null && agora >= FIM) return null; // Black Friday terminou
-
-  const acontecendo = agora !== null && agora >= INICIO;
-  const t = agora === null ? null : partes(INICIO - agora);
-  const blocos = [
-    ["dias", "Dias"],
-    ["horas", "Horas"],
-    ["minutos", "Min"],
-    ["segundos", "Seg"],
-  ];
+  const agora = Date.now();
+  if (agora >= BF_FIM) return null; // Black Friday terminou
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="bfb">
-        {/* Metade esquerda: Black November da KaBuM! */}
-        <a
-          className="bfb-kabum"
-          href={KABUM_LINK || "/categoria/hardware?loja=kabum"}
-          {...(KABUM_LINK ? { target: "_blank", rel: "sponsored noopener noreferrer" } : {})}
-          aria-label="Black November da KaBuM!: até 70% off"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={KABUM_BANNER} alt="Black das Blacks KaBuM!: até 70% off" width={695} height={87} />
-        </a>
-
-        {/* Metade direita: Black Friday do MukiOfertas com o cronômetro */}
-        <Link href="/black-friday" className="bfb-info" aria-label={`Black Friday ${ANO}: ver as ofertas`}>
-        <Image src="/logo-cabecalho.png" alt="" width={64} height={64} className="bfb-mascote" />
-
-        <div className="bfb-texto">
-          <span className="bfb-selo">🖤 Black Friday {ANO}</span>
-          <p className="bfb-titulo">
-            {acontecendo ? (
-              <>
-                A Black Friday <span>começou!</span>
-              </>
-            ) : (
-              <>
-                As maiores ofertas do ano <span>estão chegando</span>
-              </>
-            )}
-          </p>
-          <p className="bfb-sub">
-            {acontecendo
-              ? "Descontos reais nas maiores lojas do Brasil, atualizados o tempo todo."
-              : "27 de novembro. Acompanhe aqui as promoções que já começaram."}
-          </p>
+      <Link href="/black-friday" className="bfb" aria-label={`Black Friday ${ANO} no MukiOfertas: ver as ofertas`}>
+        <div className="bfb-arte" aria-hidden="true">
+          <span className="bfb-black">Black</span>
+          <span className="bfb-friday">Friday</span>
+          <span className="bfb-ano">{ANO}</span>
+          <span className="bfb-tag bfb-tag--1">-70%</span>
+          <span className="bfb-tag bfb-tag--2">-50%</span>
         </div>
 
-        <div className="bfb-lado">
-          {acontecendo ? (
-            <span className="bfb-agora">Está acontecendo agora</span>
-          ) : (
-            <div className="bfb-relogio" role="timer" aria-live="off" aria-label="Tempo até a Black Friday">
-              {blocos.map(([chave, rotulo]) => (
-                <div className="bfb-bloco" key={chave}>
-                  <span className="bfb-numero">{t ? doisDigitos(t[chave]) : "--"}</span>
-                  <span className="bfb-rotulo">{rotulo}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="bfb-texto">
+          <span className="bfb-selo">🖤 Black Friday MukiOfertas</span>
+          <p className="bfb-titulo">
+            As melhores ofertas da Black Friday <span>já começaram</span>
+          </p>
+          <p className="bfb-sub">Desconto real nas maiores lojas do Brasil, com preço conferido o dia todo.</p>
           <span className="bfb-botao">
             Ver ofertas da Black Friday <span aria-hidden="true">→</span>
           </span>
         </div>
-        </Link>
-      </div>
+      </Link>
     </>
+  );
+}
+
+// Detalhe sutil no topo do site durante a temporada: uma linha fina laranja e preta que brilha.
+// Usado no components/Casca.js, logo acima do cabeçalho. Some sozinha depois da Cyber Monday.
+export function LinhaBlackFriday() {
+  if (Date.now() >= BF_FIM) return null;
+  return (
+    <div
+      aria-hidden="true"
+      className="bf-linha"
+      style={{
+        height: 3,
+        background: "linear-gradient(90deg, #07090f 0%, #ff7a1a 25%, #07090f 50%, #ff7a1a 75%, #07090f 100%)",
+        backgroundSize: "200% 100%",
+        animation: "bf-linha 6s linear infinite",
+      }}
+    >
+      <style>{`@keyframes bf-linha { to { background-position: -200% 0; } }
+        @media (prefers-reduced-motion: reduce) { .bf-linha { animation: none !important; } }`}</style>
+    </div>
   );
 }

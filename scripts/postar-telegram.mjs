@@ -35,8 +35,11 @@ const descontoDe = (o) =>
 
 function montarMensagem(o) {
   const desconto = descontoDe(o);
-  const topo = o.relampago
-    ? "⚡ <b>PROMOÇÃO RELÂMPAGO</b>"
+  const relampagoAte = o.relampago_ate && new Date(o.relampago_ate) > new Date() ? new Date(o.relampago_ate) : null;
+  const topo = relampagoAte
+    ? `⚡ <b>PROMOÇÃO RELÂMPAGO</b> · acaba às ${relampagoAte.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}`
+    : o.super_desconto
+      ? "🔥 <b>SUPER DESCONTO</b>"
     : o.selo
       ? `🔥 <b>${escapar(o.selo.toUpperCase())}</b>`
       : "🔥 <b>OFERTA</b>";
