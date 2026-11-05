@@ -20,18 +20,41 @@ import { descontoMinimoDa } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % só para o diagnóstico; na coleta vale o desconto por categoria (lib/prazos.mjs)
-const MAX_PAGINAS_MARCAS = 5; // 20 marcas por página
-const MAX_MARCAS = 25; // quantas marcas consultar por execução
+const MAX_PAGINAS_MARCAS = 20; // 20 marcas por página (lê até 400 lojas para achar as gigantes aceitas)
+const MAX_MARCAS = 15; // quantas lojas consultar por execução (se houver mais, elas se revezam a cada 30 min)
 const PAGINAS_POR_MARCA = 2; // 100 produtos por página
 const MAX_LINKS_NOVOS = 40; // links de afiliado novos por execução (cada um é uma chamada à API)
 const MDASC = "mukiofertas"; // identificador que vai no fim dos links (?mdasc=), para relatórios
 const MAX_NOVOS_POR_MARCA = 4; // no máximo X ofertas novas da mesma loja por execução (variedade)
 const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loja e a oferta é ignorada
 
-// Lojas que você quer (deixe vazio para usar todas). Use o nome como aparece na Lomadee.
-// Ex.: ["Shopee", "Magalu", "Casas Bahia", "Centauro"]
-const SO_ESTAS_MARCAS = [];
-// Lojas que entram SEMPRE, mesmo fora das 25 de maior comissão (são buscadas pelo nome)
+// Só as GIGANTES conhecidas entram na busca (as outras lojas aceitas na Lomadee são ignoradas).
+// O nome é comparado sem acento e sem maiúsculas, e vale também "Nome + algo" ("Samsung Brasil").
+// Só entram as que você já tem aceitas (com link liberado); as outras desta lista são puladas.
+// Para colocar ou tirar uma loja, é só mexer nesta lista. Deixe vazia para usar todas as aceitas.
+const SO_ESTAS_MARCAS = [
+  // Varejo geral
+  "SHEIN", "Mary Kay", "Dyson", "Guess",
+  "Magalu", "Magazine Luiza", "Casas Bahia", "Ponto", "Pontofrio", "Extra", "Americanas", "Submarino", "Shoptime",
+  "Carrefour", "Fast Shop", "Walmart",
+  // Tecnologia e eletro
+  "Samsung", "Dell", "Lenovo", "Motorola", "LG", "Acer", "Asus", "Positivo", "Philips", "Xiaomi", "Apple",
+  "Electrolux", "Brastemp", "Consul", "Mondial", "Britania", "Philco", "Arno", "Oster", "Multilaser",
+  "Pichau", "Terabyte", "JBL", "Logitech", "Intelbras",
+  // Esporte e moda
+  "Netshoes", "Centauro", "Nike", "Adidas", "Puma", "Decathlon", "Dafiti", "Zattini", "Renner", "Riachuelo", "C&A",
+  "Olympikus", "Havaianas",
+  // Beleza e farmácia
+  "O Boticario", "Boticario", "Natura", "Eudora", "Avon", "Sephora", "Epoca Cosmeticos", "Beleza na Web",
+  "Drogasil", "Droga Raia", "Drogaria Sao Paulo", "Pague Menos", "Panvel", "Growth Supplements", "Max Titanium",
+  // Pet
+  "Petz", "Cobasi", "Petlove",
+  // Casa, ferramentas e móveis
+  "Leroy Merlin", "Tok&Stok", "Tok Stok", "MadeiraMadeira", "Mobly", "Camicado", "Tramontina", "Vonder", "WAP",
+  // Brinquedos, livros e mercado
+  "Ri Happy", "PBKids", "Estrela", "Saraiva", "Pao de Acucar",
+];
+// Lojas que entram SEMPRE, mesmo fora da lista acima (são buscadas pelo nome)
 const MARCAS_PRIORITARIAS = ["Shopee"];
 // Lojas que você NÃO quer no site. Ex.: ["UP Kids"]
 const MARCAS_BLOQUEADAS = ["UP Kids", "Sofá na Caixa", "Amakha Paris","LITTLE DUCK", "Mundo Vem", "Vestis","Rovitex"];
@@ -97,10 +120,16 @@ async function buscarMarcas() {
   }
 
   const nome = (m) => String(m.name || "").trim().toLowerCase();
-  const so = SO_ESTAS_MARCAS.map((n) => n.toLowerCase());
+  // sem acento, sem símbolo: "Época Cosméticos" = "epoca cosmeticos", "Tok&Stok" = "tok stok"
+  const limpo = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const so = SO_ESTAS_MARCAS.map(limpo);
+  const ehGigante = (m) => {
+    const n = limpo(m.name);
+    return so.some((g) => n === g || n.startsWith(`${g} `) || n.replace(/ /g, "") === g.replace(/ /g, ""));
+  };
   const bloqueadas = MARCAS_BLOQUEADAS.map((n) => n.toLowerCase());
   const escolhidas = marcas.filter(
-    (m) => !bloqueadas.some((b) => nome(m).includes(b)) && (so.length === 0 || so.includes(nome(m)))
+    (m) => !bloqueadas.some((b) => nome(m).includes(b)) && (so.length === 0 || ehGigante(m))
   );
 
   // Marcas em que você pode gerar link (afiliado aprovado): têm algum canal com link
@@ -122,12 +151,19 @@ async function buscarMarcas() {
     else console.warn(`[lomadee] Loja prioritária "${alvo}" não encontrada na Lomadee.`);
   }
 
-  // As de maior comissão primeiro; as prioritárias sempre entram
+  // As prioritárias sempre entram; as outras gigantes se revezam a cada 30 min (todas são visitadas)
   const ids = new Set(prioritarias.map((m) => m.id));
-  const demais = liberadas
+  const outras = liberadas
     .filter((m) => !ids.has(m.id))
-    .sort((a, b) => (b.commission?.value ?? 0) - (a.commission?.value ?? 0))
-    .slice(0, Math.max(0, MAX_MARCAS - prioritarias.length));
+    .sort((a, b) => nome(a).localeCompare(nome(b)));
+  const porVez = Math.max(1, MAX_MARCAS - prioritarias.length);
+  const blocos = Math.max(1, Math.ceil(outras.length / porVez));
+  const vez = Math.floor(Date.now() / (30 * 60 * 1000)) % blocos;
+  const demais = outras.slice(vez * porVez, (vez + 1) * porVez);
+  console.log(
+    `[lomadee] ${outras.length} lojas gigantes aceitas: ${outras.map((m) => m.name).join(", ") || "nenhuma"}` +
+      (blocos > 1 ? ` (esta execução: ${demais.map((m) => m.name).join(", ")})` : "")
+  );
   return [...prioritarias, ...demais];
 }
 

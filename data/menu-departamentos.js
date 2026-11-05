@@ -214,10 +214,22 @@ export const menuDepartamentos = [
     icone: "💄",
     colunas: [
       {
-        titulo: "Beleza e Cuidados",
+        titulo: "Beleza",
+        slug: "beleza",
         itens: [
-          { slug: "beleza", nome: "Beleza e saúde" },
           { slug: "perfumaria", nome: "Perfumes" },
+          { slug: "maquiagem", nome: "Maquiagem e unhas" },
+          { slug: "skincare", nome: "Skincare" },
+          { slug: "cabelos", nome: "Cabelos" },
+          { slug: "barbear", nome: "Barbear e cuidados masculinos" },
+        ],
+      },
+      {
+        titulo: "Saúde e bem-estar",
+        itens: [
+          { slug: "suplementos", nome: "Suplementos" },
+          { slug: "saude", nome: "Saúde (pressão, termômetro...)" },
+          { slug: "higiene-pessoal", nome: "Higiene pessoal" },
         ],
       },
     ],
@@ -229,7 +241,18 @@ export const menuDepartamentos = [
     colunas: [
       {
         titulo: "Esporte",
-        itens: [{ slug: "esporte", nome: "Esporte e lazer" }],
+        slug: "esporte",
+        itens: [
+          { slug: "academia", nome: "Academia e musculação" },
+          { slug: "ciclismo", nome: "Ciclismo" },
+          { slug: "esportes-bola", nome: "Futebol e outras modalidades" },
+          { slug: "skate-patins", nome: "Skate, patins e patinetes" },
+          { slug: "camping-pesca", nome: "Camping e pesca" },
+        ],
+      },
+      {
+        titulo: "Nutrição esportiva",
+        itens: [{ slug: "suplementos", nome: "Whey, creatina e suplementos" }],
       },
     ],
   },
@@ -240,11 +263,23 @@ export const menuDepartamentos = [
     colunas: [
       {
         titulo: "Supermercado",
-        itens: [{ slug: "mercado", nome: "Mercado e bebidas" }],
+        slug: "mercado",
+        itens: [
+          { slug: "bebidas", nome: "Bebidas" },
+          { slug: "cafe", nome: "Café e cápsulas" },
+          { slug: "doces-snacks", nome: "Doces e snacks" },
+          { slug: "alimentos", nome: "Alimentos e mercearia" },
+          { slug: "limpeza", nome: "Limpeza da casa" },
+        ],
       },
       {
         titulo: "Pet",
-        itens: [{ slug: "pet", nome: "Pet shop" }],
+        slug: "pet",
+        itens: [
+          { slug: "racao", nome: "Ração e petiscos" },
+          { slug: "higiene-pet", nome: "Higiene e saúde pet" },
+          { slug: "acessorios-pet", nome: "Camas, brinquedos e acessórios" },
+        ],
       },
     ],
   },
@@ -254,10 +289,20 @@ export const menuDepartamentos = [
     icone: "📚",
     colunas: [
       {
-        titulo: "Leitura e Escritório",
+        titulo: "Livros",
+        slug: "livros",
         itens: [
-          { slug: "livros", nome: "Livros" },
-          { slug: "papelaria", nome: "Papelaria e escritório" },
+          { slug: "mangas-hqs", nome: "Mangás e HQs" },
+          { slug: "livros-infantis", nome: "Livros infantis" },
+          { slug: "e-readers", nome: "Kindle e e-readers" },
+        ],
+      },
+      {
+        titulo: "Papelaria",
+        slug: "papelaria",
+        itens: [
+          { slug: "escolar-infantil", nome: "Material escolar" },
+          { slug: "escritorio", nome: "Escritório" },
         ],
       },
     ],
@@ -269,11 +314,22 @@ export const menuDepartamentos = [
     colunas: [
       {
         titulo: "Ferramentas",
-        itens: [{ slug: "ferramentas", nome: "Ferramentas" }],
+        slug: "ferramentas",
+        itens: [
+          { slug: "ferramentas-eletricas", nome: "Ferramentas elétricas" },
+          { slug: "ferramentas-manuais", nome: "Ferramentas manuais e kits" },
+          { slug: "jardim", nome: "Jardim" },
+        ],
       },
       {
         titulo: "Automotivo",
-        itens: [{ slug: "automotivo", nome: "Automotivo" }],
+        slug: "automotivo",
+        itens: [
+          { slug: "acessorios-carro", nome: "Acessórios para carro" },
+          { slug: "som-automotivo", nome: "Som e eletrônicos" },
+          { slug: "pneus-pecas", nome: "Pneus, óleo e peças" },
+          { slug: "moto", nome: "Moto" },
+        ],
       },
     ],
   },

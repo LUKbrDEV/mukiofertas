@@ -58,6 +58,19 @@ const PALAVRAS_OUTRAS = [
   "carrinho de bebê", "bebê conforto", "cadeirinha para carro", "berço", "babá eletrônica", "mamadeira",
   "cadeira de alimentação", "fralda pampers", "fralda huggies", "lenço umedecido", "banheira bebê", "velotrol",
 ];
+// Saúde e Beleza, Esporte, Mercado, Pet, Livros, Ferramentas e Automotivo: lista própria,
+// com buscas garantidas em toda execução (assim não perdem o rodízio para tecnologia)
+const PALAVRAS_NICHOS = [
+  "whey protein", "creatina", "perfume importado", "kit maquiagem", "protetor solar facial", "secador de cabelo",
+  "barbeador elétrico", "escova de dente elétrica", "medidor de pressão", "colágeno",
+  "halter", "kettlebell", "bicicleta aro 29", "barraca camping", "bola de futebol", "patinete elétrico", "caixa térmica",
+  "ração golden", "ração premier", "areia para gato", "tapete higiênico", "cama para cachorro", "arranhador gato",
+  "café em grãos", "cápsula dolce gusto", "kit cerveja", "chocolate lacta", "azeite extra virgem",
+  "kindle", "box de livros", "mangá", "calculadora científica",
+  "furadeira parafusadeira", "kit ferramentas", "lavadora de alta pressão", "esmerilhadeira", "cortador de grama",
+  "central multimídia", "câmera de ré", "aspirador automotivo", "compressor de ar portátil", "capacete moto",
+];
+const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
 const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
@@ -207,6 +220,7 @@ function palavrasDaVez() {
   return [
     ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
     ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_NICHOS, BUSCAS_NICHOS_POR_EXECUCAO),
   ];
 }
 

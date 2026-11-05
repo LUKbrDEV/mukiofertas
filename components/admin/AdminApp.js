@@ -12,6 +12,7 @@ import SaudeRobo from "./SaudeRobo";
 import Configuracoes from "./Configuracoes";
 import UsuariosTags from "./UsuariosTags";
 import PaginaInicial from "./PaginaInicial";
+import FilaMercadoLivre from "./FilaMercadoLivre";
 import "./admin.css";
 
 const MENU = [
@@ -20,6 +21,7 @@ const MENU = [
   { id: "form", nome: "Nova oferta", icone: "➕", grupo: "Conteúdo" },
   { id: "inicial", nome: "Página inicial", icone: "🏠", grupo: "Conteúdo" },
   { id: "cupons", nome: "Cupons", icone: "🎟️", grupo: "Conteúdo" },
+  { id: "mlfila", nome: "Fila Mercado Livre", icone: "🛒", grupo: "Conteúdo" },
   { id: "comunidade", nome: "Comunidade", icone: "👥", grupo: "Pessoas" },
   { id: "usuarios", nome: "Usuários e tags", icone: "🏆", grupo: "Pessoas" },
   { id: "robo", nome: "Saúde do robô", icone: "🤖", grupo: "Sistema" },
@@ -262,6 +264,7 @@ export default function AdminApp() {
         {aba === "comunidade" && <ListaSugestoes aoRevisar={revisar} />}
         {aba === "usuarios" && <UsuariosTags />}
         {aba === "cupons" && <AdminCupons />}
+        {aba === "mlfila" && <FilaMercadoLivre />}
         {aba === "robo" && <SaudeRobo aoEditar={editar} />}
         {aba === "config" && <Configuracoes />}
         {aba === "vendas" && <Vendas />}

@@ -23,6 +23,7 @@ const VALIDAS = new Set([
   "ar-condicionado", "eletrodomesticos", "geladeiras", "lavadoras", "micro-ondas", "air-fryer", "fogoes", "eletroportateis",
   "bonecas", "carrinhos", "blocos-de-montar", "jogos-infantis", "pelucias", "educativos", "brinquedos-ao-ar-livre",
   "bicicletas-infantis", "bebes", "passeio-bebe", "alimentacao-bebe", "quarto-bebe", "higiene-bebe", "seguranca-bebe", "escolar-infantil", "eletronicos-infantis", "livros-infantis",
+  "academia", "acessorios-carro", "acessorios-pet", "alimentos", "barbear", "bebidas", "cabelos", "cafe", "camping-pesca", "ciclismo", "doces-snacks", "e-readers", "escritorio", "esportes-bola", "ferramentas-eletricas", "ferramentas-manuais", "higiene-pessoal", "higiene-pet", "jardim", "mangas-hqs", "maquiagem", "moto", "pneus-pecas", "racao", "saude", "skate-patins", "skincare", "som-automotivo", "suplementos",
   "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
   "jogos", "controles", "consoles", "fones", "monitor", "televisores", "celulares", "notebook", "tablets", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",

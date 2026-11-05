@@ -92,6 +92,7 @@ flock -n 9 || { echo "\$(date '+%d/%m %H:%M') pulei: a anterior ainda está roda
       [ "\$ANTES" != "\$(sha1sum package-lock.json)" ] && npm ci --omit=dev --no-audit --no-fund
       rodar 25m scripts/coletar.mjs
       rodar 5m  scripts/corrigir-descontos.mjs   # trava o "preço antigo" inflado antes de postar
+      rodar 10m scripts/fila-mercadolivre.mjs    # ofertas do Mercado Livre para a fila do painel
       rodar 15m scripts/conferir-precos.mjs
       rodar 5m  scripts/postar-telegram.mjs
       ;;
