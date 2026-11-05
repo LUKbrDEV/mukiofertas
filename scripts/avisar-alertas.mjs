@@ -43,23 +43,53 @@ function combina(alerta, oferta, tituloNormal) {
   return palavrasDe(alerta.termo).every((p) => titulo.includes(` ${p}`)); // começo de palavra: "fry" acha "fryer"
 }
 
+const escapar = (t) => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 async function mandarEmail(para, itens) {
   const chave = process.env.RESEND_API_KEY;
   const de = process.env.EMAIL_REMETENTE;
   if (!chave || !de || !para) return false;
 
-  const linhas = itens
-    .map(
-      ({ oferta, alerta }) =>
-        `<li style="margin:8px 0"><a href="${SITE}/oferta/${oferta.id}" style="color:#0a4bb8;font-weight:700">${oferta.titulo
-          .replace(/</g, "&lt;")}</a><br>${preco(oferta.preco_atual)} na ${oferta.loja} · alerta “${alerta.termo.replace(/</g, "&lt;")}”</li>`
-    )
+  const cartoes = itens
+    .map(({ oferta, alerta }) => {
+      const desconto =
+        oferta.preco_antigo && Number(oferta.preco_antigo) > Number(oferta.preco_atual)
+          ? Math.round(((oferta.preco_antigo - oferta.preco_atual) / oferta.preco_antigo) * 100)
+          : 0;
+      const url = `${SITE}/oferta/${oferta.id}`;
+      return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;border:1px solid #e5e7eb;border-radius:12px;background:#ffffff">
+        <tr>
+          <td width="96" style="padding:12px">
+            ${oferta.imagem ? `<img src="${escapar(oferta.imagem)}" width="84" height="84" alt="" style="display:block;width:84px;height:84px;object-fit:contain;border-radius:8px">` : ""}
+          </td>
+          <td style="padding:12px 12px 12px 0;font-family:Arial,sans-serif">
+            <div style="font-size:12px;color:#64748b">${escapar(oferta.loja)} · alerta “${escapar(alerta.termo)}”</div>
+            <a href="${url}" style="display:block;margin:4px 0 6px;color:#0f172a;font-size:15px;font-weight:bold;text-decoration:none">${escapar(oferta.titulo)}</a>
+            <span style="color:#0b8a4b;font-size:18px;font-weight:bold">${preco(oferta.preco_atual)}</span>
+            ${desconto > 0 ? `<span style="margin-left:6px;color:#94a3b8;text-decoration:line-through;font-size:13px">${preco(oferta.preco_antigo)}</span>
+            <span style="margin-left:6px;padding:2px 6px;border-radius:6px;background:#16a34a;color:#fff;font-size:12px;font-weight:bold">-${desconto}%</span>` : ""}
+            <div style="margin-top:10px"><a href="${url}" style="display:inline-block;padding:9px 16px;border-radius:999px;background:#ff7a1a;color:#ffffff;font-weight:bold;font-size:14px;text-decoration:none">Ver oferta →</a></div>
+          </td>
+        </tr>
+      </table>`;
+    })
     .join("");
-  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#0f172a">
-    <h2 style="color:#0a4bb8">🔔 Apareceu o que você estava esperando</h2>
-    <ul style="padding-left:18px">${linhas}</ul>
-    <p style="color:#64748b;font-size:13px">Você recebeu porque criou um alerta no MukiOfertas.
-    <a href="${SITE}/alertas">Gerenciar ou apagar meus alertas</a></p></div>`;
+
+  const html = `<div style="background:#f3f5f9;padding:24px 12px">
+    <div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;color:#0f172a">
+      <div style="padding:16px 20px;border-radius:14px 14px 0 0;background:#0a4bb8;color:#fff;font-size:20px;font-weight:bold">
+        Muki<span style="color:#ff9a4a">Ofertas</span>
+      </div>
+      <div style="padding:20px;background:#ffffff;border-radius:0 0 14px 14px">
+        <h2 style="margin:0 0 6px;font-size:20px">🔔 Apareceu o que você estava esperando</h2>
+        <p style="margin:0 0 16px;color:#475569;font-size:14px">Encontramos ${itens.length === 1 ? "uma oferta" : `${itens.length} ofertas`} para os seus alertas. Corre que oferta boa acaba rápido!</p>
+        ${cartoes}
+        <p style="margin:18px 0 0;color:#94a3b8;font-size:12px;line-height:1.5">Você recebeu este e-mail porque criou um alerta no MukiOfertas.
+        <a href="${SITE}/alertas" style="color:#0a4bb8">Gerenciar ou apagar meus alertas</a></p>
+      </div>
+    </div>
+  </div>`;
 
   const resposta = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -67,7 +97,10 @@ async function mandarEmail(para, itens) {
     body: JSON.stringify({
       from: de,
       to: [para],
-      subject: itens.length === 1 ? `🔔 ${itens[0].oferta.titulo.slice(0, 70)}` : `🔔 ${itens.length} ofertas dos seus alertas`,
+      subject:
+        itens.length === 1
+          ? `🔔 ${itens[0].oferta.titulo.slice(0, 60)} por ${preco(itens[0].oferta.preco_atual)}`
+          : `🔔 ${itens.length} ofertas dos seus alertas no MukiOfertas`,
       html,
     }),
   });
@@ -82,7 +115,7 @@ async function main() {
     db.from("alertas").select("*").eq("ativo", true).limit(5000),
     db
       .from("ofertas")
-      .select("id, titulo, preco_atual, loja, publicada_em, expires_at, categoria, origem")
+      .select("id, titulo, preco_atual, preco_antigo, imagem, loja, publicada_em, expires_at, categoria, origem")
       .eq("ativa", true)
       .gte("publicada_em", desde)
       .limit(3000),
@@ -147,6 +180,8 @@ async function main() {
 
   const resumo = `${(alertas ?? []).length} alertas ativos, ${validas.length} ofertas novas conferidas, ${novos} avisos, ${emails} e-mails`;
   console.log(resumo);
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_REMETENTE)
+    console.log("E-mail desligado: crie os secrets RESEND_API_KEY e EMAIL_REMETENTE no GitHub para os avisos chegarem por e-mail.");
   await registrarExecucao(db, "avisar-alertas", true, resumo);
 }
 

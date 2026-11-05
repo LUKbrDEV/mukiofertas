@@ -27,6 +27,7 @@ const VALIDAS = new Set([
   "smartphones", "hardware", "perifericos", "computadores", "notebooks", "monitores",
   "games", "cadeiras-mesas", "eletronicos", "casa-inteligente", "redes", "casa", "limpeza",
   "perfumaria", "beleza", "moda", "mochilas", "esporte", "mercado", "pet", "automotivo", "papelaria", "cupons",
+  "outros-informatica", "placas-captura", "filtros-linha", "water-cooler", "fontes",
 ]);
 
 const aplicar = process.argv.includes("--aplicar");
@@ -66,7 +67,8 @@ for (const o of ofertas) {
     if (atual !== "cupons") mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: "cupons" });
     continue;
   }
-  const nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : null);
+  let nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : null);
+  if (nova === "games") nova = "jogos"; // "Games" e "Jogos" foram unificados em Jogos
   if (nova !== atual) mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: nova });
 }
 

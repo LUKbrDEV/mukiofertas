@@ -284,7 +284,7 @@ export default async function Home() {
             <div className="secao-cabecalho">
               <div>
                 <h2 id="titulo-escolhas" className="secao-titulo">
-                  ⭐ Escolhas do Muki
+                   Escolhas do Muki
                 </h2>
                 <p style={{ margin: "2px 0 0", fontSize: "0.88rem", color: "#475569" }}>
                   Nota alta na loja, aprovadas pela comunidade e com desconto de verdade

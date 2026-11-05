@@ -60,6 +60,8 @@ export const menuDepartamentos = [
           { slug: "placa-de-video", nome: "Placa de vídeo" },
           { slug: "memoria-ram", nome: "Memória RAM" },
           { slug: "ssd", nome: "SSD" },
+          { slug: "water-cooler", nome: "Water Cooler e Coolers" },
+          { slug: "fontes", nome: "Fontes" },
           { slug: "gabinete", nome: "Gabinetes" },
         ],
       },
@@ -80,6 +82,15 @@ export const menuDepartamentos = [
           { slug: "perifericos", nome: "Mouse, teclado e headset" },
           { slug: "redes", nome: "Roteadores e Wi-Fi" },
           { slug: "cadeiras-mesas", nome: "Cadeiras e mesas" },
+        ],
+      },
+      {
+        titulo: "Outros",
+        slug: "outros-informatica",
+        itens: [
+          { slug: "placas-captura", nome: "Placas de captura" },
+          { slug: "filtros-linha", nome: "Filtros de linha e proteção" },
+          { slug: "outros-informatica", nome: "Outros acessórios de PC" },
         ],
       },
       {

@@ -13,6 +13,8 @@ export const categorias = [
   { slug: "ssd", nome: "SSD", emoji: "💾", pai: "hardware" },
   { slug: "placa-de-video", nome: "Placa de vídeo", emoji: "🎞️", pai: "hardware" },
   { slug: "memoria-ram", nome: "Memória RAM", emoji: "🧠", pai: "hardware" },
+  { slug: "water-cooler", nome: "Water Cooler e Coolers", emoji: "❄️", pai: "hardware" },
+  { slug: "fontes", nome: "Fontes", emoji: "⚡", pai: "hardware" },
 
   { slug: "gabinete", nome: "Gabinetes", emoji: "🗄️" },
   { slug: "perifericos", nome: "Periféricos", emoji: "🖱️" },
@@ -32,6 +34,11 @@ export const categorias = [
   { slug: "controles", nome: "Controles", emoji: "🕹️", pai: "games" },
   { slug: "consoles", nome: "Consoles", emoji: "🎮", pai: "games" },
   { slug: "cadeiras-mesas", nome: "Cadeiras e Mesas", emoji: "🪑" },
+
+  // Outros de informática: o que é de PC e não tem categoria mais certa
+  { slug: "outros-informatica", nome: "Outros de Informática", emoji: "🔌" },
+  { slug: "placas-captura", nome: "Placas de Captura", emoji: "🎥", pai: "outros-informatica" },
+  { slug: "filtros-linha", nome: "Filtros de Linha e Proteção", emoji: "🛡️", pai: "outros-informatica" },
 
   { slug: "eletronicos", nome: "Eletrônicos", emoji: "🎧" },
   { slug: "fones", nome: "Fones de Ouvido", emoji: "🎧", pai: "eletronicos" },

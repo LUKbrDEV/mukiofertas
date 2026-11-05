@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import CampoAlerta, { termoDoProduto } from "../../components/CampoAlerta";
 
 const CSS = `
   .al { max-width: 720px; margin: 18px auto 40px; }
@@ -16,6 +17,7 @@ const CSS = `
               box-shadow: 0 4px 16px rgba(15, 23, 42, .06); margin-bottom: 18px; }
   .al-form { display: grid; grid-template-columns: minmax(0, 1fr) 150px auto; gap: 10px; align-items: end; }
   .al-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 700; color: #334155; }
+  .al-form .ca input { width: 100%; box-sizing: border-box; }
   .al-form input { height: 42px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; }
   .al-form input:focus { outline: 2px solid #0a4bb8; outline-offset: 1px; }
   .al-btn { height: 42px; padding: 0 18px; border: none; border-radius: 10px; background: #ff7a1a; color: #fff;
@@ -135,14 +137,23 @@ export default function PaginaAlertas() {
       <style>{CSS}</style>
       <h1>🔔 Alertas de preço</h1>
       <p className="al-sub">
-        Diga o que você quer comprar e, se quiser, o preço máximo. Quando aparecer uma oferta assim no site,
-        o aviso aparece aqui e no canto da tela quando você entrar.
+        Procure o produto entre as ofertas do site ou digite o que você quer. Quando aparecer uma oferta assim,
+        a gente avisa <strong>no seu e-mail ({usuario.email})</strong>, aqui e no sininho do topo.
       </p>
 
       <form className="al-caixa al-form" onSubmit={criar}>
         <label>
           O que você procura
-          <input value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Ex.: air fryer, PS5, iPhone 15" maxLength={60} />
+          <CampoAlerta
+            valor={termo}
+            aoMudar={setTermo}
+            aoEscolher={(o) => {
+              setTermo(termoDoProduto(o.titulo));
+              setPrecoMax(String(o.preco_atual).replace(".", ","));
+              setOk(`Escolhido: ${o.titulo}. Ajuste o preço máximo se quiser e clique em Criar alerta.`);
+            }}
+            placeholder="Procure no site ou digite: air fryer, PS5, iPhone 15..."
+          />
         </label>
         <label>
           Até (opcional)

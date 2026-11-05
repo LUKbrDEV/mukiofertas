@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { carregarDesejos, ouvirDesejos } from "../lib/desejos";
 import { IconeCoracao } from "./BotaoDesejo";
+import CampoAlerta, { termoDoProduto } from "./CampoAlerta";
 
 const CSS = `
   .it { display: flex; align-items: center; gap: 6px; margin-right: 14px; }
@@ -29,9 +30,11 @@ const CSS = `
   .it-menu h3 { margin: 0 0 4px; font-size: 16px; }
   .it-menu p { margin: 0 0 10px; color: #64748b; font-size: 13px; line-height: 1.4; }
   .it-form { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 8px; }
+  .it-form .ca input { width: 100%; box-sizing: border-box; }
+  .it-menu .ca-lista { position: static; margin-top: 6px; max-height: 240px; box-shadow: none; }
   .it-form input { height: 40px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; font-size: 14px; min-width: 0; }
   .it-form input:focus { outline: 2px solid #0a4bb8; outline-offset: 1px; }
-  .it-form button, .it-entrar { grid-column: 1 / -1; height: 40px; border: 0; border-radius: 10px; background: #ff7a1a;
+  .it-form > button, .it-entrar { grid-column: 1 / -1; height: 40px; border: 0; border-radius: 10px; background: #ff7a1a;
                                 color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
   .it-entrar { display: flex; align-items: center; justify-content: center; text-decoration: none; }
   .it-msg { margin: 8px 0 0 !important; font-weight: 600; }
@@ -170,7 +173,7 @@ function SinoAlertas({ usuario }) {
       {aberto && (
         <div className="it-menu" role="dialog" aria-label="Alertas de preço">
           <h3>🔔 Alertas de preço</h3>
-          <p>Diga o que você quer comprar. Quando aparecer uma oferta assim, a gente te avisa.</p>
+          <p>Procure no site ou digite o que você quer. Quando aparecer uma oferta assim, a gente te avisa por e-mail.</p>
 
           {!usuario ? (
             <Link href={`/entrar?voltar=${encodeURIComponent(pathname)}`} className="it-entrar">
@@ -179,13 +182,15 @@ function SinoAlertas({ usuario }) {
           ) : (
             <>
               <form className="it-form" onSubmit={criar}>
-                <input
-                  ref={campo}
-                  value={termo}
-                  onChange={(e) => setTermo(e.target.value)}
+                <CampoAlerta
+                  inputRef={campo}
+                  valor={termo}
+                  aoMudar={setTermo}
+                  aoEscolher={(o) => {
+                    setTermo(termoDoProduto(o.titulo));
+                    setPrecoMax(String(o.preco_atual).replace(".", ","));
+                  }}
                   placeholder="Pesquisar: air fryer, PS5, iPhone..."
-                  maxLength={60}
-                  aria-label="O que você procura"
                 />
                 <input value={precoMax} onChange={(e) => setPrecoMax(e.target.value)} placeholder="Até R$" inputMode="decimal" aria-label="Preço máximo (opcional)" />
                 <button disabled={salvando}>{salvando ? "Criando..." : "Criar alerta"}</button>
