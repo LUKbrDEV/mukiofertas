@@ -11,6 +11,7 @@ export const atalhos = [
     nome: "📺 Monitores",
     tambem: ["/monitores", "/categoria/monitor", "/categoria/acessorios-monitor"],
   },
+  { href: "/guias", nome: "📖 Guias de compra" },
   { href: "/comunidade", nome: "👥 Comunidade" },
 ];
 

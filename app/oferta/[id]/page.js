@@ -20,6 +20,9 @@ import SobreProduto from "../../../components/SobreProduto";
 import BotaoCupom from "../../../components/BotaoCupom";
 import GraficoPreco from "../../../components/GraficoPreco";
 import { buscarHistorico, resumirHistorico } from "../../../lib/historico";
+import AnaliseOferta from "../../../components/AnaliseOferta";
+import { guiaDaCategoria } from "../../../data/guias";
+import { deveIndexarOferta } from "../../../lib/indexacao";
 
 export const revalidate = 60;
 
@@ -54,8 +57,9 @@ export async function generateMetadata({ params }) {
     title: `${titulo} | MukiOfertas`,
     description: descricao,
     alternates: { canonical: `/oferta/${oferta.id}` },
-    // Oferta expirada continua acessível, mas sai do Google (evita páginas com preço vencido)
-    robots: oferta.expirada ? { index: false, follow: true } : undefined,
+    // Oferta expirada ou sem detalhes próprios continua acessível, mas fica fora do Google
+    // (evita páginas com preço vencido e páginas quase iguais). Regra em lib/indexacao.js.
+    robots: deveIndexarOferta(oferta, oferta.expirada) ? undefined : { index: false, follow: true },
     openGraph: {
       type: "website",
       siteName: SITE.nome,
@@ -89,6 +93,7 @@ export default async function PaginaOferta({ params }) {
 
   const categoria = categorias.find((c) => c.slug === oferta.categoria) ?? null;
   const pai = paiDe(categorias, categoria);
+  const guia = guiaDaCategoria(categoria?.slug, pai?.slug);
 
   // Até quando o preço vale (o que vier primeiro: expires_at ou a data de publicação + prazo do site)
   const prazos = [];
@@ -298,6 +303,8 @@ export default async function PaginaOferta({ params }) {
       {mostrarGrafico && (
         <GraficoPreco pontos={historico} precoAtual={oferta.preco_atual} resumo={resumoPreco} />
       )}
+
+      <AnaliseOferta oferta={oferta} guia={guia} />
 
       <SobreProduto oferta={oferta} />
 

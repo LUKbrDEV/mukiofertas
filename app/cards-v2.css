@@ -1,0 +1,338 @@
+/* ===== Cards de oferta, visual novo (cv2) =====
+   Inspirado no que funciona nos grandes sites de ofertas e marketplaces:
+   - loja e tempo no topo (dá contexto antes da foto)
+   - foto limpa em fundo branco, sem etiqueta em cima
+   - preço antigo pequeno em cima e preço atual grande com a "% OFF" ao lado
+   - selos curtos (cupom, frete grátis, economia) numa linha só
+   - votos e comentários juntos, botão grande "Pegar promoção" no pé
+   Salve como app/cards-v2.css e importe no app/layout.js DEPOIS dos outros CSS:
+     import "./cards-v2.css";
+   Para voltar ao visual antigo, é só tirar essa linha do layout.js. */
+
+:root {
+  --cv2-raio: 14px;
+  --cv2-borda: #e3e8ef;
+  --cv2-sombra: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --cv2-sombra-hover: 0 10px 24px -12px rgba(15, 23, 42, 0.28);
+  --cv2-verde: #0b8a4b;
+  --cv2-verde-fundo: #e7f6ee;
+}
+
+/* Card */
+.cartao.cv2 {
+  position: relative;
+  border: 1px solid var(--cv2-borda);
+  border-radius: var(--cv2-raio);
+  background: #fff;
+  box-shadow: var(--cv2-sombra);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.cartao.cv2:hover {
+  border-color: #cfd6e0;
+  box-shadow: var(--cv2-sombra-hover);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cartao.cv2, .cartao.cv2:hover { transition: none; transform: none; }
+}
+/* Destaque: contorno laranja da marca */
+.cartao.cv2.cartao--destaque,
+.cartao.cv2.cartao--destaque:hover { border-color: var(--marca); box-shadow: 0 0 0 1px var(--marca), var(--cv2-sombra-hover); }
+
+/* Topo: logo da loja, nome e tempo */
+.cartao.cv2 .cv2-topo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 var(--card-pad, 10px);
+  font-size: 0.76rem;
+  color: var(--tinta-suave);
+  white-space: nowrap;
+}
+.cartao.cv2 .cv2-loja-logo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.cartao.cv2 .cv2-loja-logo img { width: 80%; height: 80%; object-fit: contain; }
+.cartao.cv2 .cv2-loja-logo--letra {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--marca-escura);
+}
+.cartao.cv2 .cv2-loja { overflow: hidden; text-overflow: ellipsis; font-weight: 700; color: var(--tinta); }
+/* no computador o selo relâmpago mostra só o raio, para o nome da loja caber */
+.cartao.cv2 .cv2-relampago-txt { display: none; }
+.cartao.cv2 .cv2-relampago { padding: 3px 6px; }
+.cartao.cv2 .cv2-quando { flex: none; }
+.cartao.cv2 .cv2-relampago {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 2px 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #8a4b00;
+  background: #fff3d6;
+  border-radius: 999px;
+}
+
+/* Foto: fundo branco, sem etiquetas por cima (só "Expirado" e o selo manual) */
+.cartao.cv2 .cartao-img { border-bottom: 0; background: #fff; }
+.cartao.cv2 .cartao-img img { transition: transform 0.25s ease; }
+.cartao.cv2:hover .cartao-img img { transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) {
+  .cartao.cv2:hover .cartao-img img { transform: none; }
+}
+
+/* Corpo */
+.cartao.cv2 .cartao-corpo { gap: 4px; padding-top: 6px; }
+.cartao.cv2 .cartao-titulo { font-weight: 500; color: var(--tinta); }
+.cartao.cv2 .cartao-titulo a { color: inherit; }
+
+/* Preço: antigo pequeno em cima, atual grande + % OFF verde ao lado */
+.cartao.cv2 .cartao-precos {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  height: auto;
+  margin-top: 4px;
+  overflow: visible;
+}
+.cartao.cv2 .preco-antigo {
+  display: block;
+  height: 16px;
+  font-size: 0.78rem;
+  line-height: 16px;
+}
+.cartao.cv2 .cv2-linha-preco { display: flex; align-items: center; gap: 8px; min-width: 0; height: 30px; }
+.cartao.cv2 .preco-atual { font-size: 1.35rem; line-height: 1; color: var(--tinta); }
+.cartao.cv2 .cv2-off {
+  flex: none;
+  padding: 3px 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--cv2-verde);
+  background: var(--cv2-verde-fundo);
+  border-radius: 6px;
+}
+.cartao.cv2 .cv2-off[data-nivel="alto"] { color: #fff; background: var(--cv2-verde); }
+
+/* Selos: cupom, frete grátis ou economia (altura fixa para os cards ficarem iguais) */
+.cartao.cv2 .cv2-selos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 30px;
+  margin-top: 2px;
+}
+.cartao.cv2 .cv2-selos .cupom-copiar { height: 28px; }
+.cartao.cv2 .cv2-selo {
+  overflow: hidden;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: 6px;
+}
+.cartao.cv2 .cv2-selo--frete { color: #075985; background: #e0f2fe; }
+.cartao.cv2 .cv2-selo--economia { color: var(--cv2-verde); background: var(--cv2-verde-fundo); }
+
+/* Pé: votos à esquerda, comentários à direita */
+.cartao.cv2 .cv2-pe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 calc(var(--card-pad, 10px) - 4px);
+  border-top: 1px solid #f1f4f8;
+}
+.cartao.cv2 .cv2-pe > div {
+  justify-content: flex-start !important;
+  gap: 2px !important;
+  margin: 0 !important;
+}
+.cartao.cv2 .cv2-pe > div button { padding: 0 8px !important; font-size: 13px !important; }
+.cartao.cv2 .cv2-pe > div button span { font-size: 16px !important; }
+.cartao.cv2 .cv2-comentarios {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 34px;
+  margin: 0;
+  font-size: 16px;
+  text-decoration: none;
+  border-radius: 8px;
+}
+.cartao.cv2 .cv2-comentarios:hover { background: #f1f5f9; text-decoration: none; }
+
+/* Botão grande */
+.cartao.cv2 .cartao-botao {
+  margin: 0 var(--card-pad, 10px) var(--card-pad, 10px);
+  padding: 10px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: 10px;
+  background: var(--marca-escura);
+}
+.cartao.cv2 .cartao-botao:hover { background: #b93608; }
+
+/* Expirado: cinza, sem levantar no hover */
+.cartao.cv2.cartao--expirado:hover { transform: none; box-shadow: var(--cv2-sombra); }
+.cartao.cv2.cartao--expirado .cv2-off { color: var(--tinta-suave); background: #f1f5f9; }
+
+/* Só aparecem no celular */
+.cartao.cv2 .cv2-compartilhar,
+.cartao.cv2 .cv2-autor { display: none; }
+
+/* ===== Celular: um card por linha, deitado (foto à esquerda, texto à direita) =====
+   Topo com loja e tempo, corpo com foto + título + preço + botão do WhatsApp,
+   pé com quem postou, votos e comentários. Foto e título levam para a página da oferta. */
+@media (max-width: 639px) {
+  .grade-cartoes { grid-template-columns: minmax(0, 1fr) !important; gap: 10px; }
+
+  .cartao.cv2 {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    grid-template-areas:
+      "topo topo"
+      "img  corpo"
+      "pe   pe";
+    border-radius: 14px;
+  }
+  .cartao.cv2:hover { transform: none; }
+
+  .cartao.cv2 .cv2-topo {
+    grid-area: topo;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    border-bottom: 1px solid #f1f4f8;
+  }
+  .cartao.cv2 .cv2-loja-logo { width: 20px; height: 20px; }
+  .cartao.cv2 .cv2-quando { display: inline; margin-left: auto; }
+  .cartao.cv2 .cv2-ponto { display: none; }
+  .cartao.cv2 .cv2-relampago { margin-left: 6px; padding: 2px 7px; }
+  .cartao.cv2 .cv2-relampago-txt { display: inline; }
+
+  .cartao.cv2 .cartao-img,
+  .carrossel-item .cartao.cv2 .cartao-img {
+    grid-area: img;
+    align-self: center;
+    width: 88px;
+    height: 88px;
+    margin: 12px 0 12px 12px;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    border: 1px solid #f1f4f8;
+  }
+  .cartao.cv2 .cartao-img img { width: 90%; height: 90%; }
+  .cartao.cv2 .cartao-img .tag-expirado { top: 4px; right: 4px; padding: 2px 6px; font-size: 0.6rem; }
+  .cartao.cv2 .cartao-selo { display: none; }
+
+  .cartao.cv2 .cartao-corpo {
+    grid-area: corpo;
+    position: relative;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px 54px 12px 12px;
+  }
+  .cartao.cv2 .cartao-titulo,
+  .carrossel-item .cartao.cv2 .cartao-titulo {
+    height: auto;
+    max-height: calc(2 * 1.3em);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+  .cartao.cv2 .cartao-precos { margin-top: 4px; }
+  .cartao.cv2 .preco-antigo { height: 14px; font-size: 0.72rem; line-height: 14px; }
+  .cartao.cv2 .cv2-sem-antigo { display: none; }
+  .cartao.cv2 .cv2-linha-preco { height: auto; gap: 8px; }
+  .cartao.cv2 .preco-atual { font-size: 1.15rem; }
+  .cartao.cv2 .cv2-off { font-size: 0.7rem; }
+  .cartao.cv2 .cv2-selos { height: auto; min-height: 0; margin-top: 4px; }
+  .cartao.cv2 .cv2-selos:empty { display: none; }
+
+  /* Botão redondo do WhatsApp, à direita do texto */
+  .cartao.cv2 .cv2-compartilhar {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    margin-top: -19px;
+    color: #128c4a;
+    background: #fff;
+    border: 1px solid #dfe5ec;
+    border-radius: 50%;
+  }
+  .cartao.cv2 .cv2-compartilhar:active { background: #e7f6ee; }
+
+  /* Pé: quem postou à esquerda, votos e comentários à direita */
+  .cartao.cv2 .cv2-pe {
+    grid-area: pe;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 10px 6px 12px;
+  }
+  .cartao.cv2 .cv2-autor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-right: auto;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: var(--tinta-suave);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .cartao.cv2 .cv2-autor-foto {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    background: var(--marca-escura);
+    border-radius: 50%;
+  }
+  .cartao.cv2 .cv2-pe > div {
+    flex: none;
+    border: 1px solid #e3e8ef;
+    border-radius: 999px;
+  }
+  .cartao.cv2 .cv2-comentarios {
+    display: inline-flex;
+    width: 40px;
+    height: 36px;
+    border: 1px solid #e3e8ef;
+    border-radius: 999px;
+  }
+
+  /* O botão grande some (como nos apps de ofertas): foto e título levam para a página da oferta, que tem o botão da loja */
+  .cartao.cv2 .cartao-botao { display: none; }
+  /* Cupons (sem página de produto) continuam com o botão */
+  .cartao.cv2.cv2--cupom .cartao-botao { display: block; grid-column: 1 / -1; margin: 0 12px 12px; }
+}

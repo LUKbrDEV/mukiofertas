@@ -24,13 +24,15 @@ const CSS = `
   }
 `;
 
-export default function HomeComRanking({ children }) {
+// extra = caixas que aparecem abaixo do ranking (canais, guias...)
+export default function HomeComRanking({ children, extra = null }) {
   return (
     <div className="home-grade">
       <style>{CSS}</style>
       <div className="home-grade-principal">{children}</div>
       <div className="home-grade-lateral">
         <RankingLateral limite={5} />
+        {extra}
       </div>
     </div>
   );

@@ -116,7 +116,10 @@ export default function AcionarRobo({ aoTerminar }) {
           ↻
         </button>
       </div>
-      <p>O robô já roda sozinho a cada 30 minutos. Use estes botões quando não quiser esperar.</p>
+      <p>
+        A VPS já roda o robô sozinha (coleta a cada 30 minutos, WhatsApp a cada 10). Use estes botões só quando
+        não quiser esperar: eles rodam no GitHub Actions e gastam alguns minutos da cota.
+      </p>
 
       <div className="adm-robo-botoes">
         {TAREFAS.map((t) => (
@@ -146,7 +149,7 @@ export default function AcionarRobo({ aoTerminar }) {
               <li key={e.id}>
                 <span className={`adm-exec-status adm-exec-status--${s.cor}`}>{s.texto}</span>
                 <span className="adm-exec-info">
-                  {e.evento === "schedule" ? "Automática (a cada 30 min)" : "Acionada manualmente"}
+                  {e.evento === "schedule" ? "Agendada pelo GitHub" : "Acionada pelo painel"}
                   <small>
                     {dataHora(e.criado_em)} · {ha(e.criado_em)}
                   </small>

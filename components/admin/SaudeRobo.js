@@ -30,7 +30,7 @@ function situacao(dataIso, horasOk, horasAlerta) {
 
 const TEXTO_SITUACAO = { verde: "Em dia", amarelo: "Atrasado", vermelho: "Parado" };
 
-function Indicador({ titulo, quando, cor, detalhe, erro }) {
+function Indicador({ titulo, como, quando, cor, detalhe, erro }) {
   const c = erro ? "vermelho" : cor;
   return (
     <div className={`adm-saude adm-saude--${c}`}>
@@ -39,6 +39,11 @@ function Indicador({ titulo, quando, cor, detalhe, erro }) {
         <strong>{titulo}</strong>
         <span className="adm-saude-status">{erro ? "Com erro" : TEXTO_SITUACAO[c]}</span>
       </div>
+      {como && (
+        <p className="adm-saude-detalhe" style={{ margin: "6px 0 0" }}>
+          {como}
+        </p>
+      )}
       <p className="adm-saude-quando">
         {ha(quando)} <small>{quando ? `(${dataHora(quando)})` : ""}</small>
       </p>
@@ -168,6 +173,9 @@ export default function SaudeRobo({ aoEditar }) {
       statusDisponivel: !statusR.error,
       coletar: execucoes.get("coletar"),
       conferir: execucoes.get("conferir-precos"),
+      whatsapp: execucoes.get("postar-whatsapp"),
+      ultimoPostWhatsapp: maisRecente(ofertas, "postada_whatsapp_em"),
+      filaWhatsapp: noAr.filter((o) => !o.postada_whatsapp_em).length,
       ultimaAutomatica: maisRecente(ofertas.filter((o) => (o.origem ?? "automatica") === "automatica"), "atualizado_em"),
       ultimaConferencia: maisRecente(ofertas, "preco_conferido_em"),
       ultimaTelegramImportada: maisRecente(ofertas.filter((o) => o.origem === "telegram"), "publicada_em"),
@@ -234,13 +242,17 @@ export default function SaudeRobo({ aoEditar }) {
 
   const coletaQuando = dados.coletar?.ultima_execucao ?? dados.ultimaAutomatica;
   const conferirQuando = dados.conferir?.ultima_execucao ?? dados.ultimaConferencia;
+  const whatsappQuando = dados.whatsapp?.ultima_execucao ?? dados.ultimoPostWhatsapp;
 
   return (
     <>
       <div className="adm-titulo-linha">
         <div>
           <h1>Saúde do robô</h1>
-          <p className="adm-sub">O robô roda a cada 30 minutos pelo GitHub Actions.</p>
+          <p className="adm-sub">
+            O robô roda na VPS da Oracle: coleta a cada 30 minutos e WhatsApp a cada 10 minutos. O Telegram
+            chega na hora pelo site. Os botões abaixo rodam no GitHub Actions.
+          </p>
         </div>
         <div className="adm-acoes">
           {LINK_ACTIONS && (
@@ -263,7 +275,8 @@ export default function SaudeRobo({ aoEditar }) {
 
       <div className="adm-saude-grade">
         <Indicador
-          titulo="Coleta (Lomadee, Shopee e AliExpress)"
+          titulo="Coleta de ofertas"
+          como="Lomadee, Shopee, AliExpress, KaBuM! e cupons · na VPS, a cada 30 min"
           quando={coletaQuando}
           cor={situacao(coletaQuando, 1, 3)}
           erro={dados.coletar && !dados.coletar.ok}
@@ -271,28 +284,40 @@ export default function SaudeRobo({ aoEditar }) {
         />
         <Indicador
           titulo="Conferência de preços"
+          como={`Roda junto com a coleta · cada oferta é conferida a cada ${HORAS_ENTRE_CONFERENCIAS}h`}
           quando={conferirQuando}
           cor={situacao(conferirQuando, 1, 6)}
           erro={dados.conferir && !dados.conferir.ok}
-          detalhe={dados.conferir?.resumo ?? `Cada oferta é conferida a cada ${HORAS_ENTRE_CONFERENCIAS}h`}
+          detalhe={dados.conferir?.resumo}
         />
         <Indicador
           titulo="Importação do Telegram"
+          como="Webhook do site (Vercel) · na hora em que a oferta sai no canal"
           quando={dados.ultimaTelegramImportada}
           cor={situacao(dados.ultimaTelegramImportada, 12, 48)}
-          detalhe="Última oferta que chegou do seu canal"
+          detalhe="Última oferta que chegou do canal"
         />
         <Indicador
           titulo="Postagem no Telegram"
+          como="Roda junto com a coleta · a cada 30 min"
           quando={dados.ultimoPostTelegram}
           cor={situacao(dados.ultimoPostTelegram, 3, 12)}
           detalhe={`${dados.fila.length} ofertas no ar ainda não postadas (fila)`}
         />
+        <Indicador
+          titulo="Postagem no WhatsApp"
+          como="Na VPS, a cada 10 min · envio pela Evolution API"
+          quando={whatsappQuando}
+          cor={situacao(whatsappQuando, 1, 3)}
+          erro={dados.whatsapp && !dados.whatsapp.ok}
+          detalhe={dados.whatsapp?.resumo ?? `${dados.filaWhatsapp} ofertas no ar ainda não enviadas`}
+        />
       </div>
 
       <p className="adm-legenda">
-        🟢 em dia · 🟡 atrasado · 🔴 parado ou com erro. Se ficar vermelho, abra o GitHub Actions e veja a
-        última execução.
+        🟢 em dia · 🟡 atrasado · 🔴 parado ou com erro. Se ficar vermelho, entre na VPS e veja o registro:{" "}
+        <code>tail -n 40 ~/logs/robo-coleta.log</code> ou <code>~/logs/robo-whatsapp.log</code>. No WhatsApp, se o
+        registro mostra envio mas nada chega no grupo, confira a conexão na Evolution API.
       </p>
 
       <AcionarRobo aoTerminar={carregar} />

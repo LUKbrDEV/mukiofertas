@@ -398,6 +398,7 @@ export default function Casca({ departamentos, telegram, children }) {
         </p>
         <nav className="rodape-links" aria-label="Links do rodapé">
           <Link href="/sobre">Sobre</Link>
+          <Link href="/guias">Guias de compra</Link>
           <Link href="/contato">Contato</Link>
           <Link href="/privacidade">Política de Privacidade</Link>
           <Link href="/termos">Termos de Uso</Link>

@@ -3,6 +3,7 @@ import BotaoCupom from "./BotaoCupom";
 import CupomRevelar from "./CupomRevelar";
 import VotosOferta from "./VotosOferta";
 import { lojaDoNome } from "../data/lojas";
+import { SITE } from "../lib/site";
 import {
   calcularDesconto,
   nivelDoDesconto,
@@ -10,6 +11,10 @@ import {
   tempoAtras,
 } from "../lib/ofertas";
 
+// Visual "cv2" (inspirado nos grandes sites de ofertas): loja e tempo no topo, foto limpa,
+// preço grande com a % OFF ao lado, selos (cupom, frete, economia), votos e botão grande.
+// Os estilos ficam em app/cards-v2.css. No celular o card vira uma linha (foto à esquerda,
+// texto à direita), um por vez, com botão de compartilhar no WhatsApp.
 // previa = true: usado na prévia do painel admin (links desativados)
 export default function CardOferta({ oferta, previa = false }) {
   const desconto = calcularDesconto(oferta);
@@ -57,8 +62,45 @@ export default function CardOferta({ oferta, previa = false }) {
   // Cupom sem código (de ativar na própria loja, comum na Amazon e no Mercado Livre)
   const cupomDeResgatar = ehCupom && !oferta.cupom && !expirada && !previa;
 
+  // Logo da loja no topo do card (as lojas do data/lojas.js têm logo e cor)
+  const lojaInfo = lojaDoNome(oferta.loja);
+  const quando = oferta.publicada_em ?? oferta.atualizado_em;
+
+  // Compartilhar no WhatsApp (aparece no celular)
+  const linkDaOferta = `${SITE.url.replace(/\/+$/, "")}/oferta/${oferta.id}`;
+  const textoCompartilhar = ehCupom
+    ? `${oferta.titulo} — ${linkDaOferta}`
+    : `${oferta.titulo} por ${formatarPreco(oferta.preco_atual)} — ${linkDaOferta}`;
+
   return (
-    <article className={classes}>
+    <article className={`${classes} cv2${ehCupom ? " cv2--cupom" : ""}`}>
+      {/* Topo: loja e há quanto tempo a oferta entrou (como nos grandes sites de ofertas) */}
+      <div className="cv2-topo">
+        {lojaInfo?.logo ? (
+          <span className="cv2-loja-logo" style={{ background: lojaInfo.cor }} aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={lojaInfo.logo} alt="" loading="lazy" />
+          </span>
+        ) : (
+          <span className="cv2-loja-logo cv2-loja-logo--letra" aria-hidden="true">
+            {oferta.loja.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span className="cv2-loja">{oferta.loja}</span>
+        {quando && (
+          <span className="cv2-quando">
+            <span className="cv2-ponto">· </span>
+            {tempoAtras(quando)}
+          </span>
+        )}
+        {oferta.relampago && !expirada && (
+          <span className="cv2-relampago" title="Promoção relâmpago">
+            <IconeRaio tamanho={11} />
+            <span className="cv2-relampago-txt">Relâmpago</span>
+          </span>
+        )}
+      </div>
+
       <a {...paginaProps} {...clicavel} className="cartao-img" aria-hidden="true" tabIndex={-1}>
         {oferta.imagem ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -104,53 +146,47 @@ export default function CardOferta({ oferta, previa = false }) {
         ) : (
           <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
         )}
-        {desconto > 0 && !ehCupom && (
-          <span className="desconto" data-nivel={nivelDoDesconto(desconto)}>
-            -{desconto}%
-          </span>
-        )}
         {oferta.selo && <span className="selo-chamativo cartao-selo">{oferta.selo}</span>}
         {expirada && <span className="tag-expirado">Expirado</span>}
       </a>
 
       <div className="cartao-corpo">
-        <div className="cartao-meta">
-          <span className="loja">{oferta.loja}</span>
-          {oferta.relampago && !expirada && (
-            <span className="selo-relampago">
-              <IconeRaio tamanho={12} /> Relâmpago
-            </span>
-          )}
-        </div>
-
         <h3 className="cartao-titulo" title={oferta.titulo}>
           <a {...paginaProps} {...clicavel}>
             {oferta.titulo}
           </a>
         </h3>
 
+        {/* Preço: o antigo pequeno em cima, o atual grande com a % ao lado */}
         <div className="cartao-precos">
           {ehCupom ? (
             <span className="preco-atual">🎟️ Cupom</span>
           ) : (
             <>
-              <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
-              {desconto > 0 && (
-                <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
-              )}
+              <span className={desconto > 0 ? "preco-antigo" : "preco-antigo cv2-sem-antigo"}>
+                {desconto > 0 ? formatarPreco(oferta.preco_antigo) : " "}
+              </span>
+              <span className="cv2-linha-preco">
+                <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
+                {desconto > 0 && (
+                  <span className="cv2-off" data-nivel={nivelDoDesconto(desconto)}>
+                    {desconto}% OFF
+                  </span>
+                )}
+              </span>
             </>
           )}
         </div>
 
-        {/* Espaço fixo para economia e cupom: todos os cards ficam com a mesma altura */}
+        {/* Espaço fixo para os selos e o cupom: todos os cards ficam com a mesma altura */}
         {/* Cupom (aba Cupons): código escondido pela fita; ao clicar, copia e revela */}
         {cupomComFita ? (
-          <div style={{ margin: "8px 0 6px" }}>
+          <div style={{ margin: "6px 0 2px" }}>
             <CupomRevelar codigo={oferta.cupom} />
           </div>
         ) : cupomDeResgatar ? (
           // mesmo visual da fita dos outros cupons, mas leva direto para a página do cupom na loja
-          <div style={{ margin: "8px 0 6px" }}>
+          <div style={{ margin: "6px 0 2px" }}>
             <a
               {...lojaProps}
               aria-label={`Resgatar o cupom na ${oferta.loja}`}
@@ -177,37 +213,57 @@ export default function CardOferta({ oferta, previa = false }) {
             </a>
           </div>
         ) : (
-        <div className="cartao-extras">
-          <p className="economia">
-            {mostrarEconomia ? `Economia de ${formatarPreco(economia)}` : " "}
-          </p>
-          <div className="cartao-cupom-espaco">
+          <div className="cv2-selos">
             {mostrarCupom && !previa && <BotaoCupom codigo={oferta.cupom} compacto />}
             {mostrarCupom && previa && <span className="cupom">Cupom {oferta.cupom}</span>}
+            {!mostrarCupom && oferta.frete_gratis && !expirada && <span className="cv2-selo cv2-selo--frete">🚚 Frete grátis</span>}
+            {!mostrarCupom && !oferta.frete_gratis && mostrarEconomia && (
+              <span className="cv2-selo cv2-selo--economia">Economize {formatarPreco(economia)}</span>
+            )}
           </div>
-        </div>
         )}
 
-        <p className="cartao-rodape">
-          <span>{tempoAtras(oferta.atualizado_em)}</span>
-          {oferta.autor && <span className="cartao-autor">por {oferta.autor}</span>}
-          {!ehCupom && (
-            <a {...paginaProps} className="cartao-comentarios">
-              💬 Comentários
-            </a>
-          )}
-        </p>
+        {!previa && !expirada && (
+          <a
+            className="cv2-compartilhar"
+            href={`https://wa.me/?text=${encodeURIComponent(textoCompartilhar)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Compartilhar no WhatsApp"
+            title="Compartilhar no WhatsApp"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3 1 2.6 1.1 2.8.1.2 1.9 2.9 4.6 4 1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"
+              />
+            </svg>
+          </a>
+        )}
+      </div>
+
+      {/* Pé: votos e comentários na mesma linha, botão grande embaixo */}
+      <div className="cv2-pe">
+        <span className="cv2-autor">
+          <span className="cv2-autor-foto" aria-hidden="true">
+            {(oferta.autor || "M").charAt(0).toUpperCase()}
+          </span>
+          {oferta.autor || "MukiOfertas"}
+        </span>
+        <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} previa={previa} />
+        {!ehCupom && (
+          <a {...paginaProps} className="cartao-comentarios cv2-comentarios" aria-label="Ver comentários">
+            💬
+          </a>
+        )}
       </div>
 
       {/* Cupom (com código ou de resgatar): sem botão (foto e título também levam para a loja) */}
       {!cupomComFita && !cupomDeResgatar && (
         <a {...lojaProps} {...clicavel} className="botao cartao-botao">
-          {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Ver oferta"}
+          {expirada ? "Ver comentários" : ehCupom ? "Pegar cupom" : "Pegar promoção"}
         </a>
       )}
-
-      {/* Like / Deslike com os números (votos.sql) */}
-      <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} previa={previa} />
     </article>
   );
 }
