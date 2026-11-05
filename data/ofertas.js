@@ -73,7 +73,22 @@ export const categorias = [
 
   { slug: "sapatos", nome: "Sapatos", emoji: "👟" },
   { slug: "mochilas", nome: "Mochilas e Malas", emoji: "🎒" },
+
+  // Bebês e Crianças
   { slug: "brinquedos", nome: "Brinquedos", emoji: "🧸" },
+  { slug: "bonecas", nome: "Bonecas e Bonecos", emoji: "🪆", pai: "brinquedos" },
+  { slug: "carrinhos", nome: "Carrinhos e Controle Remoto", emoji: "🚗", pai: "brinquedos" },
+  { slug: "blocos-de-montar", nome: "Blocos de Montar e LEGO", emoji: "🧱", pai: "brinquedos" },
+  { slug: "jogos-infantis", nome: "Jogos e Quebra-cabeças", emoji: "🧩", pai: "brinquedos" },
+  { slug: "pelucias", nome: "Pelúcias", emoji: "🧸", pai: "brinquedos" },
+  { slug: "educativos", nome: "Educativos e Faz de Conta", emoji: "🎨", pai: "brinquedos" },
+  { slug: "brinquedos-ao-ar-livre", nome: "Brinquedos ao Ar Livre", emoji: "🛝", pai: "brinquedos" },
+  { slug: "bicicletas-infantis", nome: "Bicicletas e Patinetes Infantis", emoji: "🚲" },
+  { slug: "bebes", nome: "Bebês", emoji: "👶" },
+  { slug: "passeio-bebe", nome: "Carrinhos de Bebê e Cadeirinhas", emoji: "🍼", pai: "bebes" },
+  { slug: "alimentacao-bebe", nome: "Alimentação do Bebê", emoji: "🍼", pai: "bebes" },
+  { slug: "quarto-bebe", nome: "Quarto do Bebê", emoji: "🛏️", pai: "bebes" },
+  { slug: "higiene-bebe", nome: "Fraldas e Higiene", emoji: "🧷", pai: "bebes" },
   { slug: "livros", nome: "Livros", emoji: "📚" },
   { slug: "esporte", nome: "Esporte e Lazer", emoji: "⚽" },
   { slug: "mercado", nome: "Mercado e Bebidas", emoji: "🛒" },

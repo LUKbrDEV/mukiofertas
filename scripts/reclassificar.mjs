@@ -21,6 +21,8 @@ import { classificar } from "../lib/classificar.mjs";
 // a oferta fica onde está. As outras (ex.: "outros", "tecnologia") ficam sem categoria.
 const VALIDAS = new Set([
   "ar-condicionado", "eletrodomesticos", "geladeiras", "lavadoras", "micro-ondas", "air-fryer", "fogoes", "eletroportateis",
+  "bonecas", "carrinhos", "blocos-de-montar", "jogos-infantis", "pelucias", "educativos", "brinquedos-ao-ar-livre",
+  "bicicletas-infantis", "bebes", "passeio-bebe", "alimentacao-bebe", "quarto-bebe", "higiene-bebe",
   "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
   "jogos", "controles", "consoles", "fones", "monitor", "televisores", "celulares", "notebook", "tablets", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",

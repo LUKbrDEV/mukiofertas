@@ -171,12 +171,36 @@ export const menuDepartamentos = [
     icone: "🧸",
     colunas: [
       {
-        titulo: "Para as crianças",
+        titulo: "Brinquedos",
+        slug: "brinquedos",
         itens: [
-          { slug: "brinquedos", nome: "Brinquedos" },
-          { slug: "moda-infantil", nome: "Roupas infantis" },
-          { slug: "consoles", nome: "Video games" },
+          { slug: "bonecas", nome: "Bonecas e bonecos" },
+          { slug: "carrinhos", nome: "Carrinhos e controle remoto" },
+          { slug: "blocos-de-montar", nome: "Blocos de montar e LEGO" },
+          { slug: "jogos-infantis", nome: "Jogos e quebra-cabeças" },
+          { slug: "pelucias", nome: "Pelúcias" },
+          { slug: "educativos", nome: "Educativos e faz de conta" },
+          { slug: "brinquedos-ao-ar-livre", nome: "Brinquedos ao ar livre" },
         ],
+      },
+      {
+        titulo: "Bicicletas e Patinetes",
+        slug: "bicicletas-infantis",
+        itens: [{ slug: "bicicletas-infantis", nome: "Bicicletas, velotrol e patinetes" }],
+      },
+      {
+        titulo: "Bebês",
+        slug: "bebes",
+        itens: [
+          { slug: "passeio-bebe", nome: "Carrinhos de bebê e cadeirinhas" },
+          { slug: "alimentacao-bebe", nome: "Mamadeiras e alimentação" },
+          { slug: "quarto-bebe", nome: "Berços e quarto do bebê" },
+          { slug: "higiene-bebe", nome: "Fraldas e higiene" },
+        ],
+      },
+      {
+        titulo: "Roupas",
+        itens: [{ slug: "moda-infantil", nome: "Roupas infantis" }],
       },
     ],
   },
