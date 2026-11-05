@@ -18,6 +18,8 @@ import { paiDe } from "../../../lib/departamentos";
 import LinhaOfertas from "../../../components/LinhaOfertas";
 import SobreProduto from "../../../components/SobreProduto";
 import BotaoCupom from "../../../components/BotaoCupom";
+import AcoesOferta from "../../../components/AcoesOferta";
+import VotosOferta from "../../../components/VotosOferta";
 import GraficoPreco from "../../../components/GraficoPreco";
 import { buscarHistorico, resumirHistorico } from "../../../lib/historico";
 import AnaliseOferta from "../../../components/AnaliseOferta";
@@ -25,6 +27,46 @@ import { guiaDaCategoria } from "../../../data/guias";
 import { deveIndexarOferta } from "../../../lib/indexacao";
 
 export const revalidate = 60;
+
+// Visual do card do produto (complementa o app/cartoes.css)
+const CSS_PRODUTO = `
+  .produto { gap: 28px; padding: 24px; border-radius: 16px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
+  .produto-info { gap: 0; align-items: stretch; min-width: 0; }
+  .pd-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .pd-topo .cartao-meta { flex-wrap: wrap; gap: 8px; }
+  .pd-loja { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px;
+             background: #0f172a; color: #fff; font-size: 0.8rem; font-weight: 800; }
+  .pd-categoria { font-size: 0.82rem; font-weight: 600; color: #64748b; text-decoration: none; }
+  .pd-categoria:hover { color: #0a4bb8; text-decoration: underline; }
+  .produto .produto-titulo { margin: 12px 0 6px; }
+  .pd-quem { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 16px; font-size: 0.85rem; color: #64748b; }
+  .pd-quem a { color: #0a4bb8; font-weight: 700; text-decoration: none; }
+  .pd-preco { padding: 16px 18px; border-radius: 14px; background: linear-gradient(135deg, #f0fdf4, #f8fafc 70%);
+              border: 1px solid #dcfce7; }
+  .pd-preco-linha { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .produto .pd-preco .preco-atual { font-size: 2.3rem; line-height: 1.1; }
+  .pd-desconto { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px;
+                 background: #16a34a; color: #fff; font-weight: 900; font-size: 1rem; }
+  .pd-de { margin: 6px 0 0; font-size: 0.92rem; color: #64748b; }
+  .pd-de strong { color: #15803d; }
+  .pd-selo { display: inline-flex; margin: 10px 0 0; padding: 4px 10px; border-radius: 999px; background: #dcfce7;
+             color: #166534; font-weight: 800; font-size: 0.82rem; }
+  .pd-cupom { max-width: 360px; margin-top: 12px; }
+  .produto .produto-botao { display: flex; justify-content: center; width: 100%; max-width: 440px; margin-top: 16px;
+                            padding: 16px 26px; font-size: 1.08rem; border-radius: 12px; }
+  .pd-garantias { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none;
+                  font-size: 0.84rem; color: #475569; }
+  .pd-rodape { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+               margin-top: 18px; padding-top: 14px; border-top: 1px solid #f1f5f9; }
+  .pd-rodape > div:first-child { margin-top: 0 !important; justify-content: flex-start !important; }
+  .produto--expirado .pd-preco { background: #f8fafc; border-color: #e2e8f0; }
+  .produto--expirado .pd-desconto { background: #94a3b8; }
+  @media (max-width: 719px) {
+    .produto { padding: 16px; gap: 18px; }
+    .produto .pd-preco .preco-atual { font-size: 1.9rem; }
+    .produto .produto-botao { max-width: none; }
+  }
+`;
 
 // Sugestão de alerta a partir do título: as 3 primeiras palavras que dizem o que é o produto
 // ("Air Fryer Mondial 4L Preta..." → "air fryer mondial")
@@ -203,6 +245,7 @@ export default async function PaginaOferta({ params }) {
         )}
       </nav>
 
+      <style dangerouslySetInnerHTML={{ __html: CSS_PRODUTO }} />
       <article className={expirada ? "produto produto--expirado" : "produto"}>
         <div className="produto-img">
           {oferta.imagem ? (
@@ -211,51 +254,57 @@ export default async function PaginaOferta({ params }) {
           ) : (
             <span className="oferta-inicial">{oferta.loja.charAt(0).toUpperCase()}</span>
           )}
-          {desconto > 0 && (
-            <span className="desconto" data-nivel={nivelDoDesconto(desconto)}>
-              -{desconto}%
-            </span>
-          )}
           {expirada && <span className="tag-expirado">Expirado</span>}
         </div>
 
         <div className="produto-info">
-          <div className="cartao-meta">
-            <span className="loja">{oferta.loja}</span>
-            {oferta.relampago && !expirada && (
-              <span className="selo-relampago">
-                <IconeRaio tamanho={12} /> Relâmpago
-              </span>
-            )}
+          <div className="pd-topo">
+            <div className="cartao-meta">
+              <span className="pd-loja">{oferta.loja}</span>
+              {oferta.relampago && !expirada && (
+                <span className="selo-relampago">
+                  <IconeRaio tamanho={12} /> Relâmpago
+                </span>
+              )}
+              {categoria && (
+                <Link href={`/categoria/${categoria.slug}`} className="pd-categoria">
+                  {categoria.nome}
+                </Link>
+              )}
+            </div>
+            <AcoesOferta ofertaId={oferta.id} titulo={oferta.titulo} termoAlerta={termoDoAlerta(oferta.titulo)} expirada={expirada} />
           </div>
 
           <h1 className="produto-titulo">{oferta.titulo}</h1>
 
-          <div className="cartao-precos">
-            <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
+          <p className="pd-quem">
+            <span>🕒 Postada {tempoAtras(oferta.publicada_em || oferta.atualizado_em)}</span>
+            {oferta.autor && (
+              <span>
+                por <Link href={`/membro/${encodeURIComponent(oferta.autor)}`}>{oferta.autor}</Link>
+              </span>
+            )}
+            {(oferta.cliques ?? 0) >= 5 && <span>👀 {oferta.cliques} pessoas foram ver</span>}
+          </p>
+
+          <div className="pd-preco">
+            <div className="pd-preco-linha">
+              <span className="preco-atual">{formatarPreco(oferta.preco_atual)}</span>
+              {desconto > 0 && <span className="pd-desconto">-{desconto}%</span>}
+            </div>
             {desconto > 0 && (
-              <span className="preco-antigo">{formatarPreco(oferta.preco_antigo)}</span>
+              <p className="pd-de">
+                de <s>{formatarPreco(oferta.preco_antigo)}</s>
+                {economia > 0 && !expirada && <strong> · você economiza {formatarPreco(economia)}</strong>}
+              </p>
+            )}
+            {resumoPreco?.menorPreco30 && !expirada && <p className="pd-selo">📉 Menor preço dos últimos 30 dias</p>}
+            {oferta.cupom && !expirada && (
+              <div className="pd-cupom">
+                <BotaoCupom codigo={oferta.cupom} />
+              </div>
             )}
           </div>
-          {resumoPreco?.menorPreco30 && !expirada && (
-            <p
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6, margin: "6px 0 2px", padding: "4px 10px",
-                borderRadius: 999, background: "#dcfce7", color: "#166534", fontWeight: 800, fontSize: 13,
-              }}
-            >
-              📉 Menor preço dos últimos 30 dias
-            </p>
-          )}
-          {economia > 0 && !expirada && (
-            <p className="economia">Economia de {formatarPreco(economia)}</p>
-          )}
-
-          {oferta.cupom && !expirada && (
-            <div style={{ maxWidth: 360, margin: "8px 0 4px" }}>
-              <BotaoCupom codigo={oferta.cupom} />
-            </div>
-          )}
 
           {expirada ? (
             <>
@@ -276,25 +325,23 @@ export default async function PaginaOferta({ params }) {
               rel="sponsored noopener noreferrer"
               className="botao produto-botao"
             >
-              Ir para a oferta na {oferta.loja}
+              Ir para a oferta na {oferta.loja} →
             </a>
           )}
-          {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
-          <Link
-            href={`/alertas?termo=${encodeURIComponent(termoDoAlerta(oferta.titulo))}`}
-            style={{ display: "inline-block", marginTop: 10, color: "#0a4bb8", fontWeight: 700, textDecoration: "none" }}
-          >
-            🔔 {expirada ? "Me avise quando voltar" : "Criar alerta para ofertas parecidas"}
-          </Link>
 
-          <p className="cartao-rodape">
-            <span>{tempoAtras(oferta.atualizado_em)}</span>
-            {oferta.autor && (
-              <span className="cartao-autor">
-                por <Link href={`/membro/${encodeURIComponent(oferta.autor)}`}>{oferta.autor}</Link>
-              </span>
-            )}
-          </p>
+          {!expirada && (
+            <ul className="pd-garantias">
+              <li>✅ Link oficial da loja</li>
+              <li>🛒 Você compra direto na {oferta.loja}</li>
+              {oferta.frete_gratis && <li>🚚 Frete grátis</li>}
+              {oferta.preco_conferido_em && <li>🔎 Preço conferido {tempoAtras(oferta.preco_conferido_em)}</li>}
+            </ul>
+          )}
+
+          <div className="pd-rodape">
+            <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} />
+            {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
+          </div>
         </div>
       </article>
 

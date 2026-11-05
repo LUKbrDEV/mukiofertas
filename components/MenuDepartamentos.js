@@ -1,214 +1,212 @@
 "use client";
 
-import Image from "next/image";
+// Botão "Departamentos" e o menu no estilo do Promobit.
+// Salve como components/MenuDepartamentos.js. Recebe o menu montado por lib/departamentos.js (montarMenu).
+//   Computador: abre embaixo do botão; departamentos à esquerda e, ao passar o mouse,
+//               as colunas com as subcategorias à direita.
+//   Celular:    abre de lado; toca no departamento e aparecem as subcategorias (com "Voltar").
+
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 
-// Estilo das subcategorias (ex.: Hardware > SSD)
 const CSS = `
-  /* Departamento com submenu: a linha inteira é um botão que abre/fecha */
-  button.dep-item {
-    width: 100%;
-    font: inherit;
-    font-weight: 600;
-    color: inherit;
-    text-align: left;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
+  .mm-fundo { position: fixed; inset: 0; z-index: 70; background: rgba(15, 23, 42, .35); }
+  .mm-painel {
+    position: fixed; z-index: 71; display: grid; grid-template-columns: 300px minmax(0, 1fr);
+    width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - var(--mm-topo, 120px) - 16px);
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, .25); color: #0f172a; font-size: 15px;
   }
-  button.dep-item[aria-expanded="true"] { background: #fff1e6; }
-  .dep-seta-abrir {
-    flex: none;
-    font-size: 1rem;
-    color: var(--tinta-suave, #64748b);
-    transition: transform 0.2s;
+  .mm-grupos { list-style: none; margin: 0; padding: 10px; overflow-y: auto; border-right: 1px solid #e5e7eb; }
+  .mm-grupo {
+    width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 10px; border: 0; border-radius: 10px;
+    background: transparent; font: inherit; color: #334155; text-align: left; cursor: pointer;
   }
-  button.dep-item[aria-expanded="true"] .dep-seta-abrir { transform: rotate(90deg); color: #e2640f; }
-  .dep-sub .dep-ver-tudo { font-weight: 700; color: #e2640f; }
-  .dep-sub {
-    list-style: none;
-    display: grid;
-    gap: 2px;
-    margin: 2px 0 6px 30px;
-    padding-left: 12px;
-    border-left: 2px solid #e2e8f0;
+  .mm-grupo[aria-current="true"] { background: #f1f5f9; color: #0f172a; font-weight: 600; }
+  .mm-grupo:hover { background: #f1f5f9; }
+  .mm-icone {
+    flex: none; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: #eef2ff; font-size: 16px;
   }
-  .dep-sub .dep-item { padding: 7px 10px; font-weight: 500; font-size: 0.95rem; }
-  .dep-sub .dep-emoji { width: 30px; height: 30px; font-size: 1rem; border-radius: 9px; }
-`;
+  .mm-grupo-seta { margin-left: auto; color: #94a3b8; display: none; }
+  .mm-conteudo { padding: 18px 22px 22px; overflow-y: auto; }
+  .mm-topo-grupo { display: none; }
+  .mm-colunas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px 26px; align-items: start; }
+  .mm-coluna h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.25; color: #334155; font-weight: 800; }
+  .mm-coluna h3 a { color: inherit; text-decoration: none; }
+  .mm-coluna h3 a:hover { color: #e2640f; }
+  .mm-coluna ul { list-style: none; margin: 0; padding: 0; }
+  .mm-coluna li a { display: block; padding: 3px 0; color: #64748b; text-decoration: none; line-height: 1.35; }
+  .mm-coluna li a:hover, .mm-coluna li a[aria-current="page"] { color: #e2640f; }
+  .mm-fechar { display: none; }
 
-function Item({ d, pathname }) {
-  const href = `/categoria/${d.slug}`;
-  return (
-    <Link href={href} className="dep-item" aria-current={pathname === href ? "page" : undefined}>
-      <span className="dep-emoji" aria-hidden="true">
-        {d.emoji}
-      </span>
-      <span className="dep-nome">{d.nome}</span>
-      {d.total > 0 && <span className="dep-total">{d.total}</span>}
-      {!d.filhos?.length && (
-        <span className="dep-seta" aria-hidden="true">
-          ›
-        </span>
-      )}
-    </Link>
-  );
-}
+  /* Celular e tablet pequeno: painel de lado, uma tela de cada vez */
+  @media (max-width: 899px) {
+    .mm-painel {
+      inset: 0 auto 0 0; width: min(360px, 88vw); max-height: none; height: 100%; border-radius: 0;
+      grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr);
+    }
+    .mm-cabeca { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px;
+                 background: #0a4bb8; color: #fff; font-weight: 800; font-size: 17px; }
+    .mm-fechar { display: inline-flex; border: 0; background: transparent; color: #fff; font-size: 28px; line-height: 1; cursor: pointer; }
+    .mm-grupos { border-right: 0; }
+    .mm-grupo-seta { display: inline; }
+    .mm-painel[data-vendo="grupo"] .mm-grupos { display: none; }
+    .mm-painel[data-vendo="lista"] .mm-conteudo { display: none; }
+    .mm-topo-grupo { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; }
+    .mm-voltar { border: 0; background: #f1f5f9; border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 700; cursor: pointer; }
+    .mm-colunas { grid-template-columns: 1fr; gap: 16px; }
+    .mm-coluna li a { padding: 7px 0; }
+  }
+  @media (min-width: 900px) { .mm-cabeca { display: none; } .mm-painel { grid-template-rows: minmax(0, 1fr); } }
+`;
 
 export default function MenuDepartamentos({ departamentos = [] }) {
   const [aberto, setAberto] = useState(false);
   const [montado, setMontado] = useState(false);
-  const [expandidos, setExpandidos] = useState({});
+  const [ativo, setAtivo] = useState(departamentos[0]?.id ?? null);
+  const [vendo, setVendo] = useState("lista"); // celular: "lista" (departamentos) ou "grupo" (subcategorias)
+  const [posicao, setPosicao] = useState({ top: 120, left: 16 });
+  const botao = useRef(null);
   const pathname = usePathname();
 
   useEffect(() => setMontado(true), []);
 
-  // Fecha o menu ao trocar de página
-  useEffect(() => {
-    setAberto(false);
-  }, [pathname]);
+  // Fecha ao trocar de página
+  useEffect(() => setAberto(false), [pathname]);
 
-  // Abre sozinho o departamento da página atual (ex.: está em SSD -> Hardware aberto)
-  useEffect(() => {
-    const atual = departamentos.find(
-      (d) => d.filhos?.some((f) => pathname === `/categoria/${f.slug}`) || pathname === `/categoria/${d.slug}`
+  // Abre no departamento da página atual (ex.: está em SSD → Informática e Games)
+  function abrir() {
+    const atual = departamentos.find((d) =>
+      d.colunas.some(
+        (c) => pathname === `/categoria/${c.slug}` || c.itens.some((i) => pathname === `/categoria/${i.slug}`)
+      )
     );
-    if (atual?.filhos?.length) setExpandidos((e) => ({ ...e, [atual.slug]: true }));
-  }, [pathname, departamentos]);
+    setAtivo(atual?.id ?? departamentos[0]?.id ?? null);
+    setVendo("lista");
+    const r = botao.current?.getBoundingClientRect();
+    if (!window.matchMedia("(min-width: 900px)").matches) setPosicao(null); // celular: painel de lado
+    else if (r) {
+      const largura = Math.min(1100, window.innerWidth - 32);
+      setPosicao({ top: Math.round(r.bottom + 8), left: Math.max(16, Math.min(r.left, window.innerWidth - largura - 16)) });
+    }
+    setAberto(true);
+  }
 
-  // Esc fecha o menu e a página de trás não rola enquanto ele está aberto
+  // Esc fecha e a página de trás não rola com o menu aberto
   useEffect(() => {
     if (!aberto) return;
-    const aoTeclar = (e) => {
-      if (e.key === "Escape") setAberto(false);
-    };
+    const aoTeclar = (e) => e.key === "Escape" && setAberto(false);
+    const aoRedimensionar = () => setAberto(false);
     document.addEventListener("keydown", aoTeclar);
+    window.addEventListener("resize", aoRedimensionar);
     const anterior = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", aoTeclar);
+      window.removeEventListener("resize", aoRedimensionar);
       document.body.style.overflow = anterior;
     };
   }, [aberto]);
 
-  const alternar = (slug) => setExpandidos((e) => ({ ...e, [slug]: !e[slug] }));
+  const grupo = departamentos.find((d) => d.id === ativo) ?? departamentos[0];
 
-  const menu = (
+  const painel = aberto && (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="dep-fundo" data-aberto={aberto} onClick={() => setAberto(false)} />
-
-      <aside
-        className="dep-painel"
-        data-aberto={aberto}
-        role="dialog"
-        aria-modal="true"
+      <div className="mm-fundo" onClick={() => setAberto(false)} />
+      <nav
+        className="mm-painel"
+        data-vendo={vendo}
         aria-label="Departamentos"
+        style={posicao ? { top: posicao.top, left: posicao.left, "--mm-topo": `${posicao.top}px` } : undefined}
       >
-        <div className="dep-topo">
-          <Image
-            src="/logo-cabecalho.png"
-            alt=""
-            width={40}
-            height={40}
-            style={{ width: 40, height: 40, borderRadius: "50%", flex: "none" }}
-          />
-          <span className="dep-topo-titulo">Departamentos</span>
-          <button
-            type="button"
-            className="dep-fechar"
-            aria-label="Fechar menu"
-            onClick={() => setAberto(false)}
-          >
+        <div className="mm-cabeca">
+          <span>Departamentos</span>
+          <button type="button" className="mm-fechar" aria-label="Fechar menu" onClick={() => setAberto(false)}>
             ×
           </button>
         </div>
 
-        <div className="dep-corpo">
-          <p className="dep-rotulo">Categorias</p>
-          <ul className="dep-lista">
-            {departamentos.map((d) => {
-              const temFilhos = d.filhos?.length > 0;
-              const expandido = Boolean(expandidos[d.slug]);
-              return (
-                <li key={d.slug}>
-                  {temFilhos ? (
-                    <>
-                      <button
-                        type="button"
-                        className="dep-item"
-                        aria-expanded={expandido}
-                        aria-controls={`dep-sub-${d.slug}`}
-                        onClick={() => alternar(d.slug)}
-                      >
-                        <span className="dep-emoji" aria-hidden="true">
-                          {d.emoji}
-                        </span>
-                        <span className="dep-nome">{d.nome}</span>
-                        {d.total > 0 && <span className="dep-total">{d.total}</span>}
-                        <span className="dep-seta-abrir" aria-hidden="true">
-                          ›
-                        </span>
-                      </button>
-                      {expandido && (
-                        <ul className="dep-sub" id={`dep-sub-${d.slug}`}>
-                          <li>
-                            <Link
-                              href={`/categoria/${d.slug}`}
-                              className="dep-item dep-ver-tudo"
-                              aria-current={pathname === `/categoria/${d.slug}` ? "page" : undefined}
-                            >
-                              <span className="dep-emoji" aria-hidden="true">
-                                {d.emoji}
-                              </span>
-                              <span className="dep-nome">Ver tudo de {d.nome}</span>
-                              {d.total > 0 && <span className="dep-total">{d.total}</span>}
-                            </Link>
-                          </li>
-                          {d.filhos.map((f) => (
-                            <li key={f.slug}>
-                              <Item d={f} pathname={pathname} />
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </>
-                  ) : (
-                    <Item d={d} pathname={pathname} />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </aside>
+        <ul className="mm-grupos">
+          {departamentos.map((d) => (
+            <li key={d.id}>
+              <button
+                type="button"
+                className="mm-grupo"
+                aria-current={d.id === grupo?.id}
+                onMouseEnter={() => window.matchMedia("(min-width: 900px)").matches && setAtivo(d.id)}
+                onFocus={() => setAtivo(d.id)}
+                onClick={() => {
+                  setAtivo(d.id);
+                  setVendo("grupo");
+                }}
+              >
+                <span className="mm-icone" aria-hidden="true">
+                  {d.icone}
+                </span>
+                <span>{d.nome}</span>
+                <span className="mm-grupo-seta" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {grupo && (
+          <div className="mm-conteudo">
+            <div className="mm-topo-grupo">
+              <button type="button" className="mm-voltar" onClick={() => setVendo("lista")}>
+                ‹ Voltar
+              </button>
+              <strong>{grupo.nome}</strong>
+            </div>
+
+            <div className="mm-colunas">
+              {grupo.colunas.map((c) => (
+                <div key={c.titulo} className="mm-coluna">
+                  <h3>{c.slug ? <Link href={`/categoria/${c.slug}`}>{c.titulo}</Link> : c.titulo}</h3>
+                  <ul>
+                    {c.itens.map((i) => (
+                      <li key={i.slug}>
+                        <Link
+                          href={`/categoria/${i.slug}`}
+                          aria-current={pathname === `/categoria/${i.slug}` ? "page" : undefined}
+                        >
+                          {i.nome}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+      </nav>
     </>
   );
 
   return (
     <>
       <button
+        ref={botao}
         type="button"
         className="dep-botao"
         aria-expanded={aberto}
-        onClick={() => setAberto(true)}
+        onClick={() => (aberto ? setAberto(false) : abrir())}
       >
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <path
-            d="M4 6h16M4 12h16M4 18h16"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            fill="none"
-          />
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
         </svg>
         <span>Departamentos</span>
       </button>
 
-      {montado && createPortal(menu, document.body)}
+      {montado && painel && createPortal(painel, document.body)}
     </>
   );
 }

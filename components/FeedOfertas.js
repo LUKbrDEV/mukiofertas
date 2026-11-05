@@ -1,7 +1,7 @@
 "use client";
 
-// Feed de ofertas da página inicial: abas de ordenação (Destaques, Recentes, Mais quentes...),
-// filtro rápido por departamento e botão "Carregar mais".
+// Feed de ofertas da página inicial: abas de ordenação (Destaques, Recentes, Mais quentes...)
+// e botão "Carregar mais". (O filtro por departamento saiu: o menu Departamentos já faz isso.)
 // Salve como components/FeedOfertas.js (usado no app/page.js).
 //
 // Rolagem infinita: ao chegar perto do fim, carrega mais sozinho (o botão continua como reserva).
@@ -12,10 +12,9 @@
 // departamentos = { slug: { nome, emoji } }
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const POR_VEZ = 24; // cards por "página" (cerca de 5 linhas no computador)
-const MAX_FILTROS = 8; // quantos departamentos aparecem no filtro
 // Rolagem infinita: quando a pessoa chega perto do fim do feed, mais cards aparecem sozinhos.
 // Depois de AUTO_ATE cards, para de carregar sozinho e fica só o botão (para o rodapé continuar alcançável).
 const AUTO_ATE = 72;
@@ -34,35 +33,24 @@ const CSS = `
   }
   .feed-titulo small { font-family: var(--fonte-texto), system-ui, sans-serif; font-size: 0.88rem; font-weight: 500; color: #475569; }
 
-  /* Abas de ordenação: sublinhado laranja, como uma barra de navegação */
-  .feed-abas { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #e2e8f0; }
+  /* Abas de ordenação: só texto; a ativa fica azul (cor da marca) com um traço embaixo */
+  .feed-abas { display: flex; gap: 26px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #e2e8f0; }
   .feed-abas::-webkit-scrollbar { display: none; }
   .feed-aba {
-    flex: none; position: relative; min-height: 44px; padding: 0 14px;
+    flex: none; position: relative; min-height: 46px; padding: 0 2px;
     border: 0; background: transparent; cursor: pointer;
-    font: inherit; font-size: 0.95rem; font-weight: 700; color: #475569;
+    font: inherit; font-size: 1rem; font-weight: 500; color: #475569;
+    transition: color .15s;
   }
-  .feed-aba:hover { color: #0f172a; }
-  .feed-aba[aria-selected="true"] { color: #0f172a; }
+  .feed-aba:hover { color: #0a4bb8; }
+  .feed-aba[aria-selected="true"] { color: #0a4bb8; font-weight: 800; }
   .feed-aba[aria-selected="true"]::after {
-    content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px;
-    border-radius: 3px 3px 0 0; background: var(--marca, #ff5a1f);
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
+    border-radius: 3px 3px 0 0; background: #0a4bb8;
   }
-  .feed-aba:focus-visible { outline: 3px solid var(--marca, #ff5a1f); outline-offset: -3px; border-radius: 8px; }
+  .feed-aba:focus-visible { outline: 3px solid #0a4bb8; outline-offset: -3px; border-radius: 6px; }
 
-  /* Filtro por departamento: chips */
-  .feed-filtros { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 10px; }
-  .feed-filtros::-webkit-scrollbar { display: none; }
-  .feed-chip {
-    flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 13px;
-    border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; cursor: pointer;
-    font: inherit; font-size: 0.86rem; font-weight: 600; color: #334155;
-  }
-  .feed-chip:hover { border-color: #94a3b8; }
-  .feed-chip[aria-pressed="true"] { background: #0f172a; border-color: #0f172a; color: #fff; }
-  .feed-chip span { font-size: 0.75rem; opacity: .7; }
-
-  .feed-descricao { margin: 0 0 12px; font-size: 0.88rem; color: #475569; }
+  .feed-descricao { margin: 12px 0 12px; font-size: 0.88rem; color: #475569; }
   .feed-painel[hidden] { display: none; }
   .feed-vazio { padding: 28px; text-align: center; color: #475569; background: #fff; border: 1px dashed #cbd5e1; border-radius: 14px; }
   .feed-rodape { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
@@ -89,17 +77,6 @@ export default function FeedOfertas({ abas, departamentos = {} }) {
   const marcador = useRef(null);
 
   const atual = lista.find((a) => a.id === ativa) ?? lista[0];
-
-  // Departamentos presentes na aba atual, dos que têm mais ofertas para os que têm menos
-  const filtros = useMemo(() => {
-    if (!atual) return [];
-    const conta = {};
-    for (const i of atual.itens) if (i.grupo && departamentos[i.grupo]) conta[i.grupo] = (conta[i.grupo] ?? 0) + 1;
-    return Object.entries(conta)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, MAX_FILTROS)
-      .map(([slug, total]) => ({ slug, total, ...departamentos[slug] }));
-  }, [atual, departamentos]);
 
   // Quantos cards a aba atual tem com o filtro escolhido
   const totalVisivel = atual
@@ -167,29 +144,6 @@ export default function FeedOfertas({ abas, departamentos = {} }) {
           ))}
         </div>
 
-        {filtros.length > 1 && (
-          <div className="feed-filtros" role="group" aria-label="Filtrar por departamento">
-            <button
-              type="button"
-              className="feed-chip"
-              aria-pressed={filtro === "todos"}
-              onClick={() => (setFiltro("todos"), setMostrar(POR_VEZ))}
-            >
-              Todos
-            </button>
-            {filtros.map((f) => (
-              <button
-                key={f.slug}
-                type="button"
-                className="feed-chip"
-                aria-pressed={filtro === f.slug}
-                onClick={() => (setFiltro(f.slug), setMostrar(POR_VEZ))}
-              >
-                {f.emoji} {f.nome} <span>{f.total}</span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {lista.map((a) => {

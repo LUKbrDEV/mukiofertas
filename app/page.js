@@ -23,7 +23,7 @@ export const revalidate = 60;
 //      (⭐ Destaques · 🆕 Recentes · 🔥 Mais quentes · 💸 Maiores descontos · 🎟️ Cupons),
 //      filtro rápido por departamento e botão "Carregar mais"
 //   4) Ofertas por loja  5) Guias de compra  6) Sobre o MukiOfertas
-// Coluna da direita: ranking da comunidade, canais (WhatsApp/Telegram) e guias.
+// Coluna da direita: ranking da comunidade e guias (WhatsApp/Telegram ficam no botão flutuante).
 // Quem aparece em Destaques: lib/vitrine.mjs (pontuação + variedade), com os números
 // ajustáveis no painel admin (Configurações → Página inicial).
 
@@ -113,31 +113,7 @@ function LateralExtra({ whatsapp, telegram }) {
         .hle-caixa ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
         .hle-caixa li a { color: #0f172a; font-weight: 600; line-height: 1.35; }
         .hle-caixa li a:hover { color: var(--marca-escura, #d9440e); }
-        .hle-canais { display: grid; gap: 8px; }
-        .hle-canal { display: block; padding: 9px 10px; border-radius: 10px; color: #fff; font-weight: 800; text-align: center; text-decoration: none; }
-        .hle-canal--whats { background: #128c4a; }
-        .hle-canal--tele { background: #1f78c9; }
-        .hle-canal:hover { color: #fff; filter: brightness(0.95); }
       `}</style>
-
-      {(whatsapp || telegram) && (
-        <section className="hle-caixa" aria-label="Receba as ofertas">
-          <strong>Receba as ofertas primeiro</strong>
-          <p>As melhores promoções chegam no grupo e no canal assim que aparecem.</p>
-          <div className="hle-canais">
-            {whatsapp && (
-              <a className="hle-canal hle-canal--whats" href={whatsapp} target="_blank" rel="noopener noreferrer">
-                Entrar no WhatsApp
-              </a>
-            )}
-            {telegram && (
-              <a className="hle-canal hle-canal--tele" href={telegram} target="_blank" rel="noopener noreferrer">
-                Seguir no Telegram
-              </a>
-            )}
-          </div>
-        </section>
-      )}
 
       <section className="hle-caixa" aria-label="Guias de compra">
         <strong>📖 Antes de comprar</strong>
@@ -194,35 +170,35 @@ export default async function Home() {
   const abas = [
     {
       id: "destaques",
-      rotulo: "⭐ Destaques",
+      rotulo: "Destaques",
       descricao: "Desconto real, marcas conhecidas e lojas confiáveis, escolhidas pela vitrine do MukiOfertas.",
       href: "/mais-procuradas",
       itens: itensDoFeed(destaques),
     },
     {
       id: "recentes",
-      rotulo: "🆕 Recentes",
+      rotulo: "Recentes",
       descricao: "As ofertas que acabaram de chegar, das mais novas para as mais antigas.",
       href: "/recentes",
       itens: itensDoFeed(recentes),
     },
     {
       id: "quentes",
-      rotulo: "🔥 Mais quentes",
+      rotulo: "Mais quentes",
       descricao: "As ofertas que a comunidade mais está clicando agora.",
       href: "/mais-procuradas",
       itens: itensDoFeed(quentes),
     },
     {
       id: "descontos",
-      rotulo: "💸 Maiores descontos",
+      rotulo: "Maiores descontos",
       descricao: "Os maiores descontos sobre o preço anterior informado pela loja.",
       href: "/maiores-descontos",
       itens: itensDoFeed(descontos),
     },
     {
       id: "cupons",
-      rotulo: "🎟️ Cupons",
+      rotulo: "Cupons",
       descricao: "Clique em copiar e use o código no carrinho da loja.",
       href: "/cupons-de-desconto",
       itens: itensDoFeed(cupons),

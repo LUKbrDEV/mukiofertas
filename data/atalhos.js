@@ -2,15 +2,9 @@
 // "tambem": outros endereços em que o atalho também aparece como ativo
 // Salve como data/atalhos.js
 export const atalhos = [
-  { href: "/", nome: "🔥 Promoções", tambem: ["/maiores-descontos", "/relampago"] },
   { href: "/black-friday", nome: "🖤 Black Friday" },
   { href: "/cupons", nome: "🎟️ Ofertas com cupom" },
   { href: "/cupons-de-desconto", nome: "🏷️ Cupons" },
-  {
-    href: "/categoria/monitores",
-    nome: "📺 Monitores",
-    tambem: ["/monitores", "/categoria/monitor", "/categoria/acessorios-monitor"],
-  },
   { href: "/guias", nome: "📖 Guias de compra" },
   { href: "/comunidade", nome: "👥 Comunidade" },
 ];

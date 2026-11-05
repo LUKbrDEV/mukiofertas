@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LinkAtivo from "./LinkAtivo";
 import BotaoConta from "./BotaoConta";
+import IconesTopo from "./IconesTopo";
 import MenuDepartamentos from "./MenuDepartamentos";
 import { atalhos } from "../data/atalhos";
 import { EnfeiteCabecalho } from "./Halloween";
@@ -335,6 +336,7 @@ export default function Casca({ departamentos, telegram, children }) {
             <EnfeiteCabecalho lado="dir" />
 
             <div className="topo-acoes">
+              <IconesTopo />
               <BotaoConta />
             </div>
           </div>

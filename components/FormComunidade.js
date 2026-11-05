@@ -110,6 +110,8 @@ const numero = (t) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
+const CHAVE_RASCUNHO = "muki-rascunho-oferta";
+
 export default function FormComunidade() {
   const [sessao, setSessao] = useState(undefined); // undefined = verificando
   const [passo, setPasso] = useState(1); // 1, 2, 3 ou 4 (enviado)
@@ -121,6 +123,73 @@ export default function FormComunidade() {
   const [cupom, setCupom] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
+
+  // ---- Rascunho e botão "voltar" do navegador/celular ----
+  // Cada passo vira uma entrada no histórico do navegador (#passo-2, #passo-3). Assim o "voltar"
+  // do celular volta um passo em vez de sair da página. O que a pessoa digitou fica guardado
+  // no aparelho (sessionStorage) até enviar, então nada se perde se ela sair e voltar.
+  const [restaurado, setRestaurado] = useState(false);
+
+  useEffect(() => {
+    let inicial = 1;
+    try {
+      const r = JSON.parse(sessionStorage.getItem(CHAVE_RASCUNHO) || "null");
+      if (r && r.dados) {
+        setLink(r.link ?? "");
+        setDados(r.dados);
+        setTitulo(r.titulo ?? "");
+        setPrecoAtual(r.precoAtual ?? "");
+        setPrecoAntigo(r.precoAntigo ?? "");
+        setCupom(r.cupom ?? "");
+        inicial = r.passo === 3 ? 3 : 2;
+      } else if (r?.link) {
+        setLink(r.link);
+      }
+    } catch {
+      // sem sessionStorage: começa do zero
+    }
+    setPasso(inicial);
+    // Monta o histórico até o passo restaurado (1 → 2 → 3), para o "voltar" ir passo a passo
+    window.history.replaceState({ ...(window.history.state ?? {}), fcPasso: 1 }, "", window.location.pathname);
+    for (let k = 2; k <= inicial; k++) {
+      window.history.pushState({ ...(window.history.state ?? {}), fcPasso: k }, "", `#passo-${k}`);
+    }
+    setRestaurado(true);
+
+    const aoVoltar = (e) => {
+      const n = Number(e.state?.fcPasso) || 1;
+      setErro("");
+      setPasso((atual) => (atual === 4 ? 4 : n)); // depois de enviado, não volta para o formulário
+    };
+    window.addEventListener("popstate", aoVoltar);
+    return () => window.removeEventListener("popstate", aoVoltar);
+  }, []);
+
+  // Guarda o rascunho a cada mudança
+  useEffect(() => {
+    if (!restaurado) return;
+    try {
+      if (passo === 4) sessionStorage.removeItem(CHAVE_RASCUNHO);
+      else sessionStorage.setItem(CHAVE_RASCUNHO, JSON.stringify({ passo, link, dados, titulo, precoAtual, precoAntigo, cupom }));
+    } catch {
+      // sem sessionStorage: só não guarda
+    }
+  }, [restaurado, passo, link, dados, titulo, precoAtual, precoAntigo, cupom]);
+
+  // Avança um passo (cria uma entrada no histórico do navegador)
+  function irPara(n) {
+    setErro("");
+    setPasso(n);
+    if (n === 4) window.history.replaceState({ ...(window.history.state ?? {}), fcPasso: 4 }, "", window.location.pathname);
+    else window.history.pushState({ ...(window.history.state ?? {}), fcPasso: n }, "", `#passo-${n}`);
+  }
+
+  // Botão "Voltar" do formulário: usa o histórico quando dá (fica igual ao voltar do celular)
+  function voltarPara(n) {
+    setErro("");
+    if (Number(window.history.state?.fcPasso) === passo && passo > 1) window.history.back();
+    else setPasso(n);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session ?? null));
@@ -151,7 +220,7 @@ export default function FormComunidade() {
       setTitulo(r.titulo || "");
       setPrecoAtual(formatar(r.preco_atual));
       setPrecoAntigo(formatar(r.preco_antigo));
-      setPasso(2);
+      irPara(2);
     } catch (err) {
       setErro(err.message);
     }
@@ -172,7 +241,7 @@ export default function FormComunidade() {
         cupom,
         imagem: dados.imagem,
       });
-      setPasso(4);
+      irPara(4);
     } catch (err) {
       setErro(err.message);
     }
@@ -180,6 +249,10 @@ export default function FormComunidade() {
   }
 
   function recomecar() {
+    try {
+      sessionStorage.removeItem(CHAVE_RASCUNHO);
+    } catch {}
+    window.history.replaceState({ ...(window.history.state ?? {}), fcPasso: 1 }, "", window.location.pathname);
     setPasso(1);
     setLink("");
     setDados(null);
@@ -266,7 +339,7 @@ export default function FormComunidade() {
           e.preventDefault();
           setErro("");
           if (titulo.trim().length < 8) return setErro("Escreva um título com pelo menos 8 letras.");
-          setPasso(3);
+          irPara(3);
         }}
       >
         <div className="fc-grupo">
@@ -317,7 +390,7 @@ export default function FormComunidade() {
         </div>
         {erro && <p className="fc-erro">{erro}</p>}
         <div className="fc-acoes">
-          <button type="button" className="fc-btn fc-btn--claro" onClick={() => setPasso(1)}>
+          <button type="button" className="fc-btn fc-btn--claro" onClick={() => voltarPara(1)}>
             Voltar
           </button>
           <button type="submit" className="fc-btn">
@@ -377,7 +450,7 @@ export default function FormComunidade() {
         </div>
         {erro && <p className="fc-erro">{erro}</p>}
         <div className="fc-acoes">
-          <button type="button" className="fc-btn fc-btn--claro" onClick={() => setPasso(2)} disabled={carregando}>
+          <button type="button" className="fc-btn fc-btn--claro" onClick={() => voltarPara(2)} disabled={carregando}>
             Voltar
           </button>
           <button type="submit" className="fc-btn" disabled={carregando}>

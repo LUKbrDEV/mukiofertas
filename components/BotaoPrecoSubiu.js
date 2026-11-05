@@ -10,13 +10,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const CSS = `
-  .bps { margin: 12px 0 0; text-align: center; }
+  .bps { margin: 0; }
   .bps button {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px; font: inherit; font-size: 0.88rem; font-weight: 700;
-    color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 999px; cursor: pointer;
+    display: inline; padding: 0; font: inherit; font-size: 0.84rem; font-weight: 600;
+    color: #64748b; background: none; border: 0; cursor: pointer; text-decoration: underline;
+    text-underline-offset: 2px;
   }
-  .bps button:hover { background: #ffedd5; }
+  .bps button:hover { color: #9a3412; }
   .bps button:disabled { opacity: 0.6; cursor: default; }
   .bps p { margin: 8px 0 0; font-size: 0.85rem; color: #475569; }
 `;
@@ -69,7 +69,7 @@ export default function BotaoPrecoSubiu({ ofertaId }) {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       {estado !== "enviado" && (
         <button type="button" onClick={avisar} disabled={estado === "enviando"}>
-          ⚠️ {estado === "enviando" ? "Enviando..." : "O preço subiu ou a oferta acabou?"}
+          {estado === "enviando" ? "Enviando..." : "O preço subiu ou a oferta acabou? Avise aqui"}
         </button>
       )}
       {mensagem && <p role="status">{mensagem}</p>}

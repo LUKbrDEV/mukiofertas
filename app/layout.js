@@ -13,7 +13,7 @@ import AvisosMembro from "../components/AvisosMembro";
 import BotaoComunidade from "../components/BotaoComunidade";
 import Halloween from "../components/Halloween";
 import { buscarTotaisPorCategoria } from "../lib/ofertas";
-import { montarDepartamentos } from "../lib/departamentos";
+import { montarMenu } from "../lib/departamentos";
 import { SITE } from "../lib/site";
 
 export const revalidate = 60; // o menu Departamentos atualiza os totais a cada minuto (igual às páginas)
@@ -71,9 +71,10 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  // Departamentos do menu, com as subcategorias e a quantidade de ofertas no ar
+  // Menu Departamentos (estilo Promobit, data/menu-departamentos.js). Os totais só servem para
+  // esconder as subcategorias que ainda não têm ofertas no ar; o número não aparece na tela.
   const totais = await buscarTotaisPorCategoria();
-  const departamentos = montarDepartamentos(categorias, totais);
+  const departamentos = montarMenu(categorias, totais);
 
   const base = SITE.url.replace(/\/+$/, "");
 

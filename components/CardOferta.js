@@ -2,6 +2,7 @@ import IconeRaio from "./IconeRaio";
 import BotaoCupom from "./BotaoCupom";
 import CupomRevelar from "./CupomRevelar";
 import VotosOferta from "./VotosOferta";
+import BotaoDesejo from "./BotaoDesejo";
 import { lojaDoNome } from "../data/lojas";
 import { SITE } from "../lib/site";
 import {
@@ -99,6 +100,7 @@ export default function CardOferta({ oferta, previa = false }) {
             <span className="cv2-relampago-txt">Relâmpago</span>
           </span>
         )}
+        {!previa && !ehCupom && <BotaoDesejo ofertaId={oferta.id} />}
       </div>
 
       <a {...paginaProps} {...clicavel} className="cartao-img" aria-hidden="true" tabIndex={-1}>

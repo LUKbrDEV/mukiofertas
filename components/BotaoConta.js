@@ -135,9 +135,6 @@ export default function BotaoConta() {
               <Link href="/perfil" className="conta__link">
                 Meu perfil
               </Link>
-              <Link href="/alertas" className="conta__link">
-                Alertas
-              </Link>
               <button type="button" className="conta__sair" onClick={() => supabase.auth.signOut()}>
                 Sair
               </button>
