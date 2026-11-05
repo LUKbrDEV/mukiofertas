@@ -48,9 +48,15 @@ const PALAVRAS_OUTRAS = [
   "carregador turbo", "power bank", "câmera de segurança wifi", "roteador wifi", "lâmpada inteligente",
   "furadeira parafusadeira", "jogo de ferramentas", "garrafa térmica", "jogo de panelas", "jogo de cama",
   "cadeira gamer", "suporte monitor", "controle ps5", "controle xbox",
+  // Eletrodomésticos (alta procura na Black Friday)
+  "geladeira frost free", "máquina de lavar", "lava e seca", "micro-ondas", "air fryer 5l", "fogão 4 bocas",
+  "cooktop indução", "ventilador", "aspirador vertical", "batedeira planetária", "cafeteira expresso", "freezer",
+  // Natal: brinquedos e video games
+  "lego", "boneca", "carrinho controle remoto", "pista hot wheels", "nerf", "pelúcia", "jogo de tabuleiro",
+  "blocos de montar", "bicicleta infantil", "playstation 5", "nintendo switch", "xbox series", "console retrô",
 ];
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
-const BUSCAS_OUTRAS_POR_EXECUCAO = 3; // buscas das outras categorias a cada execução
+const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
 const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
 
 // Vendedores que você NÃO quer no site (nome da loja na Shopee). Ex.: ["Loja X"]

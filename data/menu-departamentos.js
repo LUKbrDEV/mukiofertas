@@ -119,6 +119,24 @@ export const menuDepartamentos = [
         ],
       },
       {
+        titulo: "Eletrodomésticos",
+        slug: "eletrodomesticos",
+        itens: [
+          { slug: "geladeiras", nome: "Geladeiras e freezers" },
+          { slug: "lavadoras", nome: "Lavadoras e secadoras" },
+          { slug: "fogoes", nome: "Fogões e cooktops" },
+          { slug: "micro-ondas", nome: "Micro-ondas" },
+        ],
+      },
+      {
+        titulo: "Eletroportáteis",
+        slug: "eletroportateis",
+        itens: [
+          { slug: "air-fryer", nome: "Air fryer" },
+          { slug: "eletroportateis", nome: "Cafeteiras, liquidificadores e mais" },
+        ],
+      },
+      {
         titulo: "Climatização",
         itens: [{ slug: "ar-condicionado", nome: "Ar-condicionado" }],
       },
@@ -157,6 +175,7 @@ export const menuDepartamentos = [
         itens: [
           { slug: "brinquedos", nome: "Brinquedos" },
           { slug: "moda-infantil", nome: "Roupas infantis" },
+          { slug: "consoles", nome: "Video games" },
         ],
       },
     ],

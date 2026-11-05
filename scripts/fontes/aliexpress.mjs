@@ -66,6 +66,9 @@ const PALAVRAS_OUTRAS = [
   "aspirador portátil", "organizador", "ferramenta multifuncional", "parafusadeira",
   "relógio masculino", "mochila notebook", "óculos de sol", "kit maquiagem",
   "suporte celular carro", "luminária led", "fita led", "lanterna tática",
+  // Natal: brinquedos e video games
+  "blocos de montar", "carrinho controle remoto", "drone infantil", "brinquedo educativo", "pelúcia",
+  "console retrô", "r36s", "controle sem fio switch", "action figure", "quebra-cabeça",
 ];
 
 // Palavras no título que fazem a oferta ser ignorada

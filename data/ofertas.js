@@ -52,7 +52,15 @@ export const categorias = [
   { slug: "cama-banho", nome: "Cama e Banho", emoji: "🛏️", pai: "casa" },
   { slug: "limpeza", nome: "Limpeza", emoji: "🧼", pai: "casa" },
   { slug: "casa-inteligente", nome: "Casa Inteligente", emoji: "💡", pai: "casa" },
-  { slug: "ar-condicionado", nome: "Ar-condicionado", emoji: "❄️" },
+
+  { slug: "eletrodomesticos", nome: "Eletrodomésticos", emoji: "🧊" },
+  { slug: "geladeiras", nome: "Geladeiras e Freezers", emoji: "🧊", pai: "eletrodomesticos" },
+  { slug: "lavadoras", nome: "Lavadoras e Secadoras", emoji: "🧺", pai: "eletrodomesticos" },
+  { slug: "fogoes", nome: "Fogões e Cooktops", emoji: "🔥", pai: "eletrodomesticos" },
+  { slug: "micro-ondas", nome: "Micro-ondas", emoji: "📦", pai: "eletrodomesticos" },
+  { slug: "air-fryer", nome: "Air Fryer", emoji: "🍟", pai: "eletrodomesticos" },
+  { slug: "eletroportateis", nome: "Eletroportáteis", emoji: "☕", pai: "eletrodomesticos" },
+  { slug: "ar-condicionado", nome: "Ar-condicionado", emoji: "❄️", pai: "eletrodomesticos" },
 
   { slug: "ferramentas", nome: "Ferramentas", emoji: "🔧" },
   { slug: "perfumaria", nome: "Perfumaria", emoji: "🧴" },

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Faz a VPS da Oracle RODAR o robô do MukiOfertas sozinha (sem o GitHub Actions).
-#   - Coleta + conferência de preços + postagem no Telegram: a cada 30 minutos
+#   - Coleta + trava de desconto + conferência de preços + postagem no Telegram: a cada 30 minutos
 #   - Postagem no WhatsApp: a cada 10 minutos
 #
 # Antes de rodar, copie o .env.local do seu PC para a VPS (no PowerShell, na pasta do projeto):
@@ -91,6 +91,7 @@ flock -n 9 || { echo "\$(date '+%d/%m %H:%M') pulei: a anterior ainda está roda
       $( [ -s "$TOKEN_CODIGO" ] && echo 'git -c http.extraHeader="Authorization: Basic $(printf "x-access-token:%s" "$(cat '"$TOKEN_CODIGO"')" | base64 -w0)" pull --ff-only -q || echo "!! não consegui atualizar o código"' || echo 'git pull --ff-only -q || echo "!! não consegui atualizar o código"' )
       [ "\$ANTES" != "\$(sha1sum package-lock.json)" ] && npm ci --omit=dev --no-audit --no-fund
       rodar 25m scripts/coletar.mjs
+      rodar 5m  scripts/corrigir-descontos.mjs   # trava o "preço antigo" inflado antes de postar
       rodar 15m scripts/conferir-precos.mjs
       rodar 5m  scripts/postar-telegram.mjs
       ;;
@@ -99,6 +100,7 @@ flock -n 9 || { echo "\$(date '+%d/%m %H:%M') pulei: a anterior ainda está roda
       ;;
     kabum)
       rodar 25m scripts/coletar.mjs --so=awin --forcar
+      rodar 5m  scripts/corrigir-descontos.mjs
       ;;
     *)
       echo "Tarefa desconhecida: \$TAREFA (use coleta, whatsapp ou kabum)"

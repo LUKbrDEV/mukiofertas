@@ -20,7 +20,8 @@ import { classificar } from "../lib/classificar.mjs";
 // Categorias que continuam existindo: se o classificador não reconhecer o título,
 // a oferta fica onde está. As outras (ex.: "outros", "tecnologia") ficam sem categoria.
 const VALIDAS = new Set([
-  "ar-condicionado", "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
+  "ar-condicionado", "eletrodomesticos", "geladeiras", "lavadoras", "micro-ondas", "air-fryer", "fogoes", "eletroportateis",
+  "acessorios-celular", "acessorios-notebook", "acessorios-monitor", "acessorios-tv",
   "jogos", "controles", "consoles", "fones", "monitor", "televisores", "celulares", "notebook", "tablets", "cama-banho", "sapatos", "brinquedos", "tv", "caixas-de-som", "cameras", "ferramentas",
   "moda-infantil", "moda-masculina", "moda-feminina",
   "processadores", "placa-mae", "ssd", "placa-de-video", "memoria-ram", "gabinete", "relogios", "livros",
