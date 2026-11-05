@@ -11,11 +11,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Avatar from "./Avatar";
 import { SeloTag, ordenarTags } from "../data/tags";
+import { PREMIOS } from "../data/premios";
 
 const MEDALHAS = ["🥇", "🥈", "🥉"];
 const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
-const CSS = `
+export const CSS_RANKING = `
   .rk-coluna { display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
   .rk { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden;
         box-shadow: 0 4px 16px rgba(15, 23, 42, .06); }
@@ -43,6 +44,24 @@ const CSS = `
                    background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9); background-size: 200% 100%;
                    animation: rk-brilho 1.2s linear infinite; }
   @keyframes rk-brilho { to { background-position: -200% 0; } }
+  .rk-ver-todos { display: block; padding: 8px 12px 10px; font-size: 12px; font-weight: 800; color: #0a4bb8; text-align: center; text-decoration: none; border-top: 1px solid #f1f5f9; }
+  .rk-ver-todos:hover { text-decoration: underline; }
+  .rk-item--corte { box-shadow: inset 0 -2px 0 #ff7a1a; }
+  .rk-premios { position: relative; overflow: hidden; padding: 12px 14px; border-radius: 14px; color: #fff;
+                background: radial-gradient(120% 120% at 100% 0%, rgba(255, 122, 26, .45), transparent 60%), linear-gradient(135deg, #0b1530, #062a66); }
+  .rk-premios strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  .rk-premios p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.4; color: #e2e8f0; }
+  .rk-premios ul { margin: 0 0 8px; padding-left: 16px; font-size: 12px; line-height: 1.5; }
+  .rk-premios-dias { display: inline-block; margin-bottom: 8px; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .12);
+                     font-size: 11.5px; font-weight: 700; }
+  .rk-premios-link { display: block; padding: 8px 10px; border-radius: 9px; background: #ff7a1a; color: #fff; font-weight: 800;
+                     font-size: 12.5px; text-align: center; text-decoration: none; }
+  .rk-premios-link:hover { background: #f06a0a; }
+  .rk-premios--completa { padding: 18px 20px; }
+  .rk-premios--completa strong { font-size: 18px; }
+  .rk-premios--completa p { font-size: 14px; }
+  .rk-premios--completa ul { font-size: 14px; }
+  .rk-premios-aviso { opacity: .85; }
   .rk-como { padding: 12px 14px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; color: #7c2d12; }
   .rk-como strong { display: block; margin-bottom: 4px; font-size: 13px; }
   .rk-como p { margin: 0 0 10px; font-size: 12px; line-height: 1.4; }
@@ -88,7 +107,7 @@ function useTopoFixo() {
   }, []);
 }
 
-function useRanking(funcao, limite) {
+export function useRanking(funcao, limite) {
   const [lista, setLista] = useState(null); // null = carregando
   useEffect(() => {
     let ativo = true;
@@ -104,7 +123,44 @@ function useRanking(funcao, limite) {
   return lista;
 }
 
-function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false }) {
+// Dias que faltam para o ranking do mês fechar (horário de Brasília)
+export function diasParaFechar(agora = new Date()) {
+  const brasilia = new Date(agora.getTime() - 3 * 3600000);
+  const fim = Date.UTC(brasilia.getUTCFullYear(), brasilia.getUTCMonth() + 1, 1) + 3 * 3600000; // dia 1, 0h
+  return Math.max(0, Math.ceil((fim - agora.getTime()) / 86400000));
+}
+
+// Caixa "🎁 Prêmios do mês" (textos em data/premios.js)
+export function CaixaPremios({ completa = false }) {
+  const [dias, setDias] = useState(null);
+  useEffect(() => setDias(diasParaFechar()), []);
+  if (!PREMIOS.ativo) return null;
+  return (
+    <div className={`rk-premios${completa ? " rk-premios--completa" : ""}`}>
+      <strong>{PREMIOS.titulo}</strong>
+      <p>{PREMIOS.chamada}</p>
+      {PREMIOS.lista.length > 0 && (
+        <ul>
+          {PREMIOS.lista.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      )}
+      {dias !== null && (
+        <span className="rk-premios-dias">
+          ⏳ {dias <= 1 ? "Último dia" : `Faltam ${dias} dias`} para fechar o ranking de {MESES[new Date().getMonth()]}
+        </span>
+      )}
+      {completa ? <p className="rk-premios-aviso">{PREMIOS.aviso}</p> : (
+        <Link href="/ranking" className="rk-premios-link">
+          Ver o Top {PREMIOS.top} e as regras →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+export function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false, rodape = null, corte = 0 }) {
   return (
     <section className={`rk${lenda ? " rk--lenda" : ""}`} aria-labelledby={id}>
       <div className="rk-topo">
@@ -132,7 +188,7 @@ function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false }) {
               },
             };
             return (
-              <li key={u.posicao} className={`rk-item rk-item--${u.posicao}`}>
+              <li key={u.posicao} className={`rk-item rk-item--${u.posicao}${corte && u.posicao === corte ? " rk-item--corte" : ""}`}>
                 <span className={`rk-pos${u.posicao <= 3 ? " rk-pos--medalha" : ""}`}>
                   {lenda && u.posicao === 1 ? "👑" : MEDALHAS[u.posicao - 1] ?? `${u.posicao}º`}
                 </span>
@@ -166,6 +222,7 @@ function Bloco({ id, titulo, subtitulo, lista, vazio, lenda = false }) {
           })}
         </ol>
       )}
+      {rodape}
     </section>
   );
 }
@@ -178,7 +235,7 @@ export default function RankingLateral({ limite = 5 }) {
 
   return (
     <aside className="rk-coluna" aria-label="Ranking da comunidade">
-      <style>{CSS}</style>
+      <style>{CSS_RANKING}</style>
 
       <Bloco
         id="rk-mes"
@@ -186,7 +243,14 @@ export default function RankingLateral({ limite = 5 }) {
         subtitulo="Poste, curta e comente para ganhar XP"
         lista={doMes}
         vazio="Ninguém pontuou este mês ainda. Seja o primeiro!"
+        rodape={
+          <Link href="/ranking" className="rk-ver-todos">
+            Ver o Top {PREMIOS.top} completo →
+          </Link>
+        }
       />
+
+      <CaixaPremios />
 
       <Bloco
         id="rk-geral"
