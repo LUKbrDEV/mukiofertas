@@ -8,6 +8,7 @@
 // Uma categoria pode aparecer em mais de um lugar (ex.: Moda Infantil em Moda e em Bebês).
 
 export const MOSTRAR_VAZIAS = false; // false = esconde as subcategorias que ainda não têm ofertas no ar
+// (um departamento pode mostrar todas com "mostrarVazias: true", como Bebês e Crianças)
 
 export const menuDepartamentos = [
   {
@@ -169,6 +170,7 @@ export const menuDepartamentos = [
     id: "bebes",
     nome: "Bebês e Crianças",
     icone: "🧸",
+    mostrarVazias: true, // mostra todas as subcategorias, mesmo as que ainda não têm ofertas
     colunas: [
       {
         titulo: "Brinquedos",
@@ -184,23 +186,25 @@ export const menuDepartamentos = [
         ],
       },
       {
-        titulo: "Bicicletas e Patinetes",
-        slug: "bicicletas-infantis",
-        itens: [{ slug: "bicicletas-infantis", nome: "Bicicletas, velotrol e patinetes" }],
-      },
-      {
         titulo: "Bebês",
         slug: "bebes",
         itens: [
           { slug: "passeio-bebe", nome: "Carrinhos de bebê e cadeirinhas" },
           { slug: "alimentacao-bebe", nome: "Mamadeiras e alimentação" },
-          { slug: "quarto-bebe", nome: "Berços e quarto do bebê" },
-          { slug: "higiene-bebe", nome: "Fraldas e higiene" },
+          { slug: "quarto-bebe", nome: "Quarto do bebê e infantil" },
+          { slug: "seguranca-bebe", nome: "Segurança e babá eletrônica" },
+          { slug: "higiene-bebe", nome: "Fraldas, higiene e saúde" },
         ],
       },
       {
-        titulo: "Roupas",
-        itens: [{ slug: "moda-infantil", nome: "Roupas infantis" }],
+        titulo: "Para as crianças",
+        itens: [
+          { slug: "bicicletas-infantis", nome: "Bicicletas, velotrol e patinetes" },
+          { slug: "moda-infantil", nome: "Roupas e calçados infantis" },
+          { slug: "escolar-infantil", nome: "Mochilas e material escolar" },
+          { slug: "eletronicos-infantis", nome: "Eletrônicos infantis" },
+          { slug: "livros-infantis", nome: "Livros infantis" },
+        ],
       },
     ],
   },

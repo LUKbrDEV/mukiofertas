@@ -5,7 +5,7 @@ import { buscar as buscarAliExpress } from "./fontes/aliexpress.mjs";
 import { buscar as buscarAwin } from "./fontes/awin.mjs";
 import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
-import { regrasDeQualidade, motivoDeRecusa, ehMarketplace, maximoNoAr } from "../lib/qualidade.mjs";
+import { regrasDeQualidade, motivoDeRecusa, ehMarketplace, maximoNoAr, lojaBloqueada } from "../lib/qualidade.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 import { limparExpiradas } from "../lib/limpeza.mjs";
 import {
@@ -112,6 +112,7 @@ async function main() {
 
     const linhas = [];
     for (const item of itens) {
+      if (lojaBloqueada(item)) continue; // loja bloqueada (lib/qualidade.mjs)
       // Cupons não têm preço "de": entram direto na aba Cupons
       if (item.categoria === "cupons") {
         linhas.push({ ...item, ativa: true, origem: "automatica", atualizado_em: agora });

@@ -54,6 +54,9 @@ const PALAVRAS_OUTRAS = [
   // Natal: brinquedos e video games
   "lego", "boneca", "carrinho controle remoto", "pista hot wheels", "nerf", "pelúcia", "jogo de tabuleiro",
   "blocos de montar", "bicicleta infantil", "playstation 5", "nintendo switch", "xbox series", "console retrô",
+  // Bebês
+  "carrinho de bebê", "bebê conforto", "cadeirinha para carro", "berço", "babá eletrônica", "mamadeira",
+  "cadeira de alimentação", "fralda pampers", "fralda huggies", "lenço umedecido", "banheira bebê", "velotrol",
 ];
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução

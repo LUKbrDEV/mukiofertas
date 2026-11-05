@@ -100,7 +100,7 @@ async function buscarMarcas() {
   const so = SO_ESTAS_MARCAS.map((n) => n.toLowerCase());
   const bloqueadas = MARCAS_BLOQUEADAS.map((n) => n.toLowerCase());
   const escolhidas = marcas.filter(
-    (m) => !bloqueadas.includes(nome(m)) && (so.length === 0 || so.includes(nome(m)))
+    (m) => !bloqueadas.some((b) => nome(m).includes(b)) && (so.length === 0 || so.includes(nome(m)))
   );
 
   // Marcas em que você pode gerar link (afiliado aprovado): têm algum canal com link
