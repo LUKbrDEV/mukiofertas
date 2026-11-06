@@ -149,6 +149,7 @@ export default function CardOferta({ oferta, previa = false }) {
         {oferta.selo && <span className="selo-chamativo cartao-selo">{oferta.selo}</span>}
         {Number(oferta.nota) >= 4 && !ehCupom && (
           <span
+            className="cv2-nota"
             title={`Nota ${String(oferta.nota).replace(".", ",")} de 5 na ${oferta.loja}`}
             style={{
               position: "absolute", right: 8, bottom: 8, zIndex: 1, display: "inline-flex", alignItems: "center", gap: 3,
@@ -160,7 +161,7 @@ export default function CardOferta({ oferta, previa = false }) {
           </span>
         )}
         {oferta.super_desconto && !expirada && !ehCupom && (
-          <span style={{ position: "absolute", left: 8, bottom: 8, zIndex: 1 }}>
+          <span className="cv2-super" style={{ position: "absolute", left: 8, bottom: 8, zIndex: 1 }}>
             <SeloSuperDesconto />
           </span>
         )}
