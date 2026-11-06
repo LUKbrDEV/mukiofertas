@@ -7,6 +7,7 @@
 //   - Painel admin: aba Cupons (aparecem na página /cupons-de-desconto)
 //   - Lomadee: campanhas do tipo cupom das lojas em que você é afiliado (este arquivo)
 //   - Awin (KaBuM! e outras lojas da Awin): vouchers do programa (este arquivo)
+//   - Rakuten (Netshoes): Coupon API, com as mesmas chaves da coleta (scripts/fontes/rakuten.mjs)
 //   Shopee e AliExpress não têm cupons na API de afiliados; os cupons delas chegam pelo Telegram.
 //
 // Variáveis (no .env.local e nos Secrets do GitHub):
@@ -21,6 +22,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { CONFIG_ROBO } from "../../lib/prazos.mjs";
 import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
+import { cuponsRakuten } from "./rakuten.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
 const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
@@ -214,6 +216,12 @@ async function cuponsAwin() {
   return { itens, aviso: `${promocoes.length} vouchers` };
 }
 
+// ---------- Rakuten (Netshoes) ----------
+async function cuponsDaRakuten() {
+  const r = await cuponsRakuten({ permitida, maximo: ajuste("cupons_max_por_rede") });
+  return { itens: r.itens.map((c) => cupom(c)), aviso: r.aviso };
+}
+
 // Cupons da Lomadee que já estão no site: reaproveita o link (não gera outro)
 async function buscarExistentes() {
   const mapa = new Map();
@@ -237,6 +245,7 @@ export async function buscar() {
   for (const [nome, fn] of [
     ["Lomadee", () => cuponsLomadee(existentes)],
     ["Awin", () => cuponsAwin()],
+    ["Rakuten", () => cuponsDaRakuten()],
   ]) {
     try {
       const r = await fn();

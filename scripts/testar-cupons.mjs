@@ -1,4 +1,4 @@
-// Testa a busca de cupons (Lomadee e Awin) sem gravar nada.
+// Testa a busca de cupons (Lomadee, Awin e Rakuten) sem gravar nada.
 // Salve como scripts/testar-cupons.mjs e rode na raiz do projeto:
 //   node --env-file=.env.local scripts/testar-cupons.mjs
 

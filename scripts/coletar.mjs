@@ -3,6 +3,7 @@ import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 import { buscar as buscarShopee } from "./fontes/shopee.mjs";
 import { buscar as buscarAliExpress } from "./fontes/aliexpress.mjs";
 import { buscar as buscarAwin } from "./fontes/awin.mjs";
+import { buscar as buscarRakuten } from "./fontes/rakuten.mjs";
 import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { regrasDeQualidade, motivoDeRecusa, ehMarketplace, maximoNoAr, lojaBloqueada } from "../lib/qualidade.mjs";
@@ -41,6 +42,7 @@ const TODAS_AS_FONTES = {
   shopee: buscarShopee,
   aliexpress: buscarAliExpress,
   awin: buscarAwin,
+  rakuten: buscarRakuten, // Netshoes (Rakuten Advertising)
   cupons: buscarCupons, // cupons da Lomadee e da Awin (aba Cupons)
 };
 
