@@ -70,6 +70,17 @@ const PALAVRAS_NICHOS = [
   "furadeira parafusadeira", "kit ferramentas", "lavadora de alta pressão", "esmerilhadeira", "cortador de grama",
   "central multimídia", "câmera de ré", "aspirador automotivo", "compressor de ar portátil", "capacete moto",
 ];
+// Fitness e academia: lista própria, com buscas garantidas em toda execução
+const PALAVRAS_FITNESS = [
+  "legging fitness", "conjunto fitness feminino", "top fitness", "short fitness feminino", "macaquinho fitness",
+  "camiseta dry fit masculina", "regata academia masculina", "bermuda de compressão", "calça legging cintura alta",
+  "jaqueta corta vento esportiva", "meia de compressão esportiva", "top nadador fitness",
+  "whey protein concentrado", "creatina monohidratada", "pré treino", "pasta de amendoim integral", "coqueteleira",
+  "kit halteres", "anilha", "caneleira de peso", "kettlebell", "mini band elástico", "colchonete academia",
+  "corda de pular", "luva de academia", "roda abdominal", "barra fixa porta", "tapete de yoga", "bola suíça",
+  "tênis de corrida", "tênis academia feminino", "garrafa academia", "mochila academia", "smartband",
+];
+const BUSCAS_FITNESS_POR_EXECUCAO = 3; // buscas de fitness/academia a cada execução
 const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
@@ -221,6 +232,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
     ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_NICHOS, BUSCAS_NICHOS_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
   ];
 }
 

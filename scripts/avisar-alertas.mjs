@@ -12,6 +12,12 @@
 //      está dentro do máximo (quando a pessoa colocou um).
 //   3. Grava o aviso em avisos_alerta (a pessoa vê no canto da tela e na página /alertas).
 //      O mesmo aviso nunca é gravado duas vezes (o banco não deixa).
+//
+// TESTE: para avisar também sobre ofertas que entraram ANTES do alerta ser criado (só para testar):
+//   node --env-file=.env.local scripts/avisar-alertas.mjs --incluir-antigas
+// Para ver o que cada alerta encontrou (diagnóstico):
+//   node --env-file=.env.local scripts/avisar-alertas.mjs --detalhes --incluir-antigas
+//
 //   4. Opcional: manda um e-mail pelo Resend (resend.com, plano grátis) se no .env.local tiver
 //      RESEND_API_KEY e EMAIL_REMETENTE (ex.: "MukiOfertas <alertas@mukiofertas.com.br>").
 
@@ -23,6 +29,8 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 });
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.mukiofertas.com.br").replace(/\/+$/, "");
 const JANELA_HORAS = 6;
+const INCLUIR_ANTIGAS = process.argv.includes("--incluir-antigas"); // só para testar
+const DETALHES = process.argv.includes("--detalhes"); // mostra por que cada alerta achou (ou não) ofertas
 const MAX_AVISOS_POR_PESSOA = 5; // por execução, para não lotar a caixa de ninguém
 
 const normalizar = (t) =>
@@ -31,14 +39,21 @@ const normalizar = (t) =>
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
+    .replace(/(\d)([a-z])/g, "$1 $2") // "34pol" → "34 pol", "1tb" → "1 tb"
     .trim();
 
-const palavrasDe = (t) => normalizar(t).split(" ").filter(Boolean);
+// Palavras que as lojas quase nunca escrevem no título (ou escrevem de outro jeito, como 34" ou 34pol):
+// o alerta ignora essas e procura só as que importam ("Monitor 34 Polegadas" → monitor, 34)
+const IGNORAR = new Set([
+  "de", "da", "do", "das", "dos", "para", "pra", "com", "sem", "e", "o", "a", "os", "as", "um", "uma", "em", "no", "na",
+  "polegada", "polegadas", "pol", "inch", "inches", "pc",
+]);
+const palavrasDe = (t) => normalizar(t).split(" ").filter((p) => p && !IGNORAR.has(p));
 const preco = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function combina(alerta, oferta, tituloNormal) {
   if (alerta.preco_max && Number(oferta.preco_atual) > Number(alerta.preco_max)) return false;
-  if (new Date(oferta.publicada_em) < new Date(alerta.criado_em)) return false; // só o que entrou depois do alerta
+  if (!INCLUIR_ANTIGAS && new Date(oferta.publicada_em) < new Date(alerta.criado_em)) return false; // só o que entrou depois do alerta
   const titulo = ` ${tituloNormal} `;
   return palavrasDe(alerta.termo).every((p) => titulo.includes(` ${p}`)); // começo de palavra: "fry" acha "fryer"
 }
@@ -108,7 +123,28 @@ async function mandarEmail(para, itens) {
   return resposta.ok;
 }
 
+// PRÉVIA: manda para você o e-mail exatamente como o cliente recebe, com 2 ofertas reais do site.
+// Não grava aviso nenhum e não mexe nos alertas de ninguém.
+//   node --env-file=.env.local scripts/avisar-alertas.mjs --previa=seu-email@gmail.com
+async function previa(para) {
+  const { data } = await db
+    .from("ofertas")
+    .select("id, titulo, preco_atual, preco_antigo, imagem, loja")
+    .eq("ativa", true)
+    .not("imagem", "is", null)
+    .not("preco_antigo", "is", null)
+    .order("publicada_em", { ascending: false })
+    .limit(2);
+  if (!data?.length) throw new Error("Nenhuma oferta para usar na prévia.");
+  const itens = data.map((oferta, i) => ({ oferta, alerta: { termo: i === 0 ? "exemplo de alerta" : "outro alerta" } }));
+  const ok = await mandarEmail(para, itens);
+  console.log(ok ? `✓ Prévia enviada para ${para}` : "✗ Não consegui enviar a prévia (veja o erro acima).");
+}
+
 async function main() {
+  const argPrevia = process.argv.find((a) => a.startsWith("--previa="));
+  if (argPrevia) return previa(argPrevia.split("=")[1]);
+
   const desde = new Date(Date.now() - JANELA_HORAS * 3600000).toISOString();
 
   const [{ data: alertas, error: e1 }, { data: ofertas, error: e2 }] = await Promise.all([
@@ -130,6 +166,27 @@ async function main() {
       return (expira === null || expira > agora) && !estaArquivada(o);
     })
     .map((o) => ({ oferta: o, titulo: normalizar(o.titulo) }));
+
+  if (DETALHES) {
+    console.log(`Ofertas no ar publicadas nas últimas ${JANELA_HORAS}h: ${validas.length}\n`);
+    for (const alerta of alertas ?? []) {
+      const palavras = palavrasDe(alerta.termo);
+      const comPalavras = validas.filter(({ titulo }) => palavras.every((p) => ` ${titulo} `.includes(` ${p}`)));
+      const noPreco = comPalavras.filter(({ oferta }) => !alerta.preco_max || Number(oferta.preco_atual) <= Number(alerta.preco_max));
+      const depois = noPreco.filter(({ oferta }) => new Date(oferta.publicada_em) >= new Date(alerta.criado_em));
+      console.log(`Alerta "${alerta.termo}"${alerta.preco_max ? ` (até ${preco(alerta.preco_max)})` : ""} — criado em ${new Date(alerta.criado_em).toLocaleString("pt-BR")}`);
+      console.log(`  palavras procuradas: ${palavras.join(", ") || "(nenhuma)"}`);
+      console.log(`  ${comPalavras.length} com todas as palavras · ${noPreco.length} dentro do preço · ${depois.length} publicadas depois do alerta`);
+      for (const { oferta } of noPreco.slice(0, 3)) console.log(`    - ${oferta.titulo.slice(0, 70)} (${preco(oferta.preco_atual)})`);
+      // Ajuda: ofertas no ar em qualquer data com essas palavras
+      const { count } = await db
+        .from("ofertas")
+        .select("id", { count: "exact", head: true })
+        .eq("ativa", true)
+        .ilike("titulo", `%${palavras[0] ?? ""}%`);
+      console.log(`  (no site inteiro, ofertas ativas com "${palavras[0] ?? ""}" no título: ${count ?? "?"})\n`);
+    }
+  }
 
   // Junta os avisos por pessoa
   const porPessoa = new Map();

@@ -44,6 +44,9 @@ const SO_ESTAS_MARCAS = [
   // Esporte e moda
   "Netshoes", "Centauro", "Nike", "Adidas", "Puma", "Decathlon", "Dafiti", "Zattini", "Renner", "Riachuelo", "C&A",
   "Olympikus", "Havaianas",
+  // Fitness, academia e suplementos
+  "Under Armour", "Asics", "Mizuno", "Fila", "Lupo", "Live", "Alto Giro", "Track&Field", "Track Field",
+  "Integralmedica", "Probiotica", "Dux Nutrition", "Black Skull", "Essential Nutrition", "Atlhetica",
   // Beleza e farmácia
   "O Boticario", "Boticario", "Natura", "Eudora", "Avon", "Sephora", "Epoca Cosmeticos", "Beleza na Web",
   "Drogasil", "Droga Raia", "Drogaria Sao Paulo", "Pague Menos", "Panvel", "Growth Supplements", "Max Titanium",

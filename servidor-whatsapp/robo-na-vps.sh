@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Faz a VPS da Oracle RODAR o robô do MukiOfertas sozinha (sem o GitHub Actions).
-#   - Coleta + trava de desconto + conferência de preços + postagem no Telegram: a cada 30 minutos
+#   - Coleta + trava de desconto + conferência de preços + Telegram + alertas de preço: a cada 30 minutos
 #   - Postagem no WhatsApp: a cada 10 minutos
 #
 # Antes de rodar, copie o .env.local do seu PC para a VPS (no PowerShell, na pasta do projeto):
@@ -95,6 +95,7 @@ flock -n 9 || { echo "\$(date '+%d/%m %H:%M') pulei: a anterior ainda está roda
       rodar 10m scripts/fila-mercadolivre.mjs    # ofertas do Mercado Livre para a fila do painel
       rodar 15m scripts/conferir-precos.mjs
       rodar 5m  scripts/postar-telegram.mjs
+      rodar 5m  scripts/avisar-alertas.mjs       # alertas de preço (aviso no site + e-mail pelo Resend)
       ;;
     whatsapp)
       rodar 9m scripts/postar-whatsapp.mjs
@@ -129,7 +130,7 @@ echo "Testando o WhatsApp agora (leva até 3 minutos)..."
 tail -n 15 "$HOME/logs/robo-whatsapp.log"
 echo
 echo "Pronto! A VPS agora roda o robô sozinha:"
-echo "  coleta + preços + Telegram nos minutos 11 e 41 de cada hora · WhatsApp a cada 10 minutos"
+echo "  coleta + preços + Telegram + alertas nos minutos 11 e 41 de cada hora · WhatsApp a cada 10 minutos"
 echo
 echo "Comandos úteis:"
 echo "  tail -n 40 ~/logs/robo-coleta.log      # ver a última coleta"

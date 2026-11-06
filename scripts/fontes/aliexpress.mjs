@@ -71,6 +71,14 @@ const PALAVRAS_OUTRAS = [
   "console retrô", "r36s", "controle sem fio switch", "action figure", "quebra-cabeça",
 ];
 
+// Fitness e academia: 2 buscas garantidas em toda execução (rodízio próprio)
+const PALAVRAS_FITNESS = [
+  "legging fitness", "conjunto fitness", "top fitness", "short fitness", "camiseta dry fit", "regata academia",
+  "bermuda compressão", "luva academia", "mini band", "elástico extensor", "corda de pular", "roda abdominal",
+  "hand grip", "cinto musculação", "munhequeira", "tapete yoga", "garrafa academia", "smartband",
+];
+const BUSCAS_FITNESS_POR_EXECUCAO = 2;
+
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
 // ===================
@@ -271,6 +279,7 @@ function palavrasDaVez() {
   return [
     ...rodizio(PALAVRAS_TECNOLOGIA, ajuste("aliexpress_buscas_tecnologia")),
     ...rodizio(PALAVRAS_OUTRAS, ajuste("aliexpress_buscas_outras")),
+    ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
   ];
 }
 

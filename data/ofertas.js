@@ -108,6 +108,7 @@ export const categorias = [
   { slug: "e-readers", nome: "Kindle e E-readers", emoji: "📱", pai: "livros" },
   { slug: "esporte", nome: "Esporte e Lazer", emoji: "⚽" },
   { slug: "academia", nome: "Academia e Musculação", emoji: "🏋️", pai: "esporte" },
+  { slug: "roupas-fitness", nome: "Roupas Fitness", emoji: "🏃", pai: "esporte" },
   { slug: "ciclismo", nome: "Ciclismo", emoji: "🚴", pai: "esporte" },
   { slug: "skate-patins", nome: "Skate, Patins e Patinetes", emoji: "🛹", pai: "esporte" },
   { slug: "camping-pesca", nome: "Camping e Pesca", emoji: "🏕️", pai: "esporte" },

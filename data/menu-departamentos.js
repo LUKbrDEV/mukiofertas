@@ -155,6 +155,7 @@ export const menuDepartamentos = [
           { slug: "moda-masculina", nome: "Masculino" },
           { slug: "moda-feminina", nome: "Feminino" },
           { slug: "moda-infantil", nome: "Infantil" },
+          { slug: "roupas-fitness", nome: "Fitness e academia" },
         ],
       },
       {
@@ -244,6 +245,7 @@ export const menuDepartamentos = [
         slug: "esporte",
         itens: [
           { slug: "academia", nome: "Academia e musculação" },
+          { slug: "roupas-fitness", nome: "Roupas fitness" },
           { slug: "ciclismo", nome: "Ciclismo" },
           { slug: "esportes-bola", nome: "Futebol e outras modalidades" },
           { slug: "skate-patins", nome: "Skate, patins e patinetes" },
