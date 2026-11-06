@@ -107,14 +107,25 @@ function useTopoFixo() {
   }, []);
 }
 
+// Quem tem a tag ADMIN não aparece no ranking (a equipe não concorre aos prêmios).
+// As posições são renumeradas para não ficar "buraco" na lista.
+const TAGS_FORA_DO_RANKING = ["admin"];
+const ehDaEquipe = (u) =>
+  (u?.tags ?? []).some((t) => TAGS_FORA_DO_RANKING.includes(String(typeof t === "string" ? t : t?.id ?? "").toLowerCase()));
+
 export function useRanking(funcao, limite) {
   const [lista, setLista] = useState(null); // null = carregando
   useEffect(() => {
     let ativo = true;
-    supabase.rpc(funcao, { limite }).then(({ data, error }) => {
+    // pede alguns a mais, para completar a lista depois de tirar a equipe
+    supabase.rpc(funcao, { limite: limite + 10 }).then(({ data, error }) => {
       if (!ativo) return;
       if (error) console.warn(`[ranking] ${funcao}:`, error.message);
-      setLista(error ? [] : data ?? []);
+      const semEquipe = (error ? [] : data ?? [])
+        .filter((u) => !ehDaEquipe(u))
+        .slice(0, limite)
+        .map((u, i) => ({ ...u, posicao: i + 1 }));
+      setLista(semEquipe);
     });
     return () => {
       ativo = false;
