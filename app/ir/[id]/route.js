@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
+import { converterLinkMagalu } from "../../../lib/afiliado-magalu.mjs";
 
 // Registra o clique e leva o visitante para o link de afiliado da oferta.
 export async function GET(request, { params }) {
@@ -23,5 +24,6 @@ export async function GET(request, { params }) {
     // se o registro falhar, o visitante é levado à oferta do mesmo jeito
   }
 
-  return NextResponse.redirect(oferta.link, 307);
+  // Magalu: sempre leva para a SUA loja do Influenciador Magalu (mesmo que a oferta tenha o link normal)
+  return NextResponse.redirect(converterLinkMagalu(oferta.link), 307);
 }

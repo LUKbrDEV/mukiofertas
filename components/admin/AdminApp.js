@@ -152,29 +152,33 @@ export default function AdminApp() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSessao(data.session));
-    const { data: ouvinte } = supabase.auth.onAuthStateChange((_evento, nova) => {
-      setSessao(nova);
+    // Ao voltar para a aba, o Supabase renova o login e avisa aqui. Isso não pode recarregar o painel:
+    // só troca a sessão quando a PESSOA muda (entrou, saiu ou trocou de conta).
+    const { data: ouvinte } = supabase.auth.onAuthStateChange((evento, nova) => {
+      if (evento === "TOKEN_REFRESHED") return;
+      setSessao((atual) => (atual && nova && atual.user?.id === nova.user?.id ? atual : nova));
     });
     return () => ouvinte.subscription.unsubscribe();
   }, []);
 
   // Confere se a conta é de administrador (tabela admins, criada pelo admin-painel.sql).
   // Se a função ainda não existir no banco, o painel abre como antes.
+  const usuarioId = sessao?.user?.id;
   useEffect(() => {
-    if (!sessao) return;
+    if (!usuarioId) return;
     setAdmin(undefined);
     supabase.rpc("eh_admin").then(({ data, error }) => setAdmin(error ? null : Boolean(data)));
-  }, [sessao]);
+  }, [usuarioId]);
 
   // Quantas sugestões da comunidade aguardam revisão (aparece no menu)
   useEffect(() => {
-    if (!sessao || admin === false) return;
+    if (!usuarioId || admin === false) return;
     supabase
       .from("sugestoes")
       .select("id", { count: "exact", head: true })
       .eq("status", "pendente")
       .then(({ count }) => setPendentes(count ?? 0));
-  }, [sessao, admin, aba]);
+  }, [usuarioId, admin, aba]);
 
   if (sessao === undefined) return <p className="adm-centro">Carregando...</p>;
   if (!sessao) return <Login />;

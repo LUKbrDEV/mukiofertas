@@ -35,7 +35,7 @@ const CATEGORIAS = [
   { id: "MLB1403", nome: "Alimentos e Bebidas" },
   { id: "MLB1196", nome: "Livros, Revistas e Comics" },
 ];
-const CATEGORIAS_POR_EXECUCAO = 4; // 4 categorias a cada 30 min = todas visitadas a cada 2 horas
+const CATEGORIAS_POR_EXECUCAO = 8; // 8 categorias a cada 30 min = todas visitadas a cada 2 horas
 const PRODUTOS_POR_CATEGORIA = 20; // a lista de mais vendidos tem até 20
 const PRECO_MINIMO = 30; // R$ — abaixo disso não vale a pena (carregador de R$ 15...)
 const HORAS_NA_FILA = 24; // oferta que ficou mais que isso na fila sem link é descartada (o preço pode ter mudado)

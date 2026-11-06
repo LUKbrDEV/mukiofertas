@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { converterLinkMagalu } from "../lib/afiliado-magalu.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -43,7 +44,7 @@ function montarMensagem(o) {
     : o.selo
       ? `🔥 <b>${escapar(o.selo.toUpperCase())}</b>`
       : "🔥 <b>OFERTA</b>";
-  const destino = SITE_URL ? `${SITE_URL}/ir/${o.id}?o=telegram` : o.link;
+  const destino = SITE_URL ? `${SITE_URL}/ir/${o.id}?o=telegram` : converterLinkMagalu(o.link);
   const linhaPreco =
     desconto > 0
       ? `💰 <b>${preco(o.preco_atual)}</b> <s>${preco(o.preco_antigo)}</s> (-${desconto}%)`
