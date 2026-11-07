@@ -21,6 +21,7 @@ const COMANDOS = [
     { nome: "Agenda dos robôs (cron)", cmd: "crontab -l" },
     { nome: "Registro da coleta (coleta, preços, Telegram, alertas)", cmd: "tail -n 40 ~/logs/robo-coleta.log" },
     { nome: "Registro do WhatsApp", cmd: "tail -n 40 ~/logs/robo-whatsapp.log" },
+    { nome: "Registro dos alertas de preço", cmd: "tail -n 40 ~/logs/robo-alertas.log" },
     { nome: "Leitor de canais: está ligado?", cmd: "pm2 status" },
     { nome: "Leitor de canais: registro", cmd: "pm2 logs leitor-telegram --lines 40" },
   ]},
@@ -28,6 +29,7 @@ const COMANDOS = [
     { nome: "Coleta completa (coleta, preços, Telegram, alertas)", cmd: "~/rodar-robo.sh coleta" },
     { nome: "Postar no WhatsApp", cmd: "~/rodar-robo.sh whatsapp" },
     { nome: "Buscar ofertas da KaBuM!", cmd: "~/rodar-robo.sh kabum" },
+    { nome: "Avisar os alertas de preço", cmd: `${PASTA} node --env-file=.env.robo scripts/avisar-alertas.mjs --detalhes` },
     { nome: "Só conferir preços", cmd: `${PASTA} node --env-file=.env.robo scripts/conferir-precos.mjs` },
     { nome: "Só postar no Telegram", cmd: `${PASTA} node --env-file=.env.robo scripts/postar-telegram.mjs` },
     { nome: "Reiniciar o leitor de canais", cmd: "pm2 restart leitor-telegram" },
@@ -238,6 +240,7 @@ export default function SaudeRobo({ aoEditar }) {
       conferir: execucoes.get("conferir-precos"),
       whatsapp: execucoes.get("postar-whatsapp"),
       leitor: execucoes.get("leitor-telegram"),
+      alertas: execucoes.get("avisar-alertas"),
       leitorOferta: execucoes.get("leitor-grupos"),
       ultimoPostWhatsapp: maisRecente(ofertas, "postada_whatsapp_em"),
       filaWhatsapp: noAr.filter((o) => !o.postada_whatsapp_em).length,
@@ -378,6 +381,14 @@ export default function SaudeRobo({ aoEditar }) {
           quando={dados.ultimoPostTelegram}
           cor={situacao(dados.ultimoPostTelegram, 3, 12)}
           detalhe={`${dados.fila.length} ofertas no ar ainda não postadas (fila)`}
+        />
+        <Indicador
+          titulo="Alertas de preço"
+          como="Na VPS, a cada 15 min · aviso no site e e-mail pelo Resend para quem criou um alerta"
+          quando={dados.alertas?.ultima_execucao}
+          cor={situacao(dados.alertas?.ultima_execucao, 1, 3)}
+          erro={dados.alertas && !dados.alertas.ok}
+          detalhe={dados.alertas?.resumo ?? "Ainda não rodou na VPS (veja os comandos abaixo)"}
         />
         <Indicador
           titulo="Postagem no WhatsApp"
