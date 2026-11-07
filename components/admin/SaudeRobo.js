@@ -11,12 +11,75 @@ import { supabase } from "../../lib/supabase";
 import { calcularDesconto, formatarPreco, estaExpirada } from "../../lib/ofertas";
 import { HORAS_ENTRE_CONFERENCIAS } from "../../lib/prazos.mjs";
 import { buscarTudo, ha, dataHora, tituloBase } from "./util";
-import AcionarRobo from "./AcionarRobo";
 import ImportacaoTelegram from "./ImportacaoTelegram";
 
-// Link da página de execuções do GitHub Actions (opcional, no .env.local e na Vercel):
-// NEXT_PUBLIC_GITHUB_ACTIONS_URL=https://github.com/SEU_USUARIO/SEU_REPOSITORIO/actions
-const LINK_ACTIONS = process.env.NEXT_PUBLIC_GITHUB_ACTIONS_URL;
+// O GitHub Actions está desligado: tudo roda na VPS da Oracle (pasta ~/mukiofertas-robo).
+// Comandos para rodar na mão ou ver os registros, mostrados no bloco "Comandos na VPS".
+const PASTA = "cd ~/mukiofertas-robo &&";
+const COMANDOS = [
+  { grupo: "Ver o que está acontecendo", itens: [
+    { nome: "Agenda dos robôs (cron)", cmd: "crontab -l" },
+    { nome: "Registro da coleta (coleta, preços, Telegram, alertas)", cmd: "tail -n 40 ~/logs/robo-coleta.log" },
+    { nome: "Registro do WhatsApp", cmd: "tail -n 40 ~/logs/robo-whatsapp.log" },
+    { nome: "Leitor de canais: está ligado?", cmd: "pm2 status" },
+    { nome: "Leitor de canais: registro", cmd: "pm2 logs leitor-telegram --lines 40" },
+  ]},
+  { grupo: "Rodar agora (sem esperar o horário)", itens: [
+    { nome: "Coleta completa (coleta, preços, Telegram, alertas)", cmd: "~/rodar-robo.sh coleta" },
+    { nome: "Postar no WhatsApp", cmd: "~/rodar-robo.sh whatsapp" },
+    { nome: "Buscar ofertas da KaBuM!", cmd: "~/rodar-robo.sh kabum" },
+    { nome: "Só conferir preços", cmd: `${PASTA} node --env-file=.env.robo scripts/conferir-precos.mjs` },
+    { nome: "Só postar no Telegram", cmd: `${PASTA} node --env-file=.env.robo scripts/postar-telegram.mjs` },
+    { nome: "Reiniciar o leitor de canais", cmd: "pm2 restart leitor-telegram" },
+  ]},
+  { grupo: "Chaves e atualização", itens: [
+    { nome: "Atualizar o código agora (a coleta já faz git pull sozinha)", cmd: `${PASTA} git pull && npm ci && pm2 restart leitor-telegram` },
+    { nome: "Guardar as chaves novas no robo.env (o robo-na-vps.sh copia ele por cima do .env.robo)", cmd: "cp ~/mukiofertas-robo/.env.robo ~/robo.env" },
+  ]},
+];
+
+function ComandosVPS() {
+  const [copiado, setCopiado] = useState("");
+  async function copiar(cmd) {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopiado(cmd);
+      setTimeout(() => setCopiado(""), 1500);
+    } catch {}
+  }
+  return (
+    <section className="adm-bloco">
+      <h2>🖥️ Comandos na VPS</h2>
+      <p>
+        O GitHub Actions está desligado: os robôs rodam sozinhos na VPS da Oracle pelo ~/rodar-robo.sh (coleta nos
+        minutos 11 e 41 de cada hora, WhatsApp a cada 10 min) e o leitor de canais fica sempre ligado no pm2. Para
+        rodar algo na hora ou ver um erro, entre na VPS e cole o comando.
+      </p>
+      {COMANDOS.map((g) => (
+        <div key={g.grupo} style={{ marginTop: 12 }}>
+          <strong>{g.grupo}</strong>
+          <ul className="adm-alerta-lista">
+            {g.itens.map((c) => (
+              <li key={c.cmd}>
+                <span className="adm-ranking-titulo">
+                  {c.nome}
+                  <small>
+                    <code style={{ wordBreak: "break-all" }}>{c.cmd}</code>
+                  </small>
+                </span>
+                <span className="adm-alerta-acoes">
+                  <button className="adm-btn" onClick={() => copiar(c.cmd)}>
+                    {copiado === c.cmd ? "Copiado ✓" : "Copiar"}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 const HORA = 3600000;
 // verde = em dia, amarelo = atrasado, vermelho = parado
@@ -174,6 +237,8 @@ export default function SaudeRobo({ aoEditar }) {
       coletar: execucoes.get("coletar"),
       conferir: execucoes.get("conferir-precos"),
       whatsapp: execucoes.get("postar-whatsapp"),
+      leitor: execucoes.get("leitor-telegram"),
+      leitorOferta: execucoes.get("leitor-grupos"),
       ultimoPostWhatsapp: maisRecente(ofertas, "postada_whatsapp_em"),
       filaWhatsapp: noAr.filter((o) => !o.postada_whatsapp_em).length,
       ultimaAutomatica: maisRecente(ofertas.filter((o) => (o.origem ?? "automatica") === "automatica"), "atualizado_em"),
@@ -242,7 +307,9 @@ export default function SaudeRobo({ aoEditar }) {
 
   const coletaQuando = dados.coletar?.ultima_execucao ?? dados.ultimaAutomatica;
   const conferirQuando = dados.conferir?.ultima_execucao ?? dados.ultimaConferencia;
-  const whatsappQuando = dados.whatsapp?.ultima_execucao ?? dados.ultimoPostWhatsapp;
+  // O mais recente entre a última execução registrada e o último envio marcado numa oferta
+  const maisNovo = (...datas) => datas.filter(Boolean).sort().pop() ?? null;
+  const whatsappQuando = maisNovo(dados.whatsapp?.ultima_execucao, dados.ultimoPostWhatsapp);
 
   return (
     <>
@@ -250,16 +317,12 @@ export default function SaudeRobo({ aoEditar }) {
         <div>
           <h1>Saúde do robô</h1>
           <p className="adm-sub">
-            O robô roda na VPS da Oracle: coleta a cada 30 minutos e WhatsApp a cada 10 minutos. O Telegram
-            chega na hora pelo site. Os botões abaixo rodam no GitHub Actions.
+            Tudo roda na VPS da Oracle (o GitHub Actions está desligado): coleta a cada 30 minutos, WhatsApp a cada
+            10 minutos e o leitor de canais do Telegram sempre ligado. As ofertas do canal MukiOfertas chegam na hora
+            pelo site (Vercel).
           </p>
         </div>
         <div className="adm-acoes">
-          {LINK_ACTIONS && (
-            <a className="adm-btn" href={LINK_ACTIONS} target="_blank" rel="noopener noreferrer">
-              Abrir o GitHub Actions ↗
-            </a>
-          )}
           <button className="adm-btn" onClick={carregar}>
             ↻ Atualizar
           </button>
@@ -276,7 +339,7 @@ export default function SaudeRobo({ aoEditar }) {
       <div className="adm-saude-grade">
         <Indicador
           titulo="Coleta de ofertas"
-          como="Lomadee, Shopee, AliExpress, KaBuM! e cupons · na VPS, a cada 30 min"
+          como="Lomadee, Shopee, AliExpress, KaBuM! (Awin), Netshoes (Rakuten) e cupons · na VPS, a cada 30 min"
           quando={coletaQuando}
           cor={situacao(coletaQuando, 1, 3)}
           erro={dados.coletar && !dados.coletar.ok}
@@ -291,11 +354,23 @@ export default function SaudeRobo({ aoEditar }) {
           detalhe={dados.conferir?.resumo}
         />
         <Indicador
-          titulo="Importação do Telegram"
+          titulo="Importação do canal MukiOfertas"
           como="Webhook do site (Vercel) · na hora em que a oferta sai no canal"
           quando={dados.ultimaTelegramImportada}
           cor={situacao(dados.ultimaTelegramImportada, 12, 48)}
           detalhe="Última oferta que chegou do canal"
+        />
+        <Indicador
+          titulo="Leitor de canais do Telegram"
+          como="Na VPS (pm2), sempre ligado · lê os canais escolhidos (por enquanto só ofertas da Netshoes)"
+          quando={dados.leitor?.ultima_execucao}
+          cor={situacao(dados.leitor?.ultima_execucao, 0.75, 2)}
+          erro={dados.leitor && !dados.leitor.ok}
+          detalhe={
+            dados.leitor
+              ? `${dados.leitor.resumo ?? ""}${dados.leitorOferta ? ` · última oferta: ${dados.leitorOferta.resumo} (${ha(dados.leitorOferta.ultima_execucao)})` : ""}`
+              : "Ainda não deu sinal de vida: ligue com pm2 (veja os comandos abaixo)"
+          }
         />
         <Indicador
           titulo="Postagem no Telegram"
@@ -306,28 +381,30 @@ export default function SaudeRobo({ aoEditar }) {
         />
         <Indicador
           titulo="Postagem no WhatsApp"
-          como="Na VPS, a cada 10 min · envio pela Evolution API"
+          como="Na VPS, a cada 10 min (dentro do horário do painel) · envio pela Evolution API"
           quando={whatsappQuando}
           cor={situacao(whatsappQuando, 1, 3)}
           erro={dados.whatsapp && !dados.whatsapp.ok}
-          detalhe={dados.whatsapp?.resumo ?? `${dados.filaWhatsapp} ofertas no ar ainda não enviadas`}
+          detalhe={
+            `Último envio para o grupo: ${dados.ultimoPostWhatsapp ? `${ha(dados.ultimoPostWhatsapp)} (${dataHora(dados.ultimoPostWhatsapp)})` : "nenhum registrado"}` +
+            (dados.whatsapp?.resumo ? ` · última execução: ${dados.whatsapp.resumo}` : "")
+          }
         />
       </div>
 
       <p className="adm-legenda">
-        🟢 em dia · 🟡 atrasado · 🔴 parado ou com erro. Se ficar vermelho, entre na VPS e veja o registro:{" "}
-        <code>tail -n 40 ~/logs/robo-coleta.log</code> ou <code>~/logs/robo-whatsapp.log</code>. No WhatsApp, se o
-        registro mostra envio mas nada chega no grupo, confira a conexão na Evolution API.
+        🟢 em dia · 🟡 atrasado · 🔴 parado ou com erro. Se ficar vermelho, veja o registro com os comandos abaixo.
+        No WhatsApp, se o registro mostra envio mas nada chega no grupo, confira a conexão na Evolution API.
       </p>
 
-      <AcionarRobo aoTerminar={carregar} />
+      <ComandosVPS />
 
       <ImportacaoTelegram />
 
       <h2 className="adm-secao">Ofertas que merecem atenção (só as que estão no ar)</h2>
       {aviso && <p className="adm-aviso">{aviso}</p>}
 
-      <div className="adm-duas">
+      <div className="adm-duas" style={{ alignItems: "start" }}>
         <Alerta
           titulo="Sem foto"
           explicacao="Aparecem sem imagem no site. Edite e cole o endereço da foto."

@@ -9,6 +9,15 @@ import { NextResponse } from "next/server";
 import { salvarOferta } from "../../../../lib/salvar-oferta";
 import { extrairOferta, lojaDoLink } from "../../../../lib/extrair-oferta.mjs";
 import { prepararLinkRakuten } from "../../../../lib/afiliado-rakuten.mjs";
+import { createClient } from "@supabase/supabase-js";
+import { registrarExecucao } from "../../../../lib/prazos.mjs";
+
+// Aba Saúde do robô: guarda a última oferta que chegou do leitor (script "leitor-grupos")
+async function anotar(ok, resumo) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  await registrarExecucao(db, "leitor-grupos", ok, resumo);
+}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -75,6 +84,8 @@ export async function POST(req) {
   final = `${final.trim()}\n${c.link}`;
 
   const resultado = await salvarOferta(final, "telegram", { imagem: imagem || c.imagem || null });
-  console.log(`[grupos] ${grupo}: ${c.loja} → ${resultado?.motivo ?? (resultado?.ok ? "publicada" : "erro")}`);
+  const situacao = resultado?.motivo ?? (resultado?.ok ? "publicada" : "erro");
+  console.log(`[grupos] ${grupo}: ${c.loja} → ${situacao}`);
+  await anotar(resultado?.ok !== false, `${c.loja} → ${situacao}`);
   return NextResponse.json({ ...resultado, loja: c.loja });
 }

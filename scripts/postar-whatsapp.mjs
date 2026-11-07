@@ -115,6 +115,7 @@ async function main() {
 
   if (!ajuste("whatsapp_ativo") && !TESTE) {
     console.log("[whatsapp] Desligado no painel admin (Configurações → WhatsApp): nada a fazer.");
+    await registrarExecucao(db, "postar-whatsapp", true, "Desligado no painel (Configurações → WhatsApp)");
     return;
   }
   const grupo = ajuste("whatsapp_grupo").trim();
@@ -126,6 +127,7 @@ async function main() {
   const fim = ajuste("whatsapp_hora_fim");
   if (!TESTE && (hora < inicio || hora >= fim)) {
     console.log(`[whatsapp] Fora do horário de envio (${inicio}h às ${fim}h). Agora são ${hora}h.`);
+    await registrarExecucao(db, "postar-whatsapp", true, `Fora do horário de envio (${inicio}h às ${fim}h)`);
     return;
   }
 
@@ -143,6 +145,7 @@ async function main() {
   const vagas = Math.min(ajuste("whatsapp_max_por_execucao"), ajuste("whatsapp_max_por_hora") - (naUltimaHora ?? 0));
   if (vagas <= 0) {
     console.log(`[whatsapp] Limite de ${ajuste("whatsapp_max_por_hora")} mensagens por hora atingido.`);
+    await registrarExecucao(db, "postar-whatsapp", true, `Limite de ${ajuste("whatsapp_max_por_hora")} mensagens por hora atingido`);
     return;
   }
 

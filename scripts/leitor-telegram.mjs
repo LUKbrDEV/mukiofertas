@@ -138,6 +138,21 @@ function textoCompleto(msg) {
   return [texto, ...ocultos, ...botoes].join("\n").trim();
 }
 
+// Sinal de vida para a aba Saúde do robô (a cada 15 min)
+const contagem = { enviadas: 0, publicadas: 0, desde: new Date() };
+async function sinalDeVida() {
+  if (!db) return;
+  await db
+    .from("robo_status")
+    .upsert({
+      script: "leitor-telegram",
+      ultima_execucao: new Date().toISOString(),
+      ok: true,
+      resumo: `Ligado · ${escolhidos.length} canais · ${contagem.enviadas} ofertas lidas e ${contagem.publicadas} publicadas desde ${contagem.desde.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+    })
+    .then(() => {}, () => {});
+}
+
 // Fila: manda uma oferta por vez para o site
 const fila = [];
 let trabalhando = false;
@@ -155,6 +170,8 @@ async function processarFila() {
         signal: AbortSignal.timeout(70000),
       });
       const j = await r.json().catch(() => ({}));
+      contagem.enviadas++;
+      if (r.ok && !j.motivo && j.ok !== false) contagem.publicadas++;
       console.log(`${new Date().toLocaleTimeString("pt-BR")} [${grupo}] ${j.loja ?? ""} → ${r.ok ? j.motivo ?? "publicada" : `erro ${r.status} ${j.motivo ?? ""}`}`);
     } catch (e) {
       console.log(`[${grupo}] falha ao enviar: ${e.message}`);
@@ -176,5 +193,8 @@ client.addEventHandler(async (event) => {
   fila.push({ texto, msg, grupo: chat?.title ?? id });
   processarFila();
 }, new NewMessage({}));
+
+sinalDeVida();
+setInterval(sinalDeVida, 15 * 60 * 1000);
 
 console.log(`Leitor ligado. Acompanhando: ${escolhidos.join(", ")} | lojas: ${LOJAS.join(", ")} | site: ${SITE}`);
