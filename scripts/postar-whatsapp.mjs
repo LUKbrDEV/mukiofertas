@@ -21,7 +21,8 @@ import { aplicarConfigDoBanco, CONFIG_ROBO, registrarExecucao } from "../lib/pra
 import { camposDaOferta, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
 import { gerarFrase, ESTILO_PADRAO } from "../lib/frase-ia.mjs";
 import { fotoComMarcaDagua } from "../lib/marca-dagua.mjs";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, existsSync } from "node:fs";
+import sharp from "sharp";
 
 // Valores padrão (o painel admin pode trocar)
 const PADRAO = {
@@ -30,7 +31,11 @@ const PADRAO = {
   whatsapp_modelo: MODELO_PADRAO,
   whatsapp_modelo_cupom: MODELO_CUPOM_PADRAO,
   whatsapp_enviar_cupons: true,
-  whatsapp_cupons_por_hora: 2, // vagas reservadas para cupons (cupom não tem "desconto" e ficava sempre no fim da fila)
+  whatsapp_cupons_por_hora: 2, // (só quando os cupons NÃO vão agrupados) vagas reservadas para cupons avulsos
+  whatsapp_cupons_agrupados: true, // cupons vão num "pacote" por loja: capa da loja + vários cupons numa mensagem
+  whatsapp_cupons_por_pacote: 5, // cupons em cada mensagem
+  whatsapp_horas_entre_pacotes: 4, // a mesma loja só manda outro pacote depois de X horas
+  whatsapp_pacotes_por_hora: 1, // pacotes de cupons por hora (todas as lojas somadas)
   whatsapp_com_foto: true,
   whatsapp_max_por_execucao: 5, // o robô roda a cada 30 min: 5 por vez = até 10 por hora
   whatsapp_max_por_hora: 10,
@@ -103,6 +108,138 @@ async function enviar(grupo, texto, imagem) {
   });
 }
 
+// ---------- Pacote de cupons por loja ----------
+// Capa de cada loja:
+//   1) se existir public/capas-cupons/<pronta>, usa essa imagem pronta (fica mais bonita)
+//   2) senão, monta: logo de public/lojas/ sobre a cor da loja (lojas sem logo: o nome escrito)
+const CAPAS = {
+  amazon: { logo: "amazon.png", cor: "#222222" },
+  "mercado livre": { pronta: "mercado-livre.png", logo: "mercado-livre.png", cor: "#ffe600" },
+  mercadolivre: { pronta: "mercado-livre.png", logo: "mercado-livre.png", cor: "#ffe600" },
+  "kabum!": { logo: "kabum.png", cor: "#0060b1" },
+  kabum: { logo: "kabum.png", cor: "#0060b1" },
+  aliexpress: { logo: "aliexpress.png", cor: "#ff2651" },
+  shopee: { pronta: "shopee.png", logo: "shopee.png", cor: "#f6412e" },
+  magalu: { logo: "magalu.png", cor: "#0e89ff" },
+  "magazine luiza": { logo: "magalu.png", cor: "#0e89ff" },
+  netshoes: { cor: "#5c2d91" },
+};
+const CORES_RESERVA = ["#1e293b", "#1d4ed8", "#7c3aed", "#0f766e", "#be123c", "#c2410c"];
+const escapar = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function corDoTexto(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const luz = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return luz > 0.6 ? "#1a1a1a" : "#ffffff";
+}
+
+async function capaDaLoja(loja) {
+  const L = 800;
+  const A = 420;
+  const chave = String(loja).toLowerCase();
+  let h = 0;
+  for (const ch of chave) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const capa = CAPAS[chave] ?? { cor: CORES_RESERVA[h % CORES_RESERVA.length] };
+  const pronta = capa.pronta ? new URL(`../public/capas-cupons/${capa.pronta}`, import.meta.url) : null;
+  if (pronta && existsSync(pronta)) {
+    const img = await sharp(pronta.pathname).resize({ width: L, height: A, fit: "cover" }).jpeg({ quality: 90 }).toBuffer();
+    return img.toString("base64");
+  }
+  const texto = corDoTexto(capa.cor);
+  const camadas = [];
+  const arquivo = capa.logo ? new URL(`../public/lojas/${capa.logo}`, import.meta.url) : null;
+  if (arquivo && existsSync(arquivo)) {
+    // as logos são pequenas: aumenta no máximo 2x (mais que isso fica borrado)
+    const original = await sharp(arquivo.pathname).metadata();
+    const largura = Math.min(560, (original.width ?? 200) * 2);
+    const logo = await sharp(arquivo.pathname).resize({ width: largura, height: 230, fit: "inside", kernel: "lanczos3" }).png().toBuffer();
+    const m = await sharp(logo).metadata();
+    camadas.push({ input: logo, top: Math.round((A - 110 - m.height) / 2) + 10, left: Math.round((L - m.width) / 2) });
+  } else {
+    camadas.push({
+      input: Buffer.from(`<svg width="${L}" height="300"><text x="50%" y="190" font-family="DejaVu Sans, Arial, sans-serif" font-size="96" font-weight="700" fill="${texto}" text-anchor="middle">${escapar(loja)}</text></svg>`),
+      top: 0,
+      left: 0,
+    });
+  }
+  camadas.push({
+    input: Buffer.from(`<svg width="${L}" height="80"><text x="50%" y="55" font-family="DejaVu Sans, Arial, sans-serif" font-size="40" font-weight="700" fill="${texto}" text-anchor="middle" letter-spacing="4">CUPONS DE DESCONTO</text></svg>`),
+    top: A - 95,
+    left: 0,
+  });
+  const img = await sharp({ create: { width: L, height: A, channels: 3, background: capa.cor } })
+    .composite(camadas)
+    .jpeg({ quality: 88 })
+    .toBuffer();
+  return img.toString("base64");
+}
+
+// Escolhe a loja com mais cupons novos (que não mandou pacote há pouco) e manda uma mensagem só
+async function enviarPacoteDeCupons(db, grupo, lojaOk) {
+  const umaHora = new Date(Date.now() - 3600000).toISOString();
+  const { data: recentes } = await db
+    .from("ofertas")
+    .select("loja, postada_whatsapp_em")
+    .eq("categoria", "cupons")
+    .gte("postada_whatsapp_em", new Date(Date.now() - ajuste("whatsapp_horas_entre_pacotes") * 3600000).toISOString());
+  const pacotesNaHora = new Set((recentes ?? []).filter((r) => r.postada_whatsapp_em >= umaHora).map((r) => r.postada_whatsapp_em.slice(0, 16))).size;
+  if (pacotesNaHora >= ajuste("whatsapp_pacotes_por_hora")) {
+    console.log("[whatsapp] Pacote de cupons: limite por hora atingido.");
+    return null;
+  }
+  const lojasRecentes = new Set((recentes ?? []).map((r) => String(r.loja).toLowerCase()));
+
+  const { data: cupons, error } = await db
+    .from("ofertas")
+    .select("id, titulo, loja, cupom, link, expires_at, publicada_em, categoria")
+    .eq("categoria", "cupons")
+    .eq("ativa", true)
+    .is("postada_whatsapp_em", null)
+    .not("cupom", "is", null)
+    .gte("publicada_em", new Date(Date.now() - 7 * 86400000).toISOString())
+    .order("publicada_em", { ascending: false })
+    .limit(300);
+  if (error) throw new Error(error.message);
+  const validos = (cupons ?? []).filter((c) => (!c.expires_at || new Date(c.expires_at) > new Date()) && lojaOk(c));
+
+  const porLoja = new Map();
+  for (const c of validos) {
+    if (lojasRecentes.has(String(c.loja).toLowerCase())) continue;
+    porLoja.set(c.loja, [...(porLoja.get(c.loja) ?? []), c]);
+  }
+  if (!porLoja.size) {
+    console.log(`[whatsapp] Pacote de cupons: nenhum cupom novo (${validos.length} na fila, lojas em espera: ${[...lojasRecentes].join(", ") || "nenhuma"}).`);
+    return null;
+  }
+  const [loja, lista] = [...porLoja.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+  const escolhidos = lista.slice(0, ajuste("whatsapp_cupons_por_pacote"));
+
+  const site = (process.env.SITE_URL || "https://www.mukiofertas.com.br").replace(/\/+$/, "");
+  const linhas = escolhidos.map((c) => {
+    const titulo = String(c.titulo ?? "").replace(/\s+/g, " ").trim().slice(0, 90);
+    return `🏷️ *${titulo}*: ${c.cupom}\n🔗 ${site}/ir/${c.id}`;
+  });
+  const texto = `🚨 *Cupons ${loja}*\n\n${linhas.join("\n\n")}\n\n🚀 Mais ofertas e cupons: ${site}/cupons`;
+
+  let capa = null;
+  try {
+    capa = ajuste("whatsapp_com_foto") ? await capaDaLoja(loja) : null;
+  } catch (e) {
+    console.warn(`[whatsapp] Capa da loja falhou (${e.message}); vai só o texto.`);
+  }
+
+  if (TESTE) {
+    if (capa) writeFileSync("previa-cupons.jpg", Buffer.from(capa, "base64"));
+    console.log(`\n----- PACOTE DE CUPONS ${capa ? "(capa: previa-cupons.jpg) " : ""}-----\n${texto}`);
+    return { enviados: 0 };
+  }
+  await enviar(grupo, texto, capa);
+  const agora = new Date().toISOString();
+  await db.from("ofertas").update({ postada_whatsapp_em: agora }).in("id", escolhidos.map((c) => c.id));
+  console.log(`  ✓ Pacote de cupons ${loja}: ${escolhidos.length} cupons`);
+  return { enviados: escolhidos.length };
+}
+
 // ---------- Robô ----------
 function horaDeBrasilia() {
   return Number(new Intl.DateTimeFormat("pt-BR", { hour: "numeric", hour12: false, timeZone: "America/Sao_Paulo" }).format(new Date()));
@@ -142,6 +279,7 @@ async function main() {
   const { count: naUltimaHora } = await db
     .from("ofertas")
     .select("id", { count: "exact", head: true })
+    .neq("categoria", "cupons")
     .gte("postada_whatsapp_em", umaHora);
   const vagas = Math.min(ajuste("whatsapp_max_por_execucao"), ajuste("whatsapp_max_por_hora") - (naUltimaHora ?? 0));
   if (vagas <= 0) {
@@ -197,7 +335,7 @@ async function main() {
     .select("id", { count: "exact", head: true })
     .eq("categoria", "cupons")
     .gte("postada_whatsapp_em", umaHora);
-  const vagasCupom = Math.min(1, vagas, Math.max(0, ajuste("whatsapp_cupons_por_hora") - (cuponsNaHora ?? 0)));
+  const vagasCupom = ajuste("whatsapp_cupons_agrupados") ? 0 : Math.min(1, vagas, Math.max(0, ajuste("whatsapp_cupons_por_hora") - (cuponsNaHora ?? 0)));
   const cuponsDaVez = aprovadas
     .filter((o) => o.categoria === "cupons")
     .sort((a, b) => new Date(b.publicada_em ?? 0) - new Date(a.publicada_em ?? 0))
@@ -214,7 +352,7 @@ async function main() {
     : [];
   const candidatas = [...ofertasDaVez, ...cuponsDaVez, ...maisCupons];
   const cuponsNaFila = aprovadas.filter((o) => o.categoria === "cupons").length;
-  if (cuponsNaFila) console.log(`[whatsapp] Cupons na fila: ${cuponsNaFila}; vão agora: ${cuponsDaVez.length + maisCupons.length} (${cuponsNaHora ?? 0} já enviados na última hora).`);
+  if (cuponsNaFila && !ajuste("whatsapp_cupons_agrupados")) console.log(`[whatsapp] Cupons na fila: ${cuponsNaFila}; vão agora: ${cuponsDaVez.length + maisCupons.length} (${cuponsNaHora ?? 0} já enviados na última hora).`);
 
   console.log(
     `[whatsapp] ${data?.length ?? 0} ofertas novas sem envio` +
@@ -293,6 +431,17 @@ async function main() {
     if (i < candidatas.length - 1) {
       const s = ajuste("whatsapp_intervalo_segundos");
       await esperar(Math.round(s * (0.7 + Math.random() * 0.6) * 1000));
+    }
+  }
+
+  // Pacote de cupons por loja (capa + lista), no estilo dos grupos de ofertas
+  if (ajuste("whatsapp_cupons_agrupados") && ajuste("whatsapp_enviar_cupons")) {
+    try {
+      const r = await enviarPacoteDeCupons(db, grupo, lojaOk);
+      if (r?.enviados) enviadas += 1;
+    } catch (e) {
+      falhas.push(`pacote de cupons: ${e.message}`);
+      console.warn(`[whatsapp] Pacote de cupons falhou: ${e.message}`);
     }
   }
 
