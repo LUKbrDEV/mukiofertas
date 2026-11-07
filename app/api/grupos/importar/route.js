@@ -83,7 +83,12 @@ export async function POST(req) {
   let final = String(texto).replace(LINK, " ").replace(/[ \t]+\n/g, "\n");
   final = `${final.trim()}\n${c.link}`;
 
-  const resultado = await salvarOferta(final, "telegram", { imagem: imagem || c.imagem || null });
+  // Netshoes não manda o preço "de" e bloqueia a leitura da página: entra só com o preço atual
+  const SEM_PRECO_ANTIGO = new Set(["Netshoes"]);
+  const resultado = await salvarOferta(final, "telegram", {
+    imagem: imagem || c.imagem || null,
+    aceitarSemDesconto: SEM_PRECO_ANTIGO.has(c.loja),
+  });
   const situacao = resultado?.motivo ?? (resultado?.ok ? "publicada" : "erro");
   console.log(`[grupos] ${grupo}: ${c.loja} → ${situacao}`);
   await anotar(resultado?.ok !== false, `${c.loja} → ${situacao}`);
