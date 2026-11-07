@@ -30,6 +30,7 @@ const PADRAO = {
   whatsapp_modelo: MODELO_PADRAO,
   whatsapp_modelo_cupom: MODELO_CUPOM_PADRAO,
   whatsapp_enviar_cupons: true,
+  whatsapp_cupons_por_hora: 2, // vagas reservadas para cupons (cupom não tem "desconto" e ficava sempre no fim da fila)
   whatsapp_com_foto: true,
   whatsapp_max_por_execucao: 5, // o robô roda a cada 30 min: 5 por vez = até 10 por hora
   whatsapp_max_por_hora: 10,
@@ -189,10 +190,31 @@ async function main() {
   aprovadas = filtrar(aprovadas, "desconto mínimo", (o) => o.categoria === "cupons" || descontoDe(o) >= ajuste("whatsapp_desconto_minimo"));
   if (Object.keys(foraPor).length)
     console.log(`[whatsapp] Ficaram de fora: ${Object.entries(foraPor).map(([k, n]) => `${n} por ${k}`).join(", ")}.`);
-  const candidatas = aprovadas
+  // Cupons têm vaga reservada: até X por hora, 1 por execução, os mais novos primeiro.
+  // (Antes eles disputavam pelo maior desconto, ficavam com 0% e nunca eram enviados.)
+  const { count: cuponsNaHora } = await db
+    .from("ofertas")
+    .select("id", { count: "exact", head: true })
+    .eq("categoria", "cupons")
+    .gte("postada_whatsapp_em", umaHora);
+  const vagasCupom = Math.min(1, vagas, Math.max(0, ajuste("whatsapp_cupons_por_hora") - (cuponsNaHora ?? 0)));
+  const cuponsDaVez = aprovadas
+    .filter((o) => o.categoria === "cupons")
+    .sort((a, b) => new Date(b.publicada_em ?? 0) - new Date(a.publicada_em ?? 0))
+    .slice(0, vagasCupom);
+  const ofertasDaVez = aprovadas
+    .filter((o) => o.categoria !== "cupons")
     // destaques e maiores descontos primeiro
     .sort((a, b) => Number(b.destaque) - Number(a.destaque) || descontoDe(b) - descontoDe(a))
-    .slice(0, vagas);
+    .slice(0, vagas - cuponsDaVez.length);
+  // Se não tem oferta para enviar, a vaga sobrando também pode ir para cupons
+  const sobra = vagas - cuponsDaVez.length - ofertasDaVez.length;
+  const maisCupons = sobra > 0 && vagasCupom > 0
+    ? aprovadas.filter((o) => o.categoria === "cupons" && !cuponsDaVez.includes(o)).slice(0, Math.min(sobra, Math.max(0, ajuste("whatsapp_cupons_por_hora") - (cuponsNaHora ?? 0) - cuponsDaVez.length)))
+    : [];
+  const candidatas = [...ofertasDaVez, ...cuponsDaVez, ...maisCupons];
+  const cuponsNaFila = aprovadas.filter((o) => o.categoria === "cupons").length;
+  if (cuponsNaFila) console.log(`[whatsapp] Cupons na fila: ${cuponsNaFila}; vão agora: ${cuponsDaVez.length + maisCupons.length} (${cuponsNaHora ?? 0} já enviados na última hora).`);
 
   console.log(
     `[whatsapp] ${data?.length ?? 0} ofertas novas sem envio` +
