@@ -43,22 +43,23 @@ function idDoAparelho() {
   }
 }
 
-// XP por like: quem está logado e curte um produto ganha XP (supabase-xp.sql, tabela likes_usuarios).
+// XP por like: quem está logado e curte um produto ganha XP (tabela likes_usuarios).
 // Conta 1 vez por produto: curtir de novo não soma, e tirar o like tira o XP.
+// Grava pela função registrar_like_xp do Supabase (xp-likes.sql), que usa o login de quem clicou
+// e não depende das regras de acesso (RLS) da tabela. Devolve "ok", "removido" ou "sem_login".
 async function registrarLikeNaConta(ofertaId, curtiu) {
   try {
-    const { data } = await supabase.auth.getSession();
-    const userId = data?.session?.user?.id;
-    if (!userId) return; // sem login o like vale, mas não dá XP
-    if (curtiu) {
-      await supabase
-        .from("likes_usuarios")
-        .upsert({ user_id: userId, oferta_id: Number(ofertaId) }, { onConflict: "user_id,oferta_id", ignoreDuplicates: true });
-    } else {
-      await supabase.from("likes_usuarios").delete().eq("oferta_id", Number(ofertaId)).eq("user_id", userId);
+    const { data: sessao } = await supabase.auth.getSession();
+    if (!sessao?.session?.user?.id) return "sem_login"; // sem login o like vale, mas não dá XP
+    const { data, error } = await supabase.rpc("registrar_like_xp", { p_oferta: Number(ofertaId), p_curtiu: curtiu });
+    if (error) {
+      console.warn("[xp] Não consegui registrar o XP do like:", error.message);
+      return "erro";
     }
-  } catch {
-    // o XP é só um extra: se falhar, o voto continua valendo
+    return data;
+  } catch (e) {
+    console.warn("[xp]", e?.message ?? e);
+    return "erro";
   }
 }
 
@@ -68,6 +69,7 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
   const [contagem, setContagem] = useState({ likes: Number(likes) || 0, dislikes: Number(dislikes) || 0 });
   const [meu, setMeu] = useState(0); // 1 = like, -1 = deslike, 0 = nenhum
   const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState(""); // "+2 XP" ou "Entre na sua conta para ganhar XP"
 
   useEffect(() => {
     setMeu(Number(lerVotos()[ofertaId]) || 0);
@@ -104,7 +106,14 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
     const r = Array.isArray(data) ? data[0] : data;
     if (r) setContagem({ likes: r.likes, dislikes: r.dislikes });
     guardarVoto(ofertaId, novo);
-    registrarLikeNaConta(ofertaId, novo === 1);
+    // XP: só muda quando entra ou sai um like (deslike não mexe no XP)
+    if (novo === 1 || meu === 1) {
+      const r2 = await registrarLikeNaConta(ofertaId, novo === 1);
+      if (novo === 1) {
+        setAviso(r2 === "ok" ? "+2 XP" : r2 === "sem_login" ? "Entre na sua conta para ganhar XP" : "");
+        setTimeout(() => setAviso(""), 2500);
+      }
+    }
   }
 
   const botao = (ativo, cor) => ({
@@ -149,6 +158,20 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
       >
         <span aria-hidden="true" style={{ fontSize: 20 }}>👎</span> {curto(contagem.dislikes)}
       </button>
+      {aviso && (
+        <span
+          role="status"
+          style={{
+            alignSelf: "center",
+            fontSize: 12,
+            fontWeight: 800,
+            color: aviso.startsWith("+") ? "#ff7a1a" : "#64748b",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {aviso}
+        </span>
+      )}
     </div>
   );
 }
