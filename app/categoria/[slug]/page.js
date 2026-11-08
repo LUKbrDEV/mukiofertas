@@ -9,6 +9,8 @@ import { ordenarOfertas } from "../../../lib/ordenar";
 import { slugsDaCategoria, paiDe } from "../../../lib/departamentos";
 import { seoDaCategoria } from "../../../lib/seo-categorias";
 import { SITE } from "../../../lib/site";
+import FaixaBeleza, { ehBeleza } from "../../../components/FaixaBeleza";
+import "../../tema-beleza.css"; // tema rosé de Beleza (tire esta linha e o FaixaBeleza para voltar ao normal)
 
 export const revalidate = 60;
 
@@ -85,6 +87,7 @@ export default async function PaginaCategoria({ params, searchParams }) {
   if (!categoria) notFound();
 
   const pai = paiDe(categorias, categoria);
+  const beleza = ehBeleza(slug, pai); // Perfumes, Maquiagem, Skincare, Cabelos e Moda feminina ganham o tema rosé
   const seo = seoDaCategoria(categoria);
 
   // Departamento com subcategorias mostra tudo junto (ex.: Hardware = hardware + SSD + placa-mãe...)
@@ -146,7 +149,7 @@ export default async function PaginaCategoria({ params, searchParams }) {
   ];
 
   return (
-    <>
+    <div className={beleza ? "tema-beleza" : undefined}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <script
         type="application/ld+json"
@@ -164,6 +167,8 @@ export default async function PaginaCategoria({ params, searchParams }) {
         {" › "}
         {categoria.nome}
       </nav>
+
+      {beleza && <FaixaBeleza atual={pai && ehBeleza(pai.slug) ? pai.slug : slug} />}
 
       <div className="secao-cabecalho" style={{ alignItems: "flex-end", flexWrap: "wrap", marginBottom: 14 }}>
         <div>
@@ -215,6 +220,6 @@ export default async function PaginaCategoria({ params, searchParams }) {
           {pagina < totalPaginas && <Link href={linkPagina(pagina + 1)}>Próxima →</Link>}
         </nav>
       )}
-    </>
+    </div>
   );
 }

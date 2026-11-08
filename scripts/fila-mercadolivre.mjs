@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { lerApiML } from "../lib/detalhes-ml.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { avaliarDesconto } from "../lib/desconto-confiavel.mjs";
-import { lojaBloqueada } from "../lib/qualidade.mjs";
+import { lojaBloqueada, precoMinimoPara } from "../lib/qualidade.mjs";
 import { aplicarConfigDoBanco, descontoMinimoDa, registrarExecucao } from "../lib/prazos.mjs";
 
 // ===== AJUSTES =====
@@ -108,7 +108,8 @@ async function main() {
       const p = await lerProduto(h);
       if (!p) { fora("sem preço"); continue; }
       if (!p.preco_antigo || p.preco_antigo <= p.preco_atual) { fora("sem preço \"de\""); continue; }
-      if (p.preco_atual < PRECO_MINIMO) { fora(`abaixo de R$ ${PRECO_MINIMO}`); continue; }
+      const minimo = precoMinimoPara({ titulo: p.titulo, loja: "Mercado Livre" }, PRECO_MINIMO); // beleza aceita mais barato
+      if (p.preco_atual < minimo) { fora(`abaixo de R$ ${minimo}`); continue; }
       if (lojaBloqueada({ loja: "Mercado Livre", titulo: p.titulo })) { fora("loja bloqueada"); continue; }
       const categoria = classificar(p.titulo, "Mercado Livre");
       if (!categoria || categoria === "cupons") { fora("sem categoria"); continue; }

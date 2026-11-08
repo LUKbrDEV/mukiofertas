@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
 import { descontoMinimoDa, CONFIG_ROBO } from "../../lib/prazos.mjs";
-import { regrasDeQualidade } from "../../lib/qualidade.mjs";
+import { regrasDeQualidade, precoMinimoPara } from "../../lib/qualidade.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % de desconto mínimo (o coletar também filtra pelo valor do painel)
@@ -95,6 +95,26 @@ const PALAVRAS_AUTOMOTIVO = [
   "retrovisor moto", "óleo moto 10w30", "balaclava moto",
 ];
 const BUSCAS_AUTOMOTIVO_POR_EXECUCAO = 3; // buscas de carro/moto a cada execução
+// Beleza e moda feminina (maquiagem, unhas, skincare, cabelos, perfumes, roupas): lista própria,
+// com buscas garantidas em toda execução
+const PALAVRAS_BELEZA = [
+  // maquiagem
+  "batom matte", "batom líquido", "gloss labial", "base líquida", "corretivo", "pó compacto", "pó translúcido",
+  "primer facial", "blush", "iluminador", "paleta de sombras", "máscara de cílios", "delineador",
+  "lápis de sobrancelha", "cílios postiços", "pincel de maquiagem", "esponja de maquiagem", "kit maquiagem",
+  "maquiagem ruby rose", "maquiagem vult", "maquiagem bruna tavares", "maybelline", "max love",
+  // unhas
+  "esmalte", "kit esmaltes", "kit manicure", "cabine led unha", "kit unha gel", "alicate de cutícula",
+  // skincare e cabelos
+  "sérum vitamina c", "hidratante facial", "protetor solar facial", "ácido hialurônico", "sabonete facial",
+  "máscara capilar", "óleo capilar", "kit shampoo e condicionador", "escova secadora", "modelador de cachos",
+  // perfumes
+  "perfume feminino importado", "body splash",
+  // moda feminina
+  "vestido feminino", "conjunto feminino", "blusa feminina", "calça jeans feminina", "bolsa feminina",
+  "sandália feminina", "pijama feminino", "biquíni",
+];
+const BUSCAS_BELEZA_POR_EXECUCAO = 4; // buscas de beleza/moda feminina a cada execução
 const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
@@ -211,7 +231,7 @@ function passaNosFiltros(o) {
   // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
   if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
   const r = regras();
-  if (o.preco_atual < r.mkt_preco_minimo) return false;
+  if (o.preco_atual < precoMinimoPara(o, r.mkt_preco_minimo)) return false; // beleza aceita mais barato
   if (o._desconto > r.mkt_desconto_maximo) return false; // preço "de" inflado
   if (!o._nota || o._nota < r.shopee_nota_minima) return false; // sem nota = sem avaliação: fora
   if (o._vendas < r.shopee_vendas_minimas) return false;
@@ -248,6 +268,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_NICHOS, BUSCAS_NICHOS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_BELEZA, BUSCAS_BELEZA_POR_EXECUCAO),
   ];
 }
 

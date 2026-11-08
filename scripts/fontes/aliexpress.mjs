@@ -19,6 +19,7 @@ import { createHmac } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
 import { descontoMinimoDa, CONFIG_ROBO } from "../../lib/prazos.mjs";
+import { precoMinimoPara } from "../../lib/qualidade.mjs";
 
 // ===== AJUSTES =====
 // Estes valores podem ser trocados no painel admin (Configurações → AliExpress).
@@ -87,6 +88,14 @@ const PALAVRAS_AUTOMOTIVO = [
   "intercomunicador moto", "suporte celular moto", "luva moto", "capa chuva moto", "balaclava moto", "alarme moto",
 ];
 const BUSCAS_AUTOMOTIVO_POR_EXECUCAO = 2;
+
+// Beleza (maquiagem, unhas, cabelos): 2 buscas garantidas em toda execução (rodízio próprio)
+const PALAVRAS_BELEZA = [
+  "paleta de sombras", "pincel de maquiagem", "esponja de maquiagem", "cílios postiços", "kit maquiagem",
+  "batom matte", "gloss labial", "delineador", "esmalte em gel", "kit unha gel", "cabine led unha",
+  "kit manicure", "escova secadora", "modelador de cachos", "organizador de maquiagem", "espelho com led",
+];
+const BUSCAS_BELEZA_POR_EXECUCAO = 2;
 
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
@@ -258,7 +267,7 @@ function passaNosFiltros(o) {
   if (o._desconto >= 95) return false;
   // tecnologia aceita desconto menor (TV, monitor, notebook, celular, hardware)
   if (o._desconto < Math.min(DESCONTO_MINIMO, descontoMinimoDa(classificar(o.titulo, o.loja)))) return false;
-  if (o.preco_atual <= ajuste("aliexpress_preco_minimo")) return false; // só acima do preço mínimo
+  if (o.preco_atual <= precoMinimoPara(o, ajuste("aliexpress_preco_minimo"))) return false; // só acima do preço mínimo (beleza aceita mais barato)
   if (Number.isFinite(o._avaliacao) && o._avaliacao > 0 && o._avaliacao < ajuste("aliexpress_avaliacao_minima")) return false;
   if (o._vendas < ajuste("aliexpress_vendas_minimas")) return false;
   if (PALAVRAS_BLOQUEADAS.some((re) => re.test(o.titulo))) return false;
@@ -290,6 +299,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_OUTRAS, ajuste("aliexpress_buscas_outras")),
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_BELEZA, BUSCAS_BELEZA_POR_EXECUCAO),
   ];
 }
 
