@@ -39,6 +39,8 @@ const GOOGLE_ADS_ID = "AW-18414048816";
 // Google Analytics 4: o ID da "Métrica" (G-XXXXXXXXXX), na Vercel → Environment Variables
 // como NEXT_PUBLIC_GA4_ID. Sem ele, o site funciona normal, só não manda dados para o GA4.
 const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID;
+// Google Tag Manager (contêiner pedido no e-mail do Google)
+const GTM_ID = "GTM-WPZNF643";
 
 // Perfis oficiais do MukiOfertas em outros sites (ajudam o Google a reconhecer a marca).
 // Coloque aqui os links completos das suas redes, um por linha, entre aspas.
@@ -129,6 +131,12 @@ export default async function RootLayout({ children }) {
             ${GA4_ID ? `gtag('config', '${GA4_ID}');` : ""}
           `}
         </Script>
+        {/* Google Tag Manager: usa o mesmo dataLayer/gtag criado logo acima */}
+        <Script
+          id="google-tag-manager"
+          src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}
+          strategy="afterInteractive"
+        />
         {GA4_ID && <Analytics />}
         <script
           type="application/ld+json"
