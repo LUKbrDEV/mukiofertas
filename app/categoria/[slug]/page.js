@@ -87,7 +87,7 @@ export default async function PaginaCategoria({ params, searchParams }) {
   if (!categoria) notFound();
 
   const pai = paiDe(categorias, categoria);
-  const beleza = ehBeleza(slug, pai); // Perfumes, Maquiagem, Skincare, Cabelos e Moda feminina ganham o tema rosé
+  const beleza = ehBeleza(slug, pai); // Maquiagem, Skincare, Cabelos e Moda feminina ganham o tema rosé (Perfumes fica neutro)
   const seo = seoDaCategoria(categoria);
 
   // Departamento com subcategorias mostra tudo junto (ex.: Hardware = hardware + SSD + placa-mãe...)

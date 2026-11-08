@@ -1,4 +1,4 @@
-/* ===== Tema rosé das categorias de Beleza (Perfumes, Maquiagem, Skincare, Cabelos) e Moda feminina =====
+/* ===== Tema rosé das categorias de Beleza (Maquiagem, Skincare, Cabelos) e Moda feminina — Perfumes fica neutro =====
    Só vale dentro de .tema-beleza (página de categoria). O cabeçalho azul continua igual.
    Importado em app/categoria/[slug]/page.js. Para voltar ao visual normal, tire o import
    e a classe "tema-beleza" dessa página. */

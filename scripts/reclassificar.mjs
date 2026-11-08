@@ -66,12 +66,13 @@ const mudancas = [];
 
 for (const o of ofertas) {
   const atual = o.categoria;
-  // Cupons (da aba Cupons ou que vieram das redes como cupom) nunca viram produto
-  if (atual === "cupons" || /^cp[a-z]-/.test(o.id_externo ?? "")) {
-    if (atual !== "cupons") mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: "cupons" });
-    continue;
-  }
+  // Cupons da aba Cupons continuam cupons. (Não olha mais o código "cpl-/cpa-/cpr-": os
+  // "produtos com cupom" que o corrigir-cupons-produto.mjs transformou em oferta normal
+  // mantêm esse código e não podem voltar para Cupons.)
+  if (atual === "cupons") continue;
   let nova = classificar(o.titulo, o.loja) ?? (VALIDAS.has(atual) ? atual : null);
+  // produto que já tem categoria nunca vira cupom pela reclassificação
+  if (nova === "cupons" && atual) nova = atual;
   if (nova === "games") nova = "jogos"; // "Games" e "Jogos" foram unificados em Jogos
   if (nova !== atual) mudancas.push({ id: o.id, titulo: o.titulo, de: atual, para: nova });
 }
