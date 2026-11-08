@@ -360,3 +360,10 @@
   /* Cupons (sem página de produto) continuam com o botão */
   .cartao.cv2.cv2--cupom .cartao-botao { display: block; grid-column: 1 / -1; margin: 0 12px 12px; }
 }
+
+/* Celular: no carrossel (ex.: "Mais ofertas de…" na página da oferta) o card deitado ocupa quase a tela toda,
+   deixando aparecer a pontinha do próximo. Antes ficava com 200px e o texto era cortado.
+   Onde existe a lista de ofertas (página inicial), o carrossel copia a largura dela (--largura-card). */
+@media (max-width: 639px) {
+  .carrossel-item { width: var(--largura-card, min(86vw, 420px)); }
+}

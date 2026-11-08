@@ -35,7 +35,7 @@ const PALAVRAS = [
   "tênis de corrida", "tênis masculino", "tênis feminino", "tênis nike", "tênis adidas", "tênis olympikus",
   "tênis asics", "tênis mizuno", "tênis puma", "chuteira", "chinelo",
   // Suplementos
-  "whey protein", "creatina", "pré-treino", "barra de proteína", "coqueteleira",
+  "whey protein", "creatina", "pre treino", "barra de proteína", "coqueteleira",
   // Academia e esporte
   "halter", "anilha", "kettlebell", "colchonete", "corda de pular", "tapete de yoga", "luva de academia",
   "bola de futebol", "bicicleta", "mochila", "garrafa", "smartwatch",
