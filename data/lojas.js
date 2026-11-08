@@ -46,9 +46,25 @@ export const lojasDestaque = [
 
 export const lojaPorSlug = (slug) => lojasDestaque.find((l) => l.slug === slug) ?? null;
 
-// Qual loja configurada acima corresponde a um nome gravado nas ofertas (ou null)
-export const lojaDoNome = (nome) =>
-  lojasDestaque.find((l) => l.nomesNoBanco.some((n) => n.toLowerCase() === String(nome).toLowerCase())) ?? null;
+// Qual loja configurada acima corresponde a um nome gravado nas ofertas (ou null).
+// Aceita as variações das redes: "Aliexpress BR", "Kabum Brasil", "MERCADO LIVRE" etc.
+const simplificar = (s) =>
+  String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\.com(\.br)?$/g, "")
+    .replace(/\s+(br|brasil|brazil|oficial|loja oficial)$/g, "")
+    .replace(/[^a-z0-9]/g, "");
+export const lojaDoNome = (nome) => {
+  const alvo = simplificar(nome);
+  if (!alvo) return null;
+  return (
+    lojasDestaque.find((l) => l.nomesNoBanco.some((n) => n.toLowerCase() === String(nome).toLowerCase())) ??
+    lojasDestaque.find((l) => [l.nome, ...l.nomesNoBanco].some((n) => simplificar(n) === alvo)) ??
+    null
+  );
+};
 
 // Cor do cartão das lojas que ainda não têm logo (sempre a mesma para a mesma loja)
 const CORES = ["#1e293b", "#1d4ed8", "#7c3aed", "#0f766e", "#be123c", "#c2410c", "#4d7c0f", "#0369a1", "#9d174d", "#334155"];

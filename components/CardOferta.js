@@ -7,6 +7,7 @@ import ContagemRelampago from "./ContagemRelampago";
 import SeloSuperDesconto from "./SeloSuperDesconto";
 import { ehRelampago } from "../lib/relampago.mjs";
 import { lojaDoNome } from "../data/lojas";
+import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
 import { SITE } from "../lib/site";
 import {
   calcularDesconto,
@@ -171,7 +172,7 @@ export default function CardOferta({ oferta, previa = false }) {
       <div className="cartao-corpo">
         <h3 className="cartao-titulo" title={oferta.titulo}>
           <a {...paginaProps} {...clicavel}>
-            {oferta.titulo}
+            {ehCupom ? tituloDoCupom(oferta.titulo) : oferta.titulo}
           </a>
         </h3>
 

@@ -23,6 +23,8 @@ import { createClient } from "@supabase/supabase-js";
 import { CONFIG_ROBO } from "../../lib/prazos.mjs";
 import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
 import { cuponsRakuten } from "./rakuten.mjs";
+import { classificar } from "../../lib/classificar.mjs";
+import { produtoComCupom } from "../../lib/titulo-cupom.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
 const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
@@ -56,8 +58,30 @@ function validade(fim) {
   return new Date(Date.now() + DIAS_SEM_VALIDADE * 86400000).toISOString();
 }
 
-// Monta a oferta da aba Cupons
+// Monta a oferta da aba Cupons.
+// Exceção: "De R$ 4.500 por R$ 3.750 com cupom AFFNOV09 - PlayStation 5 ..." (comum nos vouchers do
+// AliExpress na Awin) é um PRODUTO com cupom: vira oferta normal, com preço "de", preço "por",
+// o cupom e a categoria do produto. Se a categoria do produto não for reconhecida, fica como cupom.
 function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao }) {
+  const produto = produtoComCupom(titulo) ?? produtoComCupom(descricao);
+  const categoriaProduto = produto ? classificar(produto.nome, loja) : null;
+  if (produto && categoriaProduto && categoriaProduto !== "cupons") {
+    return {
+      loja,
+      id_externo: id,
+      titulo: limpar(produto.nome),
+      categoria: categoriaProduto,
+      preco_atual: produto.por,
+      preco_antigo: produto.de,
+      cupom: (codigo || produto.codigo) ? String(codigo || produto.codigo).trim().toUpperCase().slice(0, 40) : null,
+      link,
+      imagem: imagem || null,
+      sobre: null,
+      expires_at: validade(fim),
+      // o preço com cupom é uma oferta escolhida pela loja: aceita a partir de 5% de desconto
+      desconto_minimo: 5,
+    };
+  }
   return {
     loja,
     id_externo: id,

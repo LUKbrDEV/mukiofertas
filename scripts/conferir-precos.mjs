@@ -36,6 +36,10 @@ import {
 // ===== AJUSTES =====
 const MAX_POR_EXECUCAO = 60; // quantas ofertas conferir por vez (o resto fica para a próxima)
 const PAUSA_MS = 1500; // pausa entre uma loja e outra, para não ser bloqueado
+// Ofertas com cupom: a loja mostra o preço SEM o cupom, então o preço lido pode ser um pouco maior.
+// Até este % acima, a oferta continua (é o desconto do cupom). Passou disso, o preço subiu de
+// verdade ou o cupom acabou: a oferta expira. (Antes, com cupom, nunca expirava.)
+const TOLERANCIA_COM_CUPOM = 30;
 // Lojas que não podem ser conferidas automaticamente
 const DOMINIOS_IGNORADOS = [/amazon\./i, /amzn\./i, /amaznlink/i, /\ba\.co\//i];
 // ===================
@@ -383,10 +387,14 @@ for (const o of pendentes) {
     resumo.semPreco++;
     falhasPorLoja[o.loja] = (falhasPorLoja[o.loja] ?? 0) + 1;
     acao = `sem preço (${resultado.erro})`;
-  } else if (o.cupom && novo > atual) {
-    // Com cupom, a loja mostra o preço antes do desconto do cupom: não expira por isso
+  } else if (o.cupom && novo > atual && ((novo - atual) / atual) * 100 <= TOLERANCIA_COM_CUPOM) {
+    // Com cupom, a loja mostra o preço antes do desconto do cupom: até a tolerância do cupom, continua
     resumo.comCupom++;
     acao = `mantida (tem cupom ${o.cupom}; a loja mostra R$ ${novo} sem o cupom)`;
+  } else if (o.cupom && novo > atual) {
+    campos.expires_at = agoraIso;
+    resumo.expiradas++;
+    acao = `EXPIRADA: com cupom ${o.cupom}, mas subiu de R$ ${atual} para R$ ${novo} (mais de ${TOLERANCIA_COM_CUPOM}%)`;
   } else if (precoSubiu(atual, novo)) {
     campos.expires_at = agoraIso;
     resumo.expiradas++;
