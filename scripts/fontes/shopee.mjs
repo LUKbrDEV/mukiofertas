@@ -81,6 +81,20 @@ const PALAVRAS_FITNESS = [
   "tênis de corrida", "tênis academia feminino", "garrafa academia", "mochila academia", "smartband",
 ];
 const BUSCAS_FITNESS_POR_EXECUCAO = 3; // buscas de fitness/academia a cada execução
+// Automotivo (carro e moto): lista própria, com buscas garantidas em toda execução
+const PALAVRAS_AUTOMOTIVO = [
+  // carro
+  "suporte celular veicular", "carregador veicular", "aspirador automotivo", "compressor de ar portátil pneu",
+  "câmera de ré", "central multimídia carro", "dash cam carro", "lâmpada super led farol", "tapete automotivo",
+  "capa de banco automotivo", "organizador porta malas", "aromatizador carro", "kit limpeza automotiva",
+  "cera automotiva", "película automotiva", "sensor de estacionamento", "macaco hidráulico", "cabo de chupeta",
+  "som automotivo bluetooth", "transmissor fm veicular",
+  // moto
+  "capacete moto", "luva motociclista", "jaqueta motociclista", "capa de chuva moto", "bauleto moto",
+  "suporte celular moto", "intercomunicador moto", "trava de disco moto", "antena corta pipa", "kit relação moto",
+  "retrovisor moto", "óleo moto 10w30", "balaclava moto",
+];
+const BUSCAS_AUTOMOTIVO_POR_EXECUCAO = 3; // buscas de carro/moto a cada execução
 const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
@@ -233,6 +247,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_NICHOS, BUSCAS_NICHOS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
   ];
 }
 

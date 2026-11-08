@@ -79,6 +79,15 @@ const PALAVRAS_FITNESS = [
 ];
 const BUSCAS_FITNESS_POR_EXECUCAO = 2;
 
+// Automotivo (carro e moto): 2 buscas garantidas em toda execução (rodízio próprio)
+const PALAVRAS_AUTOMOTIVO = [
+  "suporte celular veicular", "carregador veicular", "aspirador automotivo", "compressor de ar portátil",
+  "câmera de ré", "central multimídia android", "dash cam", "lâmpada led farol h4", "lâmpada led h7",
+  "transmissor fm bluetooth carro", "organizador carro", "luz ambiente carro", "capa volante", "sensor estacionamento",
+  "intercomunicador moto", "suporte celular moto", "luva moto", "capa chuva moto", "balaclava moto", "alarme moto",
+];
+const BUSCAS_AUTOMOTIVO_POR_EXECUCAO = 2;
+
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
 // ===================
@@ -280,6 +289,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_TECNOLOGIA, ajuste("aliexpress_buscas_tecnologia")),
     ...rodizio(PALAVRAS_OUTRAS, ajuste("aliexpress_buscas_outras")),
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
+    ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
   ];
 }
 
