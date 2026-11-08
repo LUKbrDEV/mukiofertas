@@ -25,6 +25,7 @@ import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
 import { cuponsRakuten } from "./rakuten.mjs";
 import { classificar } from "../../lib/classificar.mjs";
 import { produtoComCupom } from "../../lib/titulo-cupom.mjs";
+import { imagensAliExpress } from "./aliexpress-imagem.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
 const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
@@ -62,7 +63,7 @@ function validade(fim) {
 // Exceção: "De R$ 4.500 por R$ 3.750 com cupom AFFNOV09 - PlayStation 5 ..." (comum nos vouchers do
 // AliExpress na Awin) é um PRODUTO com cupom: vira oferta normal, com preço "de", preço "por",
 // o cupom e a categoria do produto. Se a categoria do produto não for reconhecida, fica como cupom.
-function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao }) {
+function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao, destino }) {
   const produto = produtoComCupom(titulo) ?? produtoComCupom(descricao);
   const categoriaProduto = produto ? classificar(produto.nome, loja) : null;
   if (produto && categoriaProduto && categoriaProduto !== "cupons") {
@@ -80,6 +81,7 @@ function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao }) {
       expires_at: validade(fim),
       // o preço com cupom é uma oferta escolhida pela loja: aceita a partir de 5% de desconto
       desconto_minimo: 5,
+      _destino: destino || null, // só para achar a foto (sai antes de gravar)
     };
   }
   return {
@@ -230,6 +232,7 @@ async function cuponsAwin() {
         titulo: p.title || p.description,
         codigo,
         link,
+        destino: p.url,
         // a Awin manda a data em UTC sem o "Z" no fim
         fim: p.endDate ? (/(Z|[+-]\d\d:?\d\d)$/.test(p.endDate) ? p.endDate : `${p.endDate}Z`) : null,
         descricao: [p.description, p.terms].filter(Boolean).join("\n\n"),
@@ -279,5 +282,19 @@ export async function buscar() {
       console.warn(`[cupons] ${nome} falhou: ${erro.message}`);
     }
   }
+
+  // Produtos com cupom do AliExpress chegam sem foto: busca a foto na API do AliExpress
+  const semFoto = itens.filter((i) => i.categoria !== "cupons" && !i.imagem && /aliexpress/i.test(i.loja ?? ""));
+  if (semFoto.length) {
+    const fotos = await imagensAliExpress(semFoto.map((i) => ({ item: i, link: i.link, destino: i._destino })))
+      .catch(() => new Map());
+    let achadas = 0;
+    for (const [pedido, foto] of fotos) {
+      pedido.item.imagem = foto;
+      achadas++;
+    }
+    console.log(`[cupons] Produtos com cupom do AliExpress: ${achadas} de ${semFoto.length} com foto.`);
+  }
+  for (const i of itens) delete i._destino;
   return itens;
 }
