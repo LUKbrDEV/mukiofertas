@@ -304,6 +304,10 @@ export default async function PaginaOferta({ params }) {
             )}
             {ehRelampago(oferta) && !expirada && <ContagemRelampago ate={oferta.relampago_ate} variante="pagina" />}
             {resumoPreco?.menorPreco30 && !expirada && <p className="pd-selo">📉 Menor preço dos últimos 30 dias</p>}
+            {/* Histórico de preço compacto, dentro do card (o grande ficava enorme em telas largas) */}
+            {mostrarGrafico && (
+              <GraficoPreco pontos={historico} precoAtual={oferta.preco_atual} resumo={resumoPreco} compacto />
+            )}
             {oferta.cupom && !expirada && (
               <div className="pd-cupom">
                 <BotaoCupom codigo={oferta.cupom} />
@@ -352,9 +356,6 @@ export default async function PaginaOferta({ params }) {
 
       {expirada && blocoRelacionadas}
 
-      {mostrarGrafico && (
-        <GraficoPreco pontos={historico} precoAtual={oferta.preco_atual} resumo={resumoPreco} />
-      )}
 
       <AnaliseOferta oferta={oferta} guia={guia} />
 

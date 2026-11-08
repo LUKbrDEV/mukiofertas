@@ -6,6 +6,7 @@
 // Uso: <CupomRevelar codigo="KABUM10" />
 
 import { useState } from "react";
+import { evento } from "./Analytics";
 
 const CSS = `
   .cupom-rv {
@@ -107,6 +108,7 @@ export default function CupomRevelar({ codigo }) {
     evento.preventDefault();
     evento.stopPropagation();
     await copiarTexto(codigo);
+    if (!revelado) evento("copiar_cupom", { cupom: codigo });
     setRevelado(true);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);

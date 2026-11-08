@@ -9,6 +9,7 @@ import "./cards-v2.css"; // visual novo dos cards de oferta (tire esta linha par
 import { categorias } from "../data/ofertas";
 import CascaCondicional from "../components/CascaCondicional";
 import AvisoCookies from "../components/AvisoCookies";
+import Analytics from "../components/Analytics";
 import AvisosMembro from "../components/AvisosMembro";
 import BotaoComunidade from "../components/BotaoComunidade";
 import Halloween from "../components/Halloween";
@@ -35,6 +36,9 @@ const DESCRICAO =
 
 // Tag do Google Ads (medição de conversões)
 const GOOGLE_ADS_ID = "AW-18414048816";
+// Google Analytics 4: o ID da "Métrica" (G-XXXXXXXXXX), na Vercel → Environment Variables
+// como NEXT_PUBLIC_GA4_ID. Sem ele, o site funciona normal, só não manda dados para o GA4.
+const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID;
 
 // Perfis oficiais do MukiOfertas em outros sites (ajudam o Google a reconhecer a marca).
 // Coloque aqui os links completos das suas redes, um por linha, entre aspas.
@@ -111,7 +115,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
-        {/* Tag do Google Ads */}
+        {/* Tag do Google (Google Ads + Google Analytics 4, mesmo script) */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
           strategy="afterInteractive"
@@ -122,8 +126,10 @@ export default async function RootLayout({ children }) {
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', '${GOOGLE_ADS_ID}');
+            ${GA4_ID ? `gtag('config', '${GA4_ID}');` : ""}
           `}
         </Script>
+        {GA4_ID && <Analytics />}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(dadosDaMarca).replace(/</g, "\\u003c") }}

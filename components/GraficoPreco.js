@@ -21,12 +21,85 @@ const CSS = `
   .gp-resumo strong { color: #0f172a; }
 `;
 
+// Versão compacta, dentro do card de preço (prop compacto)
+const CSS_MINI = `
+  .gpm { margin-top: 12px; padding: 10px 12px 8px; background: rgba(255,255,255,.75); border: 1px solid #dbe4f0; border-radius: 12px; }
+  .gpm-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12.5px; color: #475569; }
+  .gpm-topo strong { color: #0f172a; font-size: 13px; }
+  .gpm-status { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .gpm-status.bom { color: #15803d; background: #dcfce7; }
+  .gpm-status.neutro { color: #475569; background: #eef2f7; }
+  .gpm-status.alto { color: #b45309; background: #fef3c7; }
+  .gpm-grafico { position: relative; height: 46px; margin: 6px 0 4px; }
+  .gpm-grafico svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .gpm-linha { fill: none; stroke: #0a4bb8; stroke-width: 2; stroke-linejoin: round; }
+  .gpm-area { fill: #0a4bb8; opacity: .08; }
+  .gpm-ponto { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #ff7a1a; box-shadow: 0 0 0 2px #fff; }
+  .gpm-rodape { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #64748b; }
+  .gpm-rodape strong { color: #334155; }
+`;
+
+function GraficoMini({ pontos, precoAtual, resumo }) {
+  const agora = Date.now();
+  const atual = Number(precoAtual);
+  const serie = [...pontos, { preco: atual, em: agora }];
+  const t0 = serie[0].em;
+  const t1 = Math.max(agora, t0 + 86400000);
+  let yMin = resumo.menor;
+  let yMax = resumo.maior;
+  if (yMax - yMin < yMax * 0.05) {
+    yMin = yMin * 0.95;
+    yMax = yMax * 1.05;
+  }
+  const LW = 300, AH = 46;
+  const x = (t) => ((t - t0) / (t1 - t0)) * LW;
+  const y = (p) => 4 + (1 - (p - yMin) / (yMax - yMin || 1)) * (AH - 8);
+  let d = `M ${x(serie[0].em).toFixed(1)} ${y(serie[0].preco).toFixed(1)}`;
+  for (let i = 1; i < serie.length; i++) d += ` H ${x(serie[i].em).toFixed(1)} V ${y(serie[i].preco).toFixed(1)}`;
+  const area = `${d} V ${AH} H 0 Z`;
+  const dias = Math.max(1, Math.round(resumo.diasDeHistorico));
+
+  let status, classe;
+  if (resumo.maior - resumo.menor < 0.01) [status, classe] = ["Preço estável", "neutro"];
+  else if (atual <= resumo.menor + 0.01) [status, classe] = ["📉 Menor preço registrado", "bom"];
+  else if (atual >= resumo.maior - 0.01) [status, classe] = ["Maior preço registrado", "alto"];
+  else [status, classe] = [`R$ ${(atual - resumo.menor).toFixed(2).replace(".", ",")} acima do menor`, "alto"];
+
+  return (
+    <div className="gpm" aria-label={`Histórico de preço: entre ${formatarPreco(resumo.menor)} e ${formatarPreco(resumo.maior)}`}>
+      <style>{CSS_MINI}</style>
+      <div className="gpm-topo">
+        <span>
+          <strong>Histórico de preço</strong> · {dias <= 1 ? "desde hoje" : `${dias} dias`}
+        </span>
+        <span className={`gpm-status ${classe}`}>{status}</span>
+      </div>
+      <div className="gpm-grafico">
+        <svg viewBox={`0 0 ${LW} ${AH}`} preserveAspectRatio="none" aria-hidden="true">
+          <path className="gpm-area" d={area} />
+          <path className="gpm-linha" d={d} vectorEffect="non-scaling-stroke" />
+        </svg>
+        <span className="gpm-ponto" style={{ left: `${(x(agora) / LW) * 100}%`, top: `${(y(atual) / AH) * 100}%` }} />
+      </div>
+      <div className="gpm-rodape">
+        <span>
+          Menor: <strong>{formatarPreco(resumo.menor)}</strong>
+        </span>
+        <span>
+          Maior: <strong>{formatarPreco(resumo.maior)}</strong>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function dataCurta(ms) {
   return new Date(ms).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
-export default function GraficoPreco({ pontos, precoAtual, resumo }) {
+export default function GraficoPreco({ pontos, precoAtual, resumo, compacto = false }) {
   if (!pontos?.length || !resumo) return null;
+  if (compacto) return <GraficoMini pontos={pontos} precoAtual={precoAtual} resumo={resumo} />;
 
   // O preço de agora fecha a linha no dia de hoje
   const agora = Date.now();

@@ -124,6 +124,21 @@ const CAPAS = {
   "magazine luiza": { logo: "magalu.png", cor: "#0e89ff" },
   netshoes: { cor: "#5c2d91" },
 };
+// Nome padronizado: as redes mandam "Kabum BR", "Mercadolivre", "Magazine Luiza"...
+const NOMES_DE_LOJA = [
+  [/kabum/i, "KaBuM!"],
+  [/mercado ?livre|meli/i, "Mercado Livre"],
+  [/amazon/i, "Amazon"],
+  [/shopee/i, "Shopee"],
+  [/aliexpress/i, "AliExpress"],
+  [/magalu|magazine ?luiza/i, "Magalu"],
+  [/netshoes/i, "Netshoes"],
+];
+function nomeDaLoja(loja) {
+  const s = String(loja ?? "").trim();
+  for (const [re, nome] of NOMES_DE_LOJA) if (re.test(s)) return nome;
+  return s.replace(/\s+(br|brasil)$/i, "");
+}
 const CORES_RESERVA = ["#1e293b", "#1d4ed8", "#7c3aed", "#0f766e", "#be123c", "#c2410c"];
 const escapar = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -136,7 +151,7 @@ function corDoTexto(hex) {
 async function capaDaLoja(loja) {
   const L = 800;
   const A = 420;
-  const chave = String(loja).toLowerCase();
+  const chave = nomeDaLoja(loja).toLowerCase();
   let h = 0;
   for (const ch of chave) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const capa = CAPAS[chave] ?? { cor: CORES_RESERVA[h % CORES_RESERVA.length] };
@@ -157,7 +172,7 @@ async function capaDaLoja(loja) {
     camadas.push({ input: logo, top: Math.round((A - 110 - m.height) / 2) + 10, left: Math.round((L - m.width) / 2) });
   } else {
     camadas.push({
-      input: Buffer.from(`<svg width="${L}" height="300"><text x="50%" y="190" font-family="DejaVu Sans, Arial, sans-serif" font-size="96" font-weight="700" fill="${texto}" text-anchor="middle">${escapar(loja)}</text></svg>`),
+      input: Buffer.from(`<svg width="${L}" height="300"><text x="50%" y="190" font-family="DejaVu Sans, Arial, sans-serif" font-size="96" font-weight="700" fill="${texto}" text-anchor="middle">${escapar(nomeDaLoja(loja))}</text></svg>`),
       top: 0,
       left: 0,
     });
@@ -187,7 +202,7 @@ async function enviarPacoteDeCupons(db, grupo, lojaOk) {
     console.log("[whatsapp] Pacote de cupons: limite por hora atingido.");
     return null;
   }
-  const lojasRecentes = new Set((recentes ?? []).map((r) => String(r.loja).toLowerCase()));
+  const lojasRecentes = new Set((recentes ?? []).map((r) => nomeDaLoja(r.loja).toLowerCase()));
 
   const { data: cupons, error } = await db
     .from("ofertas")
@@ -204,8 +219,9 @@ async function enviarPacoteDeCupons(db, grupo, lojaOk) {
 
   const porLoja = new Map();
   for (const c of validos) {
-    if (lojasRecentes.has(String(c.loja).toLowerCase())) continue;
-    porLoja.set(c.loja, [...(porLoja.get(c.loja) ?? []), c]);
+    const nome = nomeDaLoja(c.loja);
+    if (lojasRecentes.has(nome.toLowerCase())) continue;
+    porLoja.set(nome, [...(porLoja.get(nome) ?? []), c]);
   }
   if (!porLoja.size) {
     console.log(`[whatsapp] Pacote de cupons: nenhum cupom novo (${validos.length} na fila, lojas em espera: ${[...lojasRecentes].join(", ") || "nenhuma"}).`);
