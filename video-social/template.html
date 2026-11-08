@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "Inter"; font-weight: 500; src: url("fonts/Inter-Medium.otf"); }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("fonts/Inter-SemiBold.otf"); }
+@font-face { font-family: "Inter"; font-weight: 800; src: url("fonts/Inter-ExtraBold.otf"); }
+@font-face { font-family: "Inter"; font-weight: 900; src: url("fonts/Inter-Black.otf"); }
+
+:root {
+  --azul-noite: #061445;
+  --azul: #0a2f9e;
+  --azul-claro: #2f7bff;
+  --laranja: #ff5a1f;
+  --laranja-claro: #ff8a3d;
+  --verde: #0b8a4b;
+  --tinta: #1c2432;
+  --tinta-suave: #5b6678;
+  --linha: #dce1e8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--azul-noite); }
+body { font-family: "Inter", sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+
+#palco { position: absolute; inset: 0; overflow: hidden;
+  background: radial-gradient(120% 70% at 50% 35%, #0d3bb8 0%, #082375 45%, var(--azul-noite) 100%); }
+
+/* fundo: anéis e etiquetas flutuando */
+.anel { position: absolute; border-radius: 50%; border: 3px solid rgba(80,150,255,.35);
+  box-shadow: 0 0 60px rgba(47,123,255,.35), inset 0 0 60px rgba(47,123,255,.2); }
+.flutua { position: absolute; font-size: 54px; opacity: .14; filter: grayscale(1) brightness(2); }
+.raios { position: absolute; left: 50%; top: 42%; width: 2600px; height: 2600px; margin: -1300px 0 0 -1300px;
+  background: repeating-conic-gradient(rgba(255,255,255,.06) 0 6deg, transparent 6deg 18deg); border-radius: 50%; opacity: 0; }
+
+.cena { position: absolute; inset: 0; opacity: 0; }
+.abs { position: absolute; }
+.centro-x { left: 0; right: 0; text-align: center; }
+
+.titulo { font-weight: 900; line-height: .98; letter-spacing: -2px; text-transform: uppercase; }
+.titulo .l { color: var(--laranja); }
+.kicker { font-weight: 800; letter-spacing: 6px; font-size: 30px; color: #9fc0ff; }
+
+/* etiqueta de preço */
+.etiqueta { width: 640px; height: 330px; background: #fff; color: var(--tinta); border-radius: 34px;
+  clip-path: polygon(16% 0, 100% 0, 100% 100%, 16% 100%, 0 50%); padding: 54px 0 0 170px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.etiqueta::before { content: ""; position: absolute; left: 70px; top: 145px; width: 40px; height: 40px; border-radius: 50%; background: var(--azul-noite); }
+.etiqueta .p1 { font-weight: 800; letter-spacing: 6px; font-size: 32px; color: var(--tinta-suave); }
+.etiqueta .p2 { font-weight: 900; font-size: 150px; letter-spacing: -6px; line-height: 1.05; white-space: nowrap; }
+.etiqueta .p2 small { font-size: 54px; vertical-align: 70px; margin-right: 8px; letter-spacing: 0; }
+.risco { position: absolute; left: 150px; top: 175px; height: 16px; background: #e5262b; border-radius: 8px; transform-origin: left center; transform: rotate(-8deg); }
+
+/* logo */
+.logo { border-radius: 50%; box-shadow: 0 0 0 10px rgba(255,255,255,.08), 0 0 90px rgba(255,138,61,.55); }
+
+/* chips de loja */
+.chip { display: inline-block; padding: 14px 30px; border-radius: 999px; border: 3px solid rgba(255,255,255,.85);
+  font-weight: 800; font-size: 34px; margin: 0 8px 16px; background: rgba(6,20,69,.55); }
+
+/* card de oferta */
+.card { position: absolute; width: 860px; left: 110px; background: #fff; color: var(--tinta); border-radius: 36px;
+  padding: 34px; display: flex; gap: 30px; box-shadow: 0 30px 90px rgba(0,0,0,.45); }
+.card .img { width: 230px; height: 230px; border-radius: 24px; background: #f3f5f8; flex: none; display: flex;
+  align-items: center; justify-content: center; overflow: hidden; font-size: 120px; }
+.card .img img { width: 100%; height: 100%; object-fit: contain; }
+.card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.badges { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.loja { background: var(--tinta); color: #fff; font-weight: 800; font-size: 24px; padding: 6px 14px; border-radius: 10px; }
+.desc { background: var(--laranja); color: #fff; font-weight: 900; font-size: 26px; padding: 6px 14px; border-radius: 10px; }
+.agora { color: var(--tinta-suave); font-weight: 600; font-size: 22px; }
+.card .nome { font-weight: 700; font-size: 32px; line-height: 1.2; max-height: 2.4em; overflow: hidden; }
+.card .de { color: var(--tinta-suave); font-size: 26px; text-decoration: line-through; margin-top: 10px; font-weight: 600; }
+.card .por { font-weight: 900; font-size: 64px; letter-spacing: -2px; color: var(--verde); line-height: 1; }
+.card .por small { font-size: 30px; letter-spacing: 0; vertical-align: 24px; margin-right: 4px; }
+.cupom { margin-top: 12px; align-self: flex-start; border: 3px dashed var(--laranja); color: var(--laranja); font-weight: 800; font-size: 24px; padding: 6px 14px; border-radius: 10px; }
+.botao { margin-top: 18px; align-self: flex-start; background: var(--laranja); color: #fff; font-weight: 900; font-size: 30px; padding: 16px 30px; border-radius: 16px; }
+
+/* card grande (cena detalhe) */
+.card.compacto { padding: 26px; }
+.card.compacto .img { width: 180px; height: 180px; font-size: 100px; }
+.card.compacto .botao, .card.compacto .cupom { display: none; }
+.card.compacto .por { font-size: 56px; }
+.card.grande { flex-direction: column; width: 820px; left: 130px; padding: 40px; gap: 22px; }
+.card.grande .img { width: 100%; height: 470px; font-size: 220px; }
+.card.grande .nome { font-size: 40px; }
+.card.grande .por { font-size: 96px; }
+.card.grande .por small { font-size: 40px; vertical-align: 40px; }
+.card.grande .botao { align-self: stretch; text-align: center; font-size: 40px; padding: 26px; }
+
+/* checks */
+.check { display: inline-flex; align-items: center; gap: 12px; padding: 14px 28px; border-radius: 999px; margin: 0 8px;
+  border: 3px solid var(--laranja-claro); color: #fff; font-weight: 800; font-size: 36px; background: rgba(255,90,31,.18); }
+.check i { font-style: normal; width: 40px; height: 40px; border-radius: 50%; background: var(--laranja); display: inline-flex; align-items: center; justify-content: center; font-size: 26px; }
+
+.dedo { position: absolute; font-size: 120px; filter: drop-shadow(0 10px 20px rgba(0,0,0,.4)); }
+.onda { position: absolute; width: 60px; height: 60px; border-radius: 50%; border: 6px solid #fff; }
+
+/* celular */
+.cel { position: absolute; left: 260px; top: 430px; width: 560px; height: 960px; border-radius: 70px; background: #0b1020;
+  padding: 22px; box-shadow: 0 40px 100px rgba(0,0,0,.55), 0 0 0 4px #2a3350; }
+.tela { width: 100%; height: 100%; border-radius: 52px; background: #edf0f4; overflow: hidden; position: relative; }
+.tela .topo { height: 120px; background: linear-gradient(#0a2f9e, #1d4fd8); display: flex; align-items: flex-end; padding: 0 30px 18px; gap: 14px; font-weight: 900; font-size: 30px; }
+.tela .topo img { width: 52px; height: 52px; border-radius: 50%; }
+.mini { margin: 16px 18px 0; background: #fff; border-radius: 22px; padding: 16px; display: flex; gap: 16px; color: var(--tinta); }
+.mini .img { width: 110px; height: 110px; border-radius: 14px; background: #f3f5f8; flex: none; display: flex; align-items: center; justify-content: center; font-size: 60px; overflow: hidden; }
+.mini .img img { width: 100%; height: 100%; object-fit: contain; }
+.mini .t { font-weight: 700; font-size: 20px; line-height: 1.25; max-height: 2.5em; overflow: hidden; }
+.mini .p { font-weight: 900; font-size: 34px; color: var(--verde); margin-top: 6px; }
+.notif { position: absolute; left: 60px; width: 960px; background: rgba(255,255,255,.97); color: var(--tinta); border-radius: 34px;
+  padding: 26px 30px; display: flex; gap: 24px; align-items: center; box-shadow: 0 24px 70px rgba(0,0,0,.45); }
+.notif img { width: 96px; height: 96px; border-radius: 22px; }
+.notif .a { font-size: 24px; color: var(--tinta-suave); font-weight: 600; }
+.notif .b { font-size: 34px; font-weight: 800; line-height: 1.2; }
+.notif .c { font-size: 26px; font-weight: 600; color: var(--tinta-suave); }
+
+/* canais */
+.painel { position: absolute; left: 90px; width: 900px; background: #fff; border-radius: 40px; padding: 36px; color: var(--tinta);
+  box-shadow: 0 30px 90px rgba(0,0,0,.45); border-bottom: 12px solid var(--laranja); }
+.painel .k { font-weight: 800; letter-spacing: 4px; font-size: 26px; color: var(--tinta-suave); margin-bottom: 22px; }
+.linha { display: flex; align-items: center; gap: 24px; padding: 22px 26px; border-radius: 24px; border: 3px solid var(--linha); margin-bottom: 18px; font-weight: 800; font-size: 46px; }
+.linha .ic { width: 80px; height: 80px; border-radius: 20px; display: flex; align-items: center; justify-content: center; flex: none; }
+.linha .tag { font-size: 24px; font-weight: 800; padding: 6px 16px; border-radius: 999px; background: var(--laranja); color: #fff; }
+.linha:last-child { margin-bottom: 0; }
+
+/* cta */
+.gratis { font-weight: 900; font-size: 250px; letter-spacing: -10px; line-height: 1; color: var(--laranja);
+  text-shadow: 0 12px 0 #b8330a, 0 30px 70px rgba(255,90,31,.6); }
+.btn-cta { display: inline-flex; align-items: center; gap: 20px; background: var(--laranja); color: #fff; font-weight: 900; font-size: 56px;
+  padding: 34px 64px; border-radius: 999px; box-shadow: 0 0 0 10px rgba(255,90,31,.25), 0 20px 60px rgba(255,90,31,.5); }
+.confete { position: absolute; width: 18px; height: 30px; border-radius: 4px; }
+
+/* legenda */
+#legenda { position: absolute; left: 60px; right: 60px; top: 1440px; text-align: center; font-weight: 800; font-size: 54px; line-height: 1.25;
+  text-shadow: 0 4px 14px rgba(0,0,0,.6); }
+#legenda span { transition: none; }
+#legenda .ativa { color: var(--laranja-claro); }
+</style>
+</head>
+<body>
+<div id="palco">
+  <div class="raios" id="raios"></div>
+  <div id="fundo"></div>
+
+  <!-- 1. gancho -->
+  <section class="cena" id="c-gancho">
+    <div class="abs titulo" id="g-t1" style="left:70px; top:250px; font-size:130px;">Ainda paga</div>
+    <div class="abs titulo" id="g-t2" style="left:70px; top:385px; font-size:130px;"><span class="l">preço cheio?</span></div>
+    <div class="abs" id="g-tag" style="left:240px; top:720px;">
+      <div class="etiqueta">
+        <div class="p1">PREÇO CHEIO</div>
+        <div class="p2" id="g-preco"></div>
+      </div>
+      <div class="risco" id="g-risco"></div>
+    </div>
+  </section>
+
+  <!-- 2. marca -->
+  <section class="cena" id="c-marca">
+    <img class="abs logo" id="m-logo" style="left:340px; top:430px; width:400px; height:400px;">
+    <div class="abs centro-x" id="m-t1" style="top:930px; font-weight:800; font-size:76px;">a gente garimpa as</div>
+    <div class="abs centro-x titulo" id="m-t2" style="top:1030px; font-size:104px;"><span class="l">melhores promoções</span></div>
+  </section>
+
+  <!-- 3. lojas -->
+  <section class="cena" id="c-lojas">
+    <div class="abs centro-x titulo" id="l-t" style="top:200px; font-size:92px;">Das maiores<br><span class="l">lojas do Brasil</span></div>
+    <div class="abs centro-x" id="l-chips" style="top:440px; padding:0 60px;"></div>
+    <div id="l-cards"></div>
+  </section>
+
+  <!-- 4. tempo real -->
+  <section class="cena" id="c-tempo">
+    <div class="cel" id="t-cel"><div class="tela"><div class="topo"><img id="t-logo"><span>MukiOfertas</span></div><div id="t-feed"></div></div></div>
+    <div class="notif" id="t-notif"><img id="t-nlogo"><div style="min-width:0"><div class="a">MukiOfertas · agora</div><div class="b" id="t-nb"></div><div class="c" id="t-nc"></div></div></div>
+  </section>
+
+  <!-- 5. detalhe -->
+  <section class="cena" id="c-detalhe">
+    <div id="d-card"></div>
+    <div class="abs centro-x" id="d-checks" style="top:1290px;">
+      <span class="check" id="d-k1"><i>✓</i>Preço</span><span class="check" id="d-k2"><i>✓</i>Cupom</span><span class="check" id="d-k3"><i>✓</i>Link direto</span>
+    </div>
+    <div class="onda" id="d-onda"></div>
+    <div class="dedo" id="d-dedo">👆</div>
+  </section>
+
+  <!-- 6. canais -->
+  <section class="cena" id="c-canais">
+    <div class="abs kicker" id="k-k" style="left:90px; top:300px;">ONDE ACHAR</div>
+    <div class="abs titulo" id="k-t" style="left:90px; top:360px; font-size:116px; text-transform:none; letter-spacing:-3px;">Receba onde<br><span class="l">preferir</span></div>
+    <div class="painel" id="k-painel" style="top:690px;">
+      <div class="k">3 CANAIS · GRÁTIS</div>
+      <div class="linha" id="k-l1"><div class="ic" style="background:#25d366">
+        <svg width="50" height="50" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.2.5.1.6 0l.9-1c.2-.3.4-.2.6-.1l2 .9c.3.2.5.2.5.3.1.2.1.7-.1 1.4Z"/></svg>
+      </div>WhatsApp <span class="tag">grupo</span></div>
+      <div class="linha" id="k-l2"><div class="ic" style="background:#229ed9">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="#fff"><path d="M21.9 4.3 18.7 19.6c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.2-8.3c.4-.4-.1-.6-.6-.2L6.2 13.3l-4.9-1.5c-1-.3-1.1-1 .2-1.6L20.6 2.9c.9-.3 1.6.2 1.3 1.4Z"/></svg>
+      </div>Telegram <span class="tag">canal</span></div>
+      <div class="linha" id="k-l3"><div class="ic" style="background:#eef2ff">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#0a2f9e" stroke-width="2.2"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c2.8 3 2.8 16 0 19M12 2.5c-2.8 3-2.8 16 0 19"/></svg>
+      </div><span id="k-site"></span><span id="k-cursor" style="font-weight:500; color:var(--laranja);">|</span></div>
+    </div>
+  </section>
+
+  <!-- 7. cta -->
+  <section class="cena" id="c-cta">
+    <img class="abs logo" id="a-logo" style="left:430px; top:250px; width:220px; height:220px;">
+    <div class="abs centro-x gratis" id="a-g" style="top:540px;">GRÁTIS</div>
+    <div class="abs centro-x" id="a-s" style="top:820px; font-weight:800; font-size:54px;">sem custo nenhum</div>
+    <div class="abs centro-x" id="a-b" style="top:960px;"><span class="btn-cta">👉 Entrar no grupo</span></div>
+    <div class="abs centro-x" id="a-r" style="top:1180px; font-weight:700; font-size:34px; color:#cfe0ff;">WhatsApp · Telegram · mukiofertas.com.br</div>
+    <div id="a-confete"></div>
+  </section>
+
+  <div id="legenda"></div>
+</div>
+
+<script>
+// ---------- utilidades de animação (tudo é função do tempo t => quadro determinístico) ----------
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const prog = (t, ini, dur) => clamp((t - ini) / dur);
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+const easeInOut = (p) => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const backOut = (p) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+const $ = (id) => document.getElementById(id);
+function set(el, { o = 1, x = 0, y = 0, s = 1, r = 0 } = {}) {
+  if (typeof el === "string") el = $(el);
+  el.style.opacity = o;
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
+}
+// entrada padrão: sobe e aparece
+function entra(el, t, ini, { dur = .45, dy = 60, dx = 0, s0 = 1, eas = easeOut } = {}) {
+  const p = eas(prog(t, ini, dur));
+  const po = prog(t, ini, dur * .6);
+  set(el, { o: po, x: dx * (1 - p), y: dy * (1 - p), s: s0 + (1 - s0) * p });
+  return p;
+}
+const brl = (v) => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- montagem a partir dos dados ----------
+const D = window.DADOS;
+const of = D.ofertas;
+const imgOuEmoji = (o) => (o.imagem ? `<img src="${o.imagem}">` : (o.emoji || "🛍️"));
+const pct = (o) => (o.preco_antigo > o.preco_atual ? Math.round((1 - o.preco_atual / o.preco_antigo) * 100) : 0);
+const precoHtml = (v) => { const [i, c] = brl(v).split(","); return `<small>R$</small>${i}<small style="vertical-align:baseline;font-size:.45em">,${c}</small>`; };
+
+function cardHtml(o, grande = false, id = "", extra = "") {
+  const d = pct(o);
+  return `<div class="card${grande ? " grande" : ""} ${extra}" ${id ? `id="${id}"` : ""}>
+    <div class="img">${imgOuEmoji(o)}</div>
+    <div class="info">
+      <div class="badges"><span class="loja">${esc(o.loja)}</span>${d ? `<span class="desc">-${d}%</span>` : ""}<span class="agora">agora</span></div>
+      <div class="nome">${esc(o.titulo)}</div>
+      ${o.preco_antigo > o.preco_atual ? `<div class="de">R$ ${brl(o.preco_antigo)}</div>` : ""}
+      <div class="por">${precoHtml(o.preco_atual)}</div>
+      ${o.cupom ? `<div class="cupom">CUPOM: ${esc(o.cupom)}</div>` : ""}
+      <div class="botao">Pegar promoção ›</div>
+    </div></div>`;
+}
+
+for (const id of ["m-logo", "t-logo", "t-nlogo", "a-logo"]) $(id).src = D.logo;
+
+const principal = of[0];
+$("g-preco").innerHTML = `<small>R$</small>${Math.round(principal.preco_antigo || principal.preco_atual).toLocaleString("pt-BR")}`;
+
+// título grande do gancho (vem do roteiro); diminui a fonte até caber na largura da tela
+const [gt1, gt2] = D.textos?.gancho_titulo ?? ["AINDA PAGA", "PREÇO CHEIO?"];
+$("g-t1").textContent = gt1;
+$("g-t2").innerHTML = `<span class="l">${esc(gt2)}</span>`;
+for (const id of ["g-t1", "g-t2"]) $(id).style.whiteSpace = "nowrap";
+window.ajustarTitulos = () => {
+  let tam = 130;
+  const larg = () => Math.max($("g-t1").scrollWidth, $("g-t2").scrollWidth);
+  while (tam > 70 && larg() > 940) { tam -= 4; $("g-t1").style.fontSize = $("g-t2").style.fontSize = tam + "px"; }
+  $("g-t2").style.top = 250 + tam * 1.04 + "px";
+};
+
+$("l-chips").innerHTML = D.lojas.map((l, i) => `<span class="chip" id="chip${i}">${esc(l)}</span>`).join("");
+$("l-cards").innerHTML = of.slice(0, 3).map((o, i) => cardHtml(o, false, `lc${i}`, "compacto")).join("");
+
+$("t-feed").innerHTML = of.slice(0, 5).map((o) => `<div class="mini"><div class="img">${imgOuEmoji(o)}</div><div style="min-width:0"><div class="t">${esc(o.titulo)}</div><div class="p">R$ ${brl(o.preco_atual)}</div></div></div>`).join("");
+$("t-nb").textContent = `Nova promoção: ${principal.titulo_curto || principal.titulo}`;
+$("t-nc").textContent = `R$ ${brl(principal.preco_atual)}${principal.cupom ? " · com cupom" : ""} · link direto`;
+
+$("d-card").innerHTML = cardHtml(principal, true, "dc");
+
+// fundo
+const fundo = $("fundo");
+const aneis = [
+  { x: -260, y: -200, d: 760 }, { x: 640, y: 1500, d: 820 }, { x: 780, y: -320, d: 520 },
+];
+fundo.innerHTML = aneis.map((a, i) => `<div class="anel" id="an${i}" style="left:${a.x}px;top:${a.y}px;width:${a.d}px;height:${a.d}px"></div>`).join("") +
+  ["🏷️", "%", "🛒", "⚡", "🏷️", "%", "🎁", "⚡", "🏷️", "%"].map((e, i) => `<div class="flutua" id="fl${i}" style="font-weight:900;color:#fff">${e}</div>`).join("");
+
+// confete (posições fixas por semente → sempre igual)
+let semente = 7;
+const rnd = () => ((semente = (semente * 16807) % 2147483647) / 2147483647);
+const cores = ["#ff5a1f", "#ff8a3d", "#ffffff", "#2f7bff", "#ffd23f"];
+const confetes = Array.from({ length: 60 }, () => ({ a: rnd() * Math.PI * 2, v: 500 + rnd() * 900, r: rnd() * 720, c: cores[Math.floor(rnd() * cores.length)] }));
+$("a-confete").innerHTML = confetes.map((c, i) => `<div class="confete" id="cf${i}" style="background:${c.c}"></div>`).join("");
+
+// ---------- linha do tempo ----------
+const cenas = D.cenas; // [{id, ini, fim, legenda}]
+const TRANS = .28;
+
+const anim = {
+  gancho(t, d) {
+    entra("g-t1", t, 0, { dx: -120, dy: 0 });
+    entra("g-t2", t, .12, { dx: -120, dy: 0 });
+    const p = backOut(prog(t, .25, .7));
+    const balanco = Math.sin(t * 3.2) * 3 * (1 - prog(t, .25, d));
+    set("g-tag", { o: prog(t, .25, .3), y: 260 * (1 - p), r: -8 + balanco, s: .8 + .2 * p });
+    const r = easeOut(prog(t, d * .55, .35));
+    $("g-risco").style.width = 470 * r + "px";
+  },
+  marca(t, d) {
+    const p = backOut(prog(t, .05, .6));
+    set("m-logo", { o: prog(t, 0, .2), s: .2 + .8 * p, r: (1 - p) * -25 });
+    $("m-logo").style.boxShadow = `0 0 0 ${10 + 8 * Math.sin(t * 5)}px rgba(255,255,255,.08), 0 0 ${90 + 30 * Math.sin(t * 5)}px rgba(255,138,61,.55)`;
+    entra("m-t1", t, d * .25);
+    entra("m-t2", t, d * .25 + .2, { s0: .85, eas: backOut });
+  },
+  lojas(t, d) {
+    entra("l-t", t, 0);
+    D.lojas.forEach((_, i) => entra(`chip${i}`, t, .15 + i * Math.min(.22, d * .08), { dy: 0, s0: .3, eas: backOut, dur: .4 }));
+    of.slice(0, 3).forEach((_, i) => {
+      const ini = .45 + i * Math.min(.3, d * .1);
+      const p = easeOut(prog(t, ini, .55));
+      set(`lc${i}`, { o: prog(t, ini, .25), y: 590 + i * 268 + 900 * (1 - p), r: (i - 1) * 2 * p, s: 1 });
+    });
+  },
+  tempo(t, d) {
+    const p = easeOut(prog(t, 0, .55));
+    set("t-cel", { o: prog(t, 0, .3), y: 500 * (1 - p), s: .9 + .1 * p });
+    $("t-feed").style.transform = `translateY(${-60 * easeInOut(prog(t, .6, d))}px)`;
+    const n = backOut(prog(t, d * .3, .5));
+    set("t-notif", { o: prog(t, d * .3, .2), y: 300 + (-260) * (1 - n) });
+  },
+  detalhe(t, d) {
+    const p = backOut(prog(t, 0, .55));
+    set("dc", { o: prog(t, 0, .25), y: 200 + 200 * (1 - p), s: .85 + .15 * p });
+    ["d-k1", "d-k2", "d-k3"].forEach((id, i) => entra(id, t, d * .15 + i * d * .18, { dy: 30, s0: .5, eas: backOut, dur: .35 }));
+    $("d-k2").style.display = principal.cupom ? "inline-flex" : "none";
+    // dedo toca o botão no fim
+    const btn = $("dc").querySelector(".botao").getBoundingClientRect();
+    const alvoX = btn.left + btn.width * .62, alvoY = btn.top + btn.height * .55;
+    const tIni = d * .62;
+    const m = easeInOut(prog(t, tIni, .5));
+    const toque = prog(t, tIni + .5, .12) - prog(t, tIni + .62, .15);
+    set("d-dedo", { o: prog(t, tIni, .15), x: alvoX - 40 + 160 * (1 - m), y: alvoY - 10 + 260 * (1 - m), s: 1 - .12 * toque });
+    const w = prog(t, tIni + .55, .5);
+    set("d-onda", { o: w > 0 ? (1 - w) : 0, x: alvoX - 30, y: alvoY - 30, s: 1 + w * 4 });
+    $("dc").querySelector(".botao").style.filter = `brightness(${1 + .25 * toque})`;
+  },
+  canais(t, d) {
+    entra("k-k", t, 0, { dx: -60, dy: 0 });
+    entra("k-t", t, .08, { dx: -80, dy: 0 });
+    entra("k-painel", t, .2, { dy: 120 });
+    const passo = d * .2;
+    ["k-l1", "k-l2", "k-l3"].forEach((id, i) => {
+      entra(id, t, .35 + i * passo, { dx: 80, dy: 0, dur: .35 });
+      $(id).style.background = t > .35 + i * passo ? "#fff3ec" : "#fff";
+      $(id).style.borderColor = t > .35 + i * passo ? "var(--laranja)" : "var(--linha)";
+    });
+    const site = "mukiofertas.com.br";
+    const n = Math.floor(clamp((t - (.35 + 2 * passo)) / (d * .25)) * site.length);
+    $("k-site").textContent = site.slice(0, n);
+    $("k-cursor").style.opacity = Math.floor(t * 3) % 2 ? 0 : 1;
+  },
+  cta(t, d) {
+    entra("a-logo", t, 0, { s0: .3, eas: backOut, dy: 0 });
+    const g = backOut(prog(t, .1, .55));
+    set("a-g", { o: prog(t, .1, .15), s: .3 + .7 * g, r: -6 * (1 - g) });
+    entra("a-s", t, .45);
+    const pulso = 1 + .05 * Math.sin(Math.max(0, t - .9) * 7);
+    const b = backOut(prog(t, .7, .45));
+    set("a-b", { o: prog(t, .7, .2), s: (.5 + .5 * b) * pulso });
+    entra("a-r", t, 1);
+    confetes.forEach((c, i) => {
+      const tt = Math.max(0, t - .15);
+      const x = 540 + Math.cos(c.a) * c.v * tt * .9;
+      const y = 680 + Math.sin(c.a) * c.v * tt * .9 + 900 * tt * tt;
+      set(`cf${i}`, { o: t > .15 ? clamp(1 - tt / 2.2) : 0, x, y, r: c.r * tt });
+    });
+  },
+};
+
+function fundoAnim(t) {
+  aneis.forEach((a, i) => set(`an${i}`, { x: Math.sin(t * .4 + i * 2) * 40, y: Math.cos(t * .35 + i) * 50, s: 1 + .04 * Math.sin(t * .6 + i) }));
+  for (let i = 0; i < 10; i++) {
+    const bx = (i * 211) % 1000 + 20, by = (i * 397) % 1800;
+    set(`fl${i}`, { o: .14, x: bx + Math.sin(t * .5 + i) * 30, y: ((by - t * (30 + i * 4)) % 1920 + 1920) % 1920, r: Math.sin(t + i) * 15 });
+  }
+}
+
+function legenda(t) {
+  const c = cenas.find((c) => t >= c.ini && t < c.fim) || cenas[cenas.length - 1];
+  const el = $("legenda");
+  if (el.dataset.cena !== c.id) {
+    el.dataset.cena = c.id;
+    el.innerHTML = c.legenda.replace(/R\$ /g, "R$\u00a0").split(" ").map((w) => `<span>${esc(w)}</span>`).join(" ");
+  }
+  // palavras: usa tempos reais da voz quando existem, senão divide a fala da cena
+  const spans = el.querySelectorAll("span");
+  const pal = c.palavras;
+  spans.forEach((s, i) => {
+    let ini, fim;
+    if (pal && pal.length === spans.length) { ini = pal[i].ini; fim = pal[i].fim; }
+    else { const fi = c.falaIni ?? c.ini, ff = c.falaFim ?? c.fim; const dur = (ff - fi) / spans.length; ini = fi + i * dur; fim = ini + dur; }
+    s.className = t >= ini && t < fim + .05 ? "ativa" : "";
+    s.style.opacity = t >= ini - .02 ? 1 : .35;
+  });
+  const lt = t - c.ini;
+  const p = easeOut(prog(lt, 0, .25));
+  el.style.opacity = prog(lt, 0, .15) * (1 - prog(t, c.fim - .12, .12) * (c === cenas[cenas.length - 1] ? 0 : 1));
+  el.style.transform = `translateY(${20 * (1 - p)}px)`;
+}
+
+window.seek = function (t) {
+  fundoAnim(t);
+  $("raios").style.opacity = cenas.find((c) => c.id === "cta" && t >= c.ini - .2) ? .9 : 0;
+  $("raios").style.transform = `rotate(${t * 8}deg)`;
+  for (const c of cenas) {
+    const el = $("c-" + c.id);
+    const visivel = t >= c.ini - .01 && t < c.fim + TRANS;
+    if (!visivel) { el.style.opacity = 0; el.style.visibility = "hidden"; continue; }
+    el.style.visibility = "visible";
+    const saida = c === cenas[cenas.length - 1] ? 0 : prog(t, c.fim, TRANS);
+    el.style.opacity = 1 - saida;
+    el.style.transform = `scale(${1 + .06 * saida})`;
+    el.style.filter = saida > 0 ? `blur(${saida * 10}px)` : "none";
+    anim[c.id](t - c.ini, c.fim - c.ini);
+  }
+  legenda(t);
+};
+
+window.pronto = (async () => {
+  await document.fonts.ready;
+  window.ajustarTitulos();
+  await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; }))));
+  window.seek(0);
+  return true;
+})();
+</script>
+</body>
+</html>

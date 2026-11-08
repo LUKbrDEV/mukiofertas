@@ -1,0 +1,14 @@
+{
+  "name": "mukiofertas-video-social",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "video": "node gerar.mjs",
+    "video:teste": "node gerar.mjs --teste",
+    "video:sem-voz": "node gerar.mjs --sem-voz"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "playwright": "^1.49.0"
+  }
+}
