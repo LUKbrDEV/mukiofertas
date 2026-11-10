@@ -165,8 +165,13 @@ function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
 }
 
 const PADRAO = {
-  relampago_preco_minimo: 500, // (agora é a regra do Super desconto; o nome ficou para não perder o que já foi salvo)
-  relampago_desconto_minimo: 40,
+  relampago_preco_minimo: 500, // (não é mais usado: a regra nova usa a economia em reais)
+  relampago_desconto_minimo: 40, // Super desconto: desconto mínimo (o nome ficou para não perder o que já foi salvo)
+  super_desconto_maximo: 70, // Super desconto: acima disso o desconto é suspeito (preço "de" inflado)
+  super_desconto_maximo_marketplace: 60, // o mesmo para Shopee e AliExpress
+  super_economia_minima: 150, // R$ economizados, no mínimo
+  super_nota_marketplace: 4.7, // Shopee/AliExpress: nota mínima do produto
+  super_percentual_maximo: 10, // no máximo X% das ofertas no ar com a tag
   relampago_horas_padrao: 6, // postagem do Telegram com "relâmpago" e sem hora: dura isso
   destaque_desconto_minimo: 60,
   desconto_minimo_publicar: 20,
@@ -303,7 +308,15 @@ export default function Configuracoes() {
   const regrasMudaram =
     c &&
     original &&
-    ["relampago_preco_minimo", "relampago_desconto_minimo", "destaque_desconto_minimo"].some(
+    [
+      "relampago_desconto_minimo",
+      "super_desconto_maximo",
+      "super_desconto_maximo_marketplace",
+      "super_economia_minima",
+      "super_nota_marketplace",
+      "super_percentual_maximo",
+      "destaque_desconto_minimo",
+    ].some(
       (k) => c[k] !== original[k]
     );
 
@@ -398,21 +411,60 @@ export default function Configuracoes() {
 
       <section className="adm-bloco">
         <h2>🔥 Super desconto</h2>
-        <p>A tag Super desconto aparece na foto da oferta. A oferta precisa ter as duas coisas.</p>
+        <p>
+          A tag é um selo de oferta realmente boa. A oferta precisa passar em <strong>todas</strong> as regras:
+          desconto real (nem pouco, nem exagerado), economia que vale a pena, <strong>menor preço dos últimos
+          30 dias</strong> (quando já tem histórico) e, na Shopee e no AliExpress, nota alta do produto. Mesmo
+          assim, só as de maior economia ficam com a tag, até o limite abaixo. A regra roda no banco
+          (supabase/super-desconto-v2.sql).
+        </p>
         <div className="adm-duas-colunas">
-          <Numero
-            rotulo="Preço acima de"
-            sufixo="R$"
-            valor={c.relampago_preco_minimo}
-            aoMudar={mudar("relampago_preco_minimo")}
-            passo={10}
-          />
           <Numero
             rotulo="Desconto de pelo menos"
             sufixo="%"
             max={99}
             valor={c.relampago_desconto_minimo}
             aoMudar={mudar("relampago_desconto_minimo")}
+          />
+          <Numero
+            rotulo="Economia de pelo menos"
+            sufixo="R$"
+            passo={10}
+            valor={c.super_economia_minima}
+            aoMudar={mudar("super_economia_minima")}
+            dica="Quanto a pessoa economiza (preço de − preço por)."
+          />
+          <Numero
+            rotulo="Desconto de no máximo"
+            sufixo="%"
+            max={99}
+            valor={c.super_desconto_maximo}
+            aoMudar={mudar("super_desconto_maximo")}
+            dica="Acima disso o preço “de” costuma ser inflado."
+          />
+          <Numero
+            rotulo="Shopee/AliExpress: desconto de no máximo"
+            sufixo="%"
+            max={99}
+            valor={c.super_desconto_maximo_marketplace}
+            aoMudar={mudar("super_desconto_maximo_marketplace")}
+          />
+          <Numero
+            rotulo="Shopee/AliExpress: nota mínima do produto"
+            sufixo="★"
+            max={5}
+            passo={0.1}
+            valor={c.super_nota_marketplace}
+            aoMudar={mudar("super_nota_marketplace")}
+          />
+          <Numero
+            rotulo="No máximo, das ofertas no ar"
+            sufixo="%"
+            min={1}
+            max={100}
+            valor={c.super_percentual_maximo}
+            aoMudar={mudar("super_percentual_maximo")}
+            dica="Mantém a tag rara: ficam só as de maior economia."
           />
         </div>
       </section>

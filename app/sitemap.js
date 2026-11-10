@@ -25,6 +25,11 @@ export default async function sitemap() {
   const fixas = [
     { url: `${base}/`, changeFrequency: "hourly", priority: 1 },
     { url: `${base}/black-friday`, changeFrequency: "hourly", priority: 0.9 },
+    ...["/recentes", "/maiores-descontos", "/mais-baratos", "/mais-procuradas"].map((p) => ({
+      url: `${base}${p}`,
+      changeFrequency: "hourly",
+      priority: 0.8,
+    })),
     ...atalhos
       .filter((a) => a.href !== "/" && !a.href.startsWith("/categoria/"))
       .map((a) => ({ url: `${base}${a.href}`, changeFrequency: "hourly", priority: 0.8 })),

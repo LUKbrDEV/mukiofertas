@@ -12,23 +12,37 @@ import { buscarOfertas, buscarLojasComCategorias, buscarConfigHome, calcularDesc
 import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { guias } from "../data/guias";
-import { regrasDaVitrine, escolherComVariedade, descontoDe } from "../lib/vitrine.mjs";
+import {
+  regrasDaVitrine,
+  escolherComVariedade,
+  descontoDe,
+  maioresDescontos,
+  maisBaratos,
+  recentesComVariedade,
+} from "../lib/vitrine.mjs";
 import { ehRelampago } from "../lib/relampago.mjs";
 
 export const revalidate = 60;
 
-// Página inicial no estilo "feed de ofertas":
+// Página inicial: faixas (carrosséis) na ordem em que a pessoa decide comprar, e depois o feed completo.
 //   1) Black Friday (some sozinha depois da data)
-//   2) ⚡ Relâmpago agora: uma linha curta em carrossel, fixa no topo
-//   3) Feed de ofertas em grade, com abas de ordenação
-//      (⭐ Destaques · 🆕 Recentes · 🔥 Mais quentes · 💸 Maiores descontos · 🎟️ Cupons),
-//      filtro rápido por departamento e botão "Carregar mais"
-//   4) Ofertas por loja  5) Guias de compra  6) Sobre o MukiOfertas
+//   2) ⚡ Relâmpago agora      URGÊNCIA: acaba logo, por isso vem primeiro
+//   3) ⭐ Destaques            AS MELHORES: desconto real + marca + loja confiável (lib/vitrine.mjs)
+//   4) 💸 Maiores descontos    ÂNCORA DE PREÇO: "era R$ X, agora R$ Y" chama atenção
+//   5) 🏆 Escolhas do Muki     PROVA SOCIAL: nota alta e aprovadas pela comunidade
+//   6) 🪙 Mais baratos         IMPULSO: até R$ 100, decisão rápida, gera o primeiro clique
+//   7) 🆕 Chegaram agora       NOVIDADE: motivo para voltar ao site todo dia
+//   8) Feed de ofertas em grade, com abas (Destaques · Recentes · Mais quentes · Maiores descontos ·
+//      Mais baratos · Cupons), filtro por departamento e botão "Carregar mais"
+//   9) Ofertas por loja  10) Guias de compra  11) Sobre o MukiOfertas
+// Uma oferta aparece em no máximo UMA faixa (as de cima têm prioridade), para a página não repetir.
 // Coluna da direita: ranking da comunidade e guias (WhatsApp/Telegram ficam no botão flutuante).
 // Quem aparece em Destaques: lib/vitrine.mjs (pontuação + variedade), com os números
 // ajustáveis no painel admin (Configurações → Página inicial).
 
 const NO_FEED = 96; // ofertas por aba do feed (o botão "Carregar mais" mostra de 24 em 24)
+const NA_FAIXA = 12; // ofertas em cada faixa (carrossel)
+const MINIMO_NA_FAIXA = 4; // com menos que isso, a faixa não aparece
 
 // Lojas que não aparecem na faixa "Relâmpago agora"
 const LOJAS_FORA_DO_RELAMPAGO = ["AliExpress"];
@@ -136,6 +150,29 @@ function maisQuentes(ofertas) {
     .map((x) => x.o);
 }
 
+// Uma faixa da página inicial: título, frase curta, "Ver todas" e o carrossel
+function Faixa({ id, titulo, subtitulo, href, ofertas }) {
+  if (ofertas.length < MINIMO_NA_FAIXA) return null;
+  return (
+    <section className="destaques" aria-labelledby={`titulo-${id}`}>
+      <div className="secao-cabecalho">
+        <div>
+          <h2 id={`titulo-${id}`} className="secao-titulo">
+            {titulo}
+          </h2>
+          {subtitulo && <p style={{ margin: "2px 0 0", fontSize: "0.88rem", color: "#475569" }}>{subtitulo}</p>}
+        </div>
+        {href && (
+          <Link href={href} className="botao-ver-mais">
+            Ver todas →
+          </Link>
+        )}
+      </div>
+      <LinhaOfertas ofertas={ofertas} />
+    </section>
+  );
+}
+
 // Caixas da coluna da direita (abaixo do ranking)
 function LateralExtra({ whatsapp, telegram }) {
   return (
@@ -190,7 +227,35 @@ export default async function Home() {
     .filter((o) => o.fixada_home)
     .sort((a, b) => (a.fixada_ordem ?? 999) - (b.fixada_ordem ?? 999));
   const semFixadas = (lista) => lista.filter((o) => !o.fixada_home);
-  const escolhas = [...fixadas, ...escolhasDoMuki(semFixadas(comDesconto))].slice(0, 12);
+  // ----- Faixas: cada oferta aparece em no máximo uma (as de cima escolhem primeiro) -----
+  const jaNaPagina = new Set(relampagos.map((o) => o.id));
+  const usar = (lista) => {
+    for (const o of lista) jaNaPagina.add(o.id);
+    return lista;
+  };
+  const semRepetir = (lista) => lista.filter((o) => !jaNaPagina.has(o.id));
+
+  // ⭐ Destaques: fixadas no painel primeiro, depois a melhor pontuação das últimas horas
+  let faixaDestaques = escolherComVariedade(semFixadas(noAr), r, {
+    maximo: NA_FAIXA,
+    horas: r.home_horas_destaque,
+    ignorar: jaNaPagina,
+  });
+  if (faixaDestaques.length < 8)
+    faixaDestaques = escolherComVariedade(semFixadas(noAr), r, { maximo: NA_FAIXA, ignorar: jaNaPagina });
+  faixaDestaques = usar([...semRepetir(fixadas), ...faixaDestaques].slice(0, NA_FAIXA));
+
+  // 💸 Maiores descontos (confiáveis, a partir de R$ 50)
+  const faixaDescontos = usar(maioresDescontos(noAr, r, { maximo: NA_FAIXA, ignorar: jaNaPagina }));
+
+  // 🏆 Escolhas do Muki
+  const escolhas = usar(escolhasDoMuki(semRepetir(semFixadas(comDesconto)), NA_FAIXA));
+
+  // 🪙 Mais baratos (até R$ 100, com 20%+ de desconto real)
+  const faixaBaratos = usar(maisBaratos(noAr, r, { maximo: NA_FAIXA, ignorar: jaNaPagina }));
+
+  // 🆕 Chegaram agora
+  const faixaRecentes = usar(recentesComVariedade(noAr, r, { maximo: NA_FAIXA, ignorar: jaNaPagina }));
 
   // ⭐ Destaques: pontuação (desconto confiável + cliques + marca + loja), com variedade
   let destaques = escolherComVariedade(semFixadas(noAr), r, { maximo: NO_FEED, horas: r.home_horas_destaque });
@@ -210,6 +275,9 @@ export default async function Home() {
     .filter((o) => Number(o.preco_atual) >= 50)
     .sort((a, b) => descontoDe(b) - descontoDe(a))
     .slice(0, NO_FEED);
+
+  // 🪙 Mais baratos (aba do feed: mais opções, sem limite de variedade tão apertado)
+  const baratos = maisBaratos(noAr, { ...r, home_max_por_categoria: 8, home_max_por_loja: 30 }, { maximo: NO_FEED });
 
   const cupons = cuponsNoAr.filter((o) => !o.expirada);
 
@@ -241,6 +309,13 @@ export default async function Home() {
       descricao: "Os maiores descontos sobre o preço anterior informado pela loja.",
       href: "/maiores-descontos",
       itens: itensDoFeed(descontos),
+    },
+    {
+      id: "baratos",
+      rotulo: "Mais baratos",
+      descricao: "Até R$ 100, do mais barato para o mais caro, só com desconto de verdade.",
+      href: "/mais-baratos",
+      itens: itensDoFeed(baratos),
     },
     {
       id: "cupons",
@@ -279,21 +354,44 @@ export default async function Home() {
           </section>
         )}
 
-        {escolhas.length >= 4 && (
-          <section className="destaques" aria-labelledby="titulo-escolhas">
-            <div className="secao-cabecalho">
-              <div>
-                <h2 id="titulo-escolhas" className="secao-titulo">
-                   Escolhas do Muki
-                </h2>
-                <p style={{ margin: "2px 0 0", fontSize: "0.88rem", color: "#475569" }}>
-                  Nota alta na loja, aprovadas pela comunidade e com desconto de verdade
-                </p>
-              </div>
-            </div>
-            <LinhaOfertas ofertas={escolhas} />
-          </section>
-        )}
+        <Faixa
+          id="destaques"
+          titulo="⭐ Destaques"
+          subtitulo="As melhores ofertas do momento: desconto real, marcas conhecidas e lojas confiáveis"
+          href="/mais-procuradas"
+          ofertas={faixaDestaques}
+        />
+
+        <Faixa
+          id="descontos"
+          titulo="💸 Maiores descontos"
+          subtitulo="Os maiores cortes de preço, conferidos (sem desconto inflado)"
+          href="/maiores-descontos"
+          ofertas={faixaDescontos}
+        />
+
+        <Faixa
+          id="escolhas"
+          titulo="🏆 Escolhas do Muki"
+          subtitulo="Nota alta na loja, aprovadas pela comunidade e com desconto de verdade"
+          ofertas={escolhas}
+        />
+
+        <Faixa
+          id="baratos"
+          titulo="🪙 Mais baratos"
+          subtitulo="Achadinhos até R$ 100 com desconto de verdade"
+          href="/mais-baratos"
+          ofertas={faixaBaratos}
+        />
+
+        <Faixa
+          id="recentes"
+          titulo="🆕 Chegaram agora"
+          subtitulo="As ofertas mais novas do site"
+          href="/recentes"
+          ofertas={faixaRecentes}
+        />
 
         <FeedOfertas abas={abas} departamentos={DEPARTAMENTOS} />
       </HomeComRanking>

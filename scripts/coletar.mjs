@@ -301,6 +301,14 @@ async function main() {
     .or(`expires_at.is.null,expires_at.gt.${agora}`);
   if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
 
+  // 🔥 Super desconto: recalcula o limite (só as X% de maior economia ficam com a tag).
+  // Precisa do supabase/super-desconto-v2.sql rodado; sem ele, só avisa.
+  {
+    const { data: superAlteradas, error: erroSuper } = await supabase.rpc("recalcular_super_desconto");
+    if (erroSuper) console.warn("[super desconto] Rode o supabase/super-desconto-v2.sql no Supabase:", erroSuper.message);
+    else if (superAlteradas) console.log(`[super desconto] ${superAlteradas} ofertas ganharam/perderam a tag.`);
+  }
+
   // As expiradas não são mais apagadas (a página delas continua no ar); só conta as arquivadas
   const limpeza = await limparExpiradas(supabase);
 
