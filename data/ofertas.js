@@ -32,6 +32,7 @@ export const categorias = [
   { slug: "games", nome: "Video Games", emoji: "🎮" },
   { slug: "jogos", nome: "Jogos", emoji: "💿", pai: "games" },
   { slug: "controles", nome: "Controles", emoji: "🕹️", pai: "games" },
+  { slug: "volantes", nome: "Volantes e Pedais", emoji: "🏎️", pai: "games" },
   { slug: "consoles", nome: "Consoles", emoji: "🎮", pai: "games" },
   { slug: "cadeiras-mesas", nome: "Cadeiras e Mesas", emoji: "🪑" },
 

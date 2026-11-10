@@ -101,6 +101,7 @@ export const menuDepartamentos = [
           { slug: "consoles", nome: "Consoles" },
           { slug: "jogos", nome: "Jogos" },
           { slug: "controles", nome: "Controles" },
+          { slug: "volantes", nome: "Volantes e pedais" },
         ],
       },
     ],
