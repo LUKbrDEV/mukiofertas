@@ -1,4 +1,4 @@
-// Fonte de ofertas: Awin (feed de produtos). Começa com a KaBuM!, e dá para acrescentar
+// Fonte de ofertas: Awin (feed de produtos). KaBuM! e Dafiti; dá para acrescentar
 // outras lojas da Awin na lista FEEDS.
 // Salve como scripts/fontes/awin.mjs. Usada pelo scripts/coletar.mjs.
 //
@@ -24,18 +24,38 @@
 // Variáveis (no .env.local e nos Secrets do GitHub):
 //   AWIN_FEED_KABUM   o endereço do feed da KaBuM! que a Awin gera em Toolbox → Create-a-Feed
 //                     (começa com https://productdata.awin.com/datafeed/download/apikey/...)
+//   AWIN_FEED_DAFITI_FEMININO / AWIN_FEED_DAFITI_MASCULINO / AWIN_FEED_DAFITI_KIDS
+//                     os 3 feeds da Dafiti (Create-a-Feed, um para cada)
+// Só uma loja no teste: node --env-file=.env.local scripts/testar-awin.mjs --loja dafiti
+//
+// Feeds "leves" (Dafiti: cerca de 700 mil produtos somando os 3): o catálogo é lido aos poucos,
+// sem carregar tudo na memória, e o robô guarda só os produtos com preço "de" e desconto.
+// Não grava histórico de preço de todos os produtos (isso lotaria o Supabase) e não abre páginas.
 //
 // Para testar sem gravar nada no banco:
 //   node --env-file=.env.local scripts/testar-awin.mjs
 
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, createGunzip } from "node:zlib";
+import { Readable } from "node:stream";
+import { StringDecoder } from "node:string_decoder";
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
-import { descontoMinimoDa, CONFIG_ROBO, CATEGORIAS_TECNOLOGIA } from "../../lib/prazos.mjs";
+import { descontoMinimoDa, CONFIG_ROBO, CATEGORIAS_TECNOLOGIA, precoSubiu } from "../../lib/prazos.mjs";
 
 // ===== AJUSTES =====
 // Lojas da Awin: para acrescentar outra, copie a linha, troque o nome, a variável e o prefixo
-const FEEDS = [{ loja: "KaBuM!", variavel: "AWIN_FEED_KABUM", prefixo: "awn-kbm-" }];
+// maxPorCategoria: variedade por download (moda tem poucas categorias, então a Dafiti aceita mais de cada)
+// leve: catálogo enorme (lê aos poucos, sem histórico e sem abrir páginas)
+// max: ofertas desse feed a cada download (no lugar de "Ofertas por download" do painel)
+// dica: palavra somada ao título só para o classificador (ex.: "infantil" no feed Kids)
+const FEEDS = [
+  { loja: "KaBuM!", variavel: "AWIN_FEED_KABUM", prefixo: "awn-kbm-" },
+  { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_FEMININO", prefixo: "awn-dft-", leve: true, max: 15, maxPorCategoria: 6, dica: "feminino" },
+  { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_MASCULINO", prefixo: "awn-dft-", leve: true, max: 10, maxPorCategoria: 5, dica: "masculino" },
+  { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_KIDS", prefixo: "awn-dft-", leve: true, max: 8, maxPorCategoria: 4, dica: "infantil" },
+];
+const DESCONTO_MINIMO_LEVE = 20; // feed leve: nem guarda na memória o que tiver menos que isso
+const CANDIDATOS_LEVE = 1500; // feed leve: só os X maiores descontos passam pelo classificador (é lento)
 
 // Valores que podem ser trocados no painel admin (Configurações → Awin / KaBuM!)
 const PADRAO = {
@@ -78,7 +98,10 @@ function ajuste(chave) {
   return v !== undefined && v !== null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : PADRAO[chave];
 }
 
-export const feedsConfigurados = () => FEEDS.filter((f) => process.env[f.variavel]);
+// apenas: "dafiti", "kabum"... (só essa loja; usado no teste)
+export const feedsConfigurados = (apenas = null) =>
+  FEEDS.filter((f) => process.env[f.variavel])
+    .filter((f) => !apenas || f.loja.toLowerCase().replace(/[^a-z]/g, "").includes(String(apenas).toLowerCase().replace(/[^a-z]/g, "")));
 
 // ---------- Leitura do arquivo CSV do feed ----------
 // Aceita campos entre aspas com vírgulas, quebras de linha e aspas duplas ("") dentro.
@@ -119,6 +142,68 @@ export function lerCsv(texto, separador = ",") {
     .map((l) => Object.fromEntries(nomes.map((n, i) => [n, l[i] ?? ""])));
 }
 
+// Mesma leitura, mas aos poucos: chama aoLinha(objeto) para cada produto e não guarda nada.
+// Serve para catálogos enormes (o arquivo aberto pode passar de 500 MB).
+export async function baixarFeedEmPartes(url, aoLinha) {
+  const bruto = await baixarBruto(url);
+  let campo = "";
+  let linha = [];
+  let aspas = false;
+  let crPendente = false;
+  let separador = null;
+  let nomes = null;
+  let total = 0;
+  const fecharLinha = () => {
+    linha.push(campo);
+    campo = "";
+    if (!nomes) nomes = linha.map((n) => n.trim().toLowerCase());
+    else if (linha.length > 1) {
+      total++;
+      aoLinha(Object.fromEntries(nomes.map((n, i) => [n, linha[i] ?? ""])));
+    }
+    linha = [];
+  };
+  const ler = (texto) => {
+    if (separador === null) {
+      const fim = texto.indexOf("\n");
+      separador = (fim >= 0 ? texto.slice(0, fim) : texto).includes("|") ? "|" : ",";
+    }
+    for (let i = 0; i < texto.length; i++) {
+      const c = texto[i];
+      if (crPendente) {
+        crPendente = false;
+        if (c === "\n") continue;
+      }
+      if (aspas) {
+        if (c === '"') {
+          if (texto[i + 1] === '"') {
+            campo += '"';
+            i++;
+          } else aspas = false; // (aspas duplas partidas entre dois pedaços: raro, vira fim de aspas)
+        } else campo += c;
+      } else if (c === '"') aspas = true;
+      else if (c === separador) {
+        linha.push(campo);
+        campo = "";
+      } else if (c === "\n" || c === "\r") {
+        if (c === "\r") crPendente = true;
+        fecharLinha();
+      } else campo += c;
+    }
+  };
+  if (ehGzip(bruto)) {
+    const gz = Readable.from([bruto]).pipe(createGunzip());
+    gz.setEncoding("utf8");
+    for await (const pedaco of gz) ler(pedaco);
+  } else {
+    const dec = new StringDecoder("utf8");
+    for (let i = 0; i < bruto.length; i += 1 << 20) ler(dec.write(bruto.subarray(i, i + (1 << 20))));
+    ler(dec.end());
+  }
+  if (campo || linha.length) fecharLinha();
+  return total;
+}
+
 const numero = (v) => {
   if (v === undefined || v === null || v === "") return null;
   let s = String(v).trim().replace(/[^\d.,]/g, "");
@@ -130,7 +215,8 @@ const numero = (v) => {
 // Esconde a chave da Awin nas mensagens de erro (o log do GitHub é visível no painel)
 const semChave = (t) => String(t).replace(/apikey\/[^/\s"]+/gi, "apikey/***");
 
-export async function baixarFeed(url) {
+// Baixa o arquivo (ainda compactado, bem menor que o catálogo aberto)
+async function baixarBruto(url) {
   let resposta;
   const inicio = Date.now();
   // Catálogo completo é grande: a Awin pode levar alguns minutos para montar e enviar o arquivo.
@@ -159,10 +245,17 @@ export async function baixarFeed(url) {
         : "";
     throw new Error(`a Awin respondeu ${resposta.status}: ${texto}${dica}`);
   }
-  let dados = Buffer.from(await resposta.arrayBuffer());
+  const dados = Buffer.from(await resposta.arrayBuffer());
   console.log(`[awin] Catálogo baixado: ${(dados.length / 1048576).toFixed(1)} MB em ${Math.round((Date.now() - inicio) / 1000)}s.`);
+  return dados;
+}
+
+const ehGzip = (b) => b[0] === 0x1f && b[1] === 0x8b;
+
+export async function baixarFeed(url) {
+  let dados = await baixarBruto(url);
   // gzip (o endereço do Create-a-Feed costuma ter /compression/gzip/)
-  if (dados[0] === 0x1f && dados[1] === 0x8b) dados = gunzipSync(dados);
+  if (ehGzip(dados)) dados = gunzipSync(dados);
   const texto = dados.toString("utf8");
   const separador = texto.slice(0, texto.indexOf("\n")).includes("|") ? "|" : ",";
   return lerCsv(texto, separador);
@@ -185,7 +278,11 @@ export function converter(linha, feed) {
   const antigo = numero(linha.product_price_old) ?? numero(linha.rrp_price);
   const link = linha.aw_deep_link || linha.merchant_deep_link;
   const pagina = enderecoDaLoja(linha);
-  const titulo = String(linha.product_name ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+  const titulo = String(linha.product_name ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*[-–|,]?\s*\b(tamanho|tam\.?)\s*:?\s*[\w/.]+\s*$/i, "") // "Tênis X - Tamanho 40" → "Tênis X"
+    .trim()
+    .slice(0, 200);
   const emEstoque = !("in_stock" in linha) || linha.in_stock === "" ? true : !/^(0|false|no|não)$/i.test(linha.in_stock);
   const id = linha.aw_product_id || linha.merchant_product_id || linha.product_id;
   if (!atual || !link || !titulo || !id || !emEstoque) return null;
@@ -200,7 +297,7 @@ export function converter(linha, feed) {
     imagem: linha.merchant_image_url || linha.image_url || linha.aw_image_url || linha.large_image || null,
     _pagina: pagina,
     _desconto: antigo && antigo > atual ? Math.round(((antigo - atual) / antigo) * 100) : 0,
-    _categoria: classificar(titulo, feed.loja),
+    _categoria: classificar(feed.dica ? `${titulo} ${feed.dica}` : titulo, feed.loja),
   };
 }
 
@@ -391,6 +488,65 @@ async function precosDasPaginas(db, produtos, loja) {
   return resumo;
 }
 
+// ---------- Vigia das ofertas que já estão no site ----------
+// A cada download, o preço de TODAS as ofertas da loja que estão no ar é conferido no feed
+// (não só as escolhidas de novo). Expira na hora quando:
+//   - o preço subiu mais que a tolerância do painel (lib/prazos.mjs)
+//   - o produto ficou sem estoque
+//   - o produto sumiu do feed (só se todos os feeds da loja baixaram sem erro)
+async function ofertasNoAr(db, loja) {
+  const mapa = new Map();
+  const agora = new Date().toISOString();
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await db
+      .from("ofertas")
+      .select("id, id_externo, preco_atual, titulo")
+      .eq("loja", loja)
+      .like("id_externo", "awn-%")
+      .eq("ativa", true)
+      .or(`expires_at.is.null,expires_at.gt.${agora}`)
+      .range(de, de + 999);
+    if (error) throw new Error(error.message);
+    for (const o of data ?? []) mapa.set(o.id_externo, { ...o, visto: false, precoFeed: null, semEstoque: false });
+    if ((data ?? []).length < 1000) break;
+  }
+  return mapa;
+}
+
+// Chamado para cada linha do feed: anota o preço de hoje das ofertas que estão no ar
+function vigiar(vigia, linha, feed) {
+  if (!vigia?.size) return;
+  const id = linha.aw_product_id || linha.merchant_product_id || linha.product_id;
+  const o = id && vigia.get(`${feed.prefixo}${id}`);
+  if (!o) return;
+  o.visto = true;
+  const semEstoque = "in_stock" in linha && linha.in_stock !== "" && /^(0|false|no|não)$/i.test(linha.in_stock);
+  if (semEstoque) return void (o.semEstoque = true);
+  const preco = numero(linha.search_price ?? linha.price ?? linha.store_price);
+  // mesmo produto em vários tamanhos: vale o menor preço em estoque
+  if (preco) o.precoFeed = o.precoFeed ? Math.min(o.precoFeed, preco) : preco;
+}
+
+async function expirarAsQueMudaram(db, loja, vigia, feedsOk) {
+  const motivos = { "preço subiu": 0, "sem estoque": 0, "saiu do feed": 0 };
+  const expirar = [];
+  for (const o of vigia.values()) {
+    let motivo = null;
+    if (!o.visto) motivo = feedsOk ? "saiu do feed" : null;
+    else if (o.precoFeed && precoSubiu(o.preco_atual, o.precoFeed)) motivo = "preço subiu";
+    else if (o.semEstoque && !o.precoFeed) motivo = "sem estoque";
+    if (!motivo) continue;
+    motivos[motivo]++;
+    expirar.push(o.id);
+  }
+  const agora = new Date().toISOString();
+  for (let i = 0; i < expirar.length; i += 200) {
+    const { error } = await db.from("ofertas").update({ expires_at: agora }).in("id", expirar.slice(i, i + 200));
+    if (error) console.warn(`[awin] Não consegui expirar ofertas da ${loja}: ${error.message}`);
+  }
+  console.log(`[awin] ${loja}: ${vigia.size} ofertas no ar conferidas no feed; expiradas →`, JSON.stringify(motivos));
+}
+
 // Baixa o feed só de X em X horas (o horário de agora decide; o robô roda a cada 30 min)
 function horaDeBaixar() {
   const horas = Math.max(1, ajuste("awin_horas_entre_downloads"));
@@ -415,12 +571,26 @@ async function buscarExistentes(loja, ids) {
   return mapa;
 }
 
+// Mesmo produto em tamanhos/cores diferentes (comum em moda) vira uma oferta só
+const chaveDoTitulo = (t) =>
+  String(t ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\b(tamanho|tam\.?)\s*\S+/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
 // Escolhe as melhores, sem repetir categoria demais
 function escolher(candidatos, maximo, maxPorCategoria = MAX_POR_CATEGORIA) {
   const porCategoria = new Map();
+  const titulos = new Set();
   const escolhidas = [];
   if (maximo <= 0) return escolhidas;
   for (const o of candidatos.sort((a, b) => b._desconto - a._desconto)) {
+    const chave = chaveDoTitulo(o.titulo);
+    if (titulos.has(chave)) continue;
+    titulos.add(chave);
     const n = porCategoria.get(o._categoria) ?? 0;
     if (n >= maxPorCategoria) continue;
     porCategoria.set(o._categoria, n + 1);
@@ -431,14 +601,14 @@ function escolher(candidatos, maximo, maxPorCategoria = MAX_POR_CATEGORIA) {
 }
 
 // ---------- Função usada pelo coletar.mjs ----------
-export async function buscar({ forcar = false } = {}) {
+export async function buscar({ forcar = false, apenas = null } = {}) {
   if (!ajuste("awin_ativo")) {
     console.log("[awin] Desligada no painel admin: pulando.");
     return [];
   }
-  const feeds = feedsConfigurados();
+  const feeds = feedsConfigurados(apenas);
   if (!feeds.length) {
-    console.log("[awin] Nenhum feed configurado (AWIN_FEED_KABUM): pulando.");
+    console.log("[awin] Nenhum feed configurado (AWIN_FEED_KABUM / AWIN_FEED_DAFITI_*): pulando.");
     return [];
   }
   if (!forcar && !horaDeBaixar()) {
@@ -448,12 +618,72 @@ export async function buscar({ forcar = false } = {}) {
 
   const agora = new Date().toISOString();
   const itens = [];
+  // vigia por loja (a Dafiti tem 3 feeds: o produto pode estar em qualquer um)
+  const dbVigia = banco();
+  const vigias = new Map(); // loja -> { mapa, ok, feeds }
   for (const feed of feeds) {
+    if (!dbVigia || vigias.has(feed.loja)) continue;
     try {
-      const linhas = await baixarFeed(process.env[feed.variavel]);
-      const produtos = linhas.map((l) => converter(l, feed)).filter(Boolean);
+      vigias.set(feed.loja, { mapa: await ofertasNoAr(dbVigia, feed.loja), ok: true });
+    } catch (e) {
+      console.warn(`[awin] Não consegui ler as ofertas da ${feed.loja} no ar: ${e.message}`);
+    }
+  }
+  // "saiu do feed" só vale se TODOS os feeds da loja estão configurados neste download
+  // (no teste com --loja, ou com um feed faltando, não expira por sumiço)
+  const todosOsFeedsDa = (loja) => FEEDS.filter((f) => f.loja === loja).every((f) => feeds.includes(f));
+  for (const feed of feeds) {
+    const vigia = vigias.get(feed.loja);
+    try {
+      let linhas;
+      let produtos;
+      if (feed.leve) {
+        // Lê aos poucos e guarda só o que já tem preço "de" com desconto (só os campos usados)
+        const crus = [];
+        const total = await baixarFeedEmPartes(process.env[feed.variavel], (l) => {
+          vigiar(vigia?.mapa, l, feed);
+          const atual = numero(l.search_price ?? l.price ?? l.store_price);
+          const antigo = numero(l.product_price_old) ?? numero(l.rrp_price);
+          if (!atual || !antigo || antigo <= atual || atual <= ajuste("awin_preco_minimo")) return;
+          const desconto = ((antigo - atual) / antigo) * 100;
+          if (desconto < DESCONTO_MINIMO_LEVE || desconto >= DESCONTO_MAXIMO) return;
+          // memória: de tempos em tempos fica só com os maiores descontos
+          if (crus.length >= CANDIDATOS_LEVE * 20) {
+            crus.sort((a, b) => b.desconto - a.desconto);
+            crus.length = CANDIDATOS_LEVE * 5;
+          }
+          crus.push({
+            desconto,
+            l: {
+              aw_product_id: l.aw_product_id, merchant_product_id: l.merchant_product_id, product_id: l.product_id,
+              product_name: l.product_name, search_price: l.search_price, price: l.price, store_price: l.store_price,
+              product_price_old: l.product_price_old, rrp_price: l.rrp_price, aw_deep_link: l.aw_deep_link,
+              merchant_deep_link: l.merchant_deep_link, merchant_image_url: l.merchant_image_url,
+              image_url: l.image_url, aw_image_url: l.aw_image_url, large_image: l.large_image, in_stock: l.in_stock,
+            },
+          });
+        });
+        // Classificar é a parte lenta: só os maiores descontos (sem repetir tamanhos) passam por ela
+        crus.sort((a, b) => b.desconto - a.desconto);
+        const vistos = new Set();
+        produtos = [];
+        for (const { l } of crus) {
+          const chave = chaveDoTitulo(String(l.product_name ?? "").replace(/\s*[-–|,]?\s*\b(tamanho|tam\.?)\s*:?\s*[\w/.]+\s*$/i, ""));
+          if (vistos.has(chave)) continue;
+          vistos.add(chave);
+          const o = converter(l, feed);
+          if (o) produtos.push(o);
+          if (vistos.size >= CANDIDATOS_LEVE) break;
+        }
+        console.log(`[awin] ${feed.loja} (${feed.dica}): ${vistos.size} produtos com os maiores descontos analisados.`);
+        linhas = { length: total };
+      } else {
+        linhas = await baixarFeed(process.env[feed.variavel]);
+        for (const l of linhas) vigiar(vigia?.mapa, l, feed);
+        produtos = linhas.map((l) => converter(l, feed)).filter(Boolean);
+      }
 
-      const db = banco();
+      const db = feed.leve ? null : banco(); // feed leve: sem histórico e sem ler páginas
       if (db) {
         // 1) grava o preço de hoje de todos os produtos (histórico)
         const gravados = await gravarHistorico(db, produtos);
@@ -494,17 +724,20 @@ export async function buscar({ forcar = false } = {}) {
       );
       const outras = escolher(
         bons.filter((o) => !ehTecnologia(o)),
-        ajuste("awin_max_por_execucao")
+        feed.max ?? ajuste("awin_max_por_execucao"),
+        feed.maxPorCategoria ?? MAX_POR_CATEGORIA
       );
       const escolhidas = [...tecnologia, ...outras];
+      const nome = feed.dica ? `${feed.loja} (${feed.dica})` : feed.loja;
       console.log(
-        `[awin] ${feed.loja}: ${linhas.length} produtos no feed, ${bons.length} com desconto ` +
+        `[awin] ${nome}: ${linhas.length} produtos no feed, ${bons.length} com desconto ` +
           `(${bons.filter(ehTecnologia).length} de tecnologia), ${escolhidas.length} escolhidos ` +
           `(${tecnologia.length} de tecnologia).`
       );
 
       const existentes = await buscarExistentes(feed.loja, escolhidas.map((o) => o.id_externo));
       for (const escolhida of escolhidas) {
+        if (itens.some((i) => i.id_externo === escolhida.id_externo)) continue; // mesmo produto em 2 feeds
         const { _desconto, _categoria, _pagina, _fonte, ...o } = escolhida;
         itens.push({
           ...o,
@@ -514,7 +747,22 @@ export async function buscar({ forcar = false } = {}) {
         });
       }
     } catch (erro) {
-      console.warn(`[awin] Falha no feed da ${feed.loja}: ${erro.message}`);
+      if (vigia) vigia.ok = false; // feed com erro: não dá para saber o que saiu do feed
+      console.warn(`[awin] Falha no feed da ${feed.loja}${feed.dica ? ` (${feed.dica})` : ""}: ${erro.message}`);
+    }
+  }
+
+  // Expira as ofertas no ar cujo preço subiu, que ficaram sem estoque ou que saíram do feed.
+  // No teste (scripts/testar-awin.mjs) nada é gravado.
+  for (const [loja, vigia] of vigias) {
+    if (process.env.AWIN_TESTE) {
+      console.log(`[awin] (teste) ${loja}: ${vigia.mapa.size} ofertas no ar seriam conferidas; nada foi alterado.`);
+      continue;
+    }
+    try {
+      await expirarAsQueMudaram(dbVigia, loja, vigia.mapa, vigia.ok && todosOsFeedsDa(loja));
+    } catch (e) {
+      console.warn(`[awin] Conferência das ofertas da ${loja} falhou: ${e.message}`);
     }
   }
   return itens;

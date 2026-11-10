@@ -42,6 +42,10 @@ export const lojasDestaque = [
     cor: "#ff2651",
   },
   { nome: "Shopee", slug: "shopee", nomesNoBanco: ["Shopee"], artigo: "da", logo: "/lojas/shopee.png", cor: "#f6412e" },
+  // Netshoes e Dafiti: sem logo por enquanto (aparece o nome escrito na cor da loja).
+  // Com a logo salva em public/lojas/netshoes.png ou dafiti.png, troque null pelo caminho ("/lojas/netshoes.png").
+  { nome: "Netshoes", slug: "netshoes", nomesNoBanco: ["Netshoes", "Netshoes BR"], artigo: "da", logo: null, cor: "#5a1e8c" },
+  { nome: "Dafiti", slug: "dafiti", nomesNoBanco: ["Dafiti", "Dafiti BR"], artigo: "da", logo: null, cor: "#111111" },
 ];
 
 export const lojaPorSlug = (slug) => lojasDestaque.find((l) => l.slug === slug) ?? null;

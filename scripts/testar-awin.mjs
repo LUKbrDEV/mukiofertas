@@ -1,4 +1,5 @@
-// Testa o feed da Awin (KaBuM!) sem gravar nada no banco.
+// Testa o feed da Awin (KaBuM! e Dafiti) sem gravar nada no banco.
+// Só uma loja: acrescente --loja dafiti (ou --loja kabum)
 // Salve como scripts/testar-awin.mjs e rode na raiz do projeto:
 //   node --env-file=.env.local scripts/testar-awin.mjs
 // Mostrar as colunas e a primeira linha do feed (para conferir o formato):
@@ -6,7 +7,8 @@
 // Testar a leitura do preço "de" numa página da KaBuM!:
 //   node scripts/testar-awin.mjs --pagina https://www.kabum.com.br/produto/110268/headphone-philco-pfo02p-56605003
 
-import { buscar, baixarFeed, feedsConfigurados, lerPrecoDe } from "./fontes/awin.mjs";
+process.env.AWIN_TESTE = "1"; // o teste não expira nenhuma oferta
+const { buscar, baixarFeed, baixarFeedEmPartes, feedsConfigurados, lerPrecoDe } = await import("./fontes/awin.mjs");
 
 const iPagina = process.argv.indexOf("--pagina");
 if (iPagina > -1) {
@@ -23,19 +25,33 @@ if (iPagina > -1) {
   process.exit(0);
 }
 
-console.log("\nTestando a Awin...");
-const feeds = feedsConfigurados();
+const iLoja = process.argv.indexOf("--loja");
+const apenas = iLoja > -1 ? process.argv[iLoja + 1] : null;
+console.log(`\nTestando a Awin${apenas ? ` (só ${apenas})` : ""}...`);
+const feeds = feedsConfigurados(apenas);
 if (!feeds.length) {
-  console.log("Nenhum feed encontrado: coloque AWIN_FEED_KABUM no .env.local (endereço do Create-a-Feed).");
+  console.log("Nenhum feed encontrado: coloque AWIN_FEED_KABUM / AWIN_FEED_DAFITI_FEMININO / _MASCULINO / _KIDS no .env.local (endereço do Create-a-Feed).");
   process.exit(1);
 }
 
 try {
+  // Feeds leves (Dafiti): o catálogo é enorme, então o teste só roda a busca (lê aos poucos)
+  if (feeds.every((f) => f.leve) && !process.argv.includes("--colunas")) {
+    const itens = await buscar({ forcar: true, apenas });
+    console.log(`\nTotal: ${itens.length} ofertas prontas (nada foi gravado):\n`);
+    for (const it of itens) {
+      const desconto = Math.round(((it.preco_antigo - it.preco_atual) / it.preco_antigo) * 100);
+      console.log(`  [${it.categoria}] ${it.titulo}\n    R$ ${it.preco_atual} (era R$ ${it.preco_antigo}, -${desconto}%)\n`);
+    }
+    process.exit(0);
+  }
   if (process.argv.includes("--colunas")) {
     for (const f of feeds) {
-      const linhas = await baixarFeed(process.env[f.variavel]);
-      console.log(`\n${f.loja}: ${linhas.length} produtos. Colunas: ${Object.keys(linhas[0] ?? {}).join(", ")}`);
-      console.log("\nPrimeira linha:\n", linhas[0]);
+      // lê aos poucos e mostra só a primeira linha (serve para catálogos enormes)
+      let primeira = null;
+      const total = await baixarFeedEmPartes(process.env[f.variavel], (l) => (primeira ??= l));
+      console.log(`\n${f.loja}${f.dica ? ` (${f.dica})` : ""}: ${total} produtos. Colunas: ${Object.keys(primeira ?? {}).join(", ")}`);
+      console.log("\nPrimeira linha:\n", primeira);
     }
     process.exit(0);
   }
@@ -76,7 +92,7 @@ try {
     );
   }
 
-  const itens = await buscar({ forcar: true });
+  const itens = await buscar({ forcar: true, apenas });
   console.log(`\nTotal: ${itens.length} ofertas prontas. Exemplos (nenhuma oferta foi gravada; só os preços entram no histórico):\n`);
   for (const it of itens.slice(0, 12)) {
     const desconto = Math.round(((it.preco_antigo - it.preco_atual) / it.preco_antigo) * 100);
