@@ -16,6 +16,15 @@ import {
   tempoAtras,
 } from "../lib/ofertas";
 
+// Tempo curto para o topo do card ("agora", "15 min", "11h", "3d"): sobra espaço para o nome da loja
+function tempoCurto(dataIso) {
+  const min = Math.max(0, Math.round((Date.now() - new Date(dataIso).getTime()) / 60000));
+  if (min < 1) return "agora";
+  if (min < 60) return `${min} min`;
+  if (min < 1440) return `${Math.round(min / 60)}h`;
+  return `${Math.round(min / 1440)}d`;
+}
+
 // Visual "cv2" (inspirado nos grandes sites de ofertas): loja e tempo no topo, foto limpa,
 // preço grande com a % OFF ao lado, selos (cupom, frete, economia), votos e botão grande.
 // Os estilos ficam em app/cards-v2.css. No celular o card vira uma linha (foto à esquerda,
@@ -93,9 +102,9 @@ export default function CardOferta({ oferta, previa = false }) {
         )}
         <span className="cv2-loja">{oferta.loja}</span>
         {quando && (
-          <span className="cv2-quando">
+          <span className="cv2-quando" title={tempoAtras(quando)}>
             <span className="cv2-ponto">· </span>
-            {tempoAtras(quando)}
+            {tempoCurto(quando)}
           </span>
         )}
         {ehRelampago(oferta) && !expirada && <ContagemRelampago ate={oferta.relampago_ate} />}

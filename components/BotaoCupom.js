@@ -80,7 +80,8 @@ export default function BotaoCupom({ codigo, compacto = false }) {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className={compacto ? "cupom-copiar cupom-copiar--compacto" : "cupom-copiar"}>
         <span className="cupom-copiar__codigo">
-          Cupom <strong>{codigo}</strong>
+          {/* no card, só o ícone (menos texto); na página da oferta continua "Cupom" */}
+          {compacto ? <span aria-hidden="true">🎟️</span> : "Cupom"} <strong>{codigo}</strong>
         </span>
         <button
           type="button"

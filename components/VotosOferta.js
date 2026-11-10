@@ -146,7 +146,7 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
         title="Gostei"
         style={botao(meu === 1, "#15803d")}
       >
-        <span aria-hidden="true" style={{ fontSize: 20 }}>👍</span> {curto(contagem.likes)}
+        <span aria-hidden="true" style={{ fontSize: 20 }}>👍</span> {contagem.likes > 0 && curto(contagem.likes)}
       </button>
       <button
         type="button"
@@ -156,7 +156,7 @@ export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa 
         title="Não gostei"
         style={botao(meu === -1, "#dc2626")}
       >
-        <span aria-hidden="true" style={{ fontSize: 20 }}>👎</span> {curto(contagem.dislikes)}
+        <span aria-hidden="true" style={{ fontSize: 20 }}>👎</span> {contagem.dislikes > 0 && curto(contagem.dislikes)}
       </button>
       {aviso && (
         <span
