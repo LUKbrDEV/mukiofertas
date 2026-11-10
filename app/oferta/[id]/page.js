@@ -18,6 +18,7 @@ import { paiDe } from "../../../lib/departamentos";
 import LinhaOfertas from "../../../components/LinhaOfertas";
 import SobreProduto from "../../../components/SobreProduto";
 import BotaoCupom from "../../../components/BotaoCupom";
+import { comCupomDaLoja, precoComCupom } from "../../../lib/cupom-loja.mjs";
 import AcoesOferta from "../../../components/AcoesOferta";
 import ContagemRelampago from "../../../components/ContagemRelampago";
 import SeloSuperDesconto from "../../../components/SeloSuperDesconto";
@@ -125,8 +126,10 @@ export async function generateMetadata({ params }) {
 
 export default async function PaginaOferta({ params }) {
   const { id } = await params;
-  const oferta = await buscarOfertaPorId(id);
+  // Lojas com cupom fixo (ex.: Netshoes → MUKIOFERTAS): o cupom aparece em todas as ofertas delas
+  const oferta = comCupomDaLoja(await buscarOfertaPorId(id));
   if (!oferta) notFound();
+  const comCupom = precoComCupom(oferta);
 
   const historico = await buscarHistorico(oferta.id);
   const resumoPreco = resumirHistorico(historico, oferta.preco_atual);
@@ -300,6 +303,11 @@ export default async function PaginaOferta({ params }) {
               <p className="pd-de">
                 de <s>{formatarPreco(oferta.preco_antigo)}</s>
                 {economia > 0 && !expirada && <strong> · você economiza {formatarPreco(economia)}</strong>}
+              </p>
+            )}
+            {comCupom && !expirada && (
+              <p className="pd-com-cupom">
+                🎟️ <strong>{formatarPreco(comCupom)}</strong> usando o cupom {oferta.cupom} ({oferta.cupom_percentual}% OFF)
               </p>
             )}
             {Number(oferta.preco_pix) > 0 && Number(oferta.preco_pix) < Number(oferta.preco_atual) && (
