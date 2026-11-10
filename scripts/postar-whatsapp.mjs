@@ -21,7 +21,27 @@ import { aplicarConfigDoBanco, CONFIG_ROBO, registrarExecucao } from "../lib/pra
 import { camposDaOferta, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
 import { gerarFrase, ESTILO_PADRAO } from "../lib/frase-ia.mjs";
 import { fotoComMarcaDagua } from "../lib/marca-dagua.mjs";
-import { writeFileSync, existsSync } from "node:fs";
+import { writeFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+// Memória local das frases (reserva para quando a coluna frase_whatsapp não existe ou falha)
+const ARQUIVO_FRASES = fileURLToPath(new URL("../data/frases-whatsapp-recentes.json", import.meta.url));
+function lerFrasesLocais() {
+  try {
+    return existsSync(ARQUIVO_FRASES) ? JSON.parse(readFileSync(ARQUIVO_FRASES, "utf8")) : [];
+  } catch {
+    return [];
+  }
+}
+function salvarFrasesLocais(lista) {
+  try {
+    mkdirSync(dirname(ARQUIVO_FRASES), { recursive: true });
+    writeFileSync(ARQUIVO_FRASES, JSON.stringify(lista.slice(0, 60), null, 1));
+  } catch (e) {
+    console.warn(`[whatsapp] não consegui salvar as frases recentes (${e.message})`);
+  }
+}
 import sharp from "sharp";
 import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
 
@@ -385,7 +405,11 @@ async function main() {
     .order("postada_whatsapp_em", { ascending: false })
     .limit(40);
   if (erroFrases) console.warn("[whatsapp] Rode o whatsapp-frases.sql no Supabase para o robô lembrar das frases já usadas.");
-  const recentes = (ultimas ?? []).map((u) => u.frase_whatsapp).filter(Boolean);
+  // junta as do banco com as do arquivo local (sem repetir), mais novas primeiro
+  const recentes = [
+    ...new Set([...(ultimas ?? []).map((u) => u.frase_whatsapp), ...lerFrasesLocais()].filter(Boolean)),
+  ].slice(0, 60);
+  console.log(`[whatsapp] ${recentes.length} frases recentes na memória (para não repetir).`);
   const contagemFrases = { ia: 0, banco: 0, motivos: new Set() };
 
   let enviadas = 0;
@@ -439,6 +463,7 @@ async function main() {
       // sem a coluna frase_whatsapp (whatsapp-frases.sql não rodado): marca só como enviada
       if (erroMarca) await db.from("ofertas").update({ postada_whatsapp_em: marca.postada_whatsapp_em }).eq("id", o.id);
       enviadas++;
+      if (fraseUsada) salvarFrasesLocais(recentes);
       console.log(`  ✓ ${o.titulo.slice(0, 70)}`);
     } catch (e) {
       falhas.push(e.message);
