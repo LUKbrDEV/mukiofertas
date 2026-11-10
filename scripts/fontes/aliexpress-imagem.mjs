@@ -40,8 +40,23 @@ async function seguirLink(link) {
   return idDoProdutoAliExpress(atual);
 }
 
+const numero = (v) => {
+  if (v === null || v === undefined || v === "") return NaN;
+  const t = String(v).replace(/[^\d.,-]/g, "");
+  return Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+};
+
 // Recebe [{ link, destino? }] e devolve Map(item -> url da imagem)
 export async function imagensAliExpress(itens) {
+  const detalhes = await detalhesAliExpress(itens);
+  const resultado = new Map();
+  for (const [item, d] of detalhes) if (d.foto) resultado.set(item, d.foto);
+  return resultado;
+}
+
+// Recebe [{ link, destino? }] e devolve Map(item -> { foto, original, venda, link })
+//   original = preço cheio na loja (sem promoção), venda = preço da loja hoje (sem o cupom)
+export async function detalhesAliExpress(itens) {
   const resultado = new Map();
   if (!itens.length || !aliexpressConfigurado()) return resultado;
 
@@ -67,12 +82,16 @@ export async function imagensAliExpress(itens) {
       const resp = json.aliexpress_affiliate_productdetail_get_response?.resp_result;
       const lista = resp?.result?.products?.product ?? resp?.result?.products ?? [];
       for (const p of Array.isArray(lista) ? lista : []) {
-        const foto = p.product_main_image_url;
-        if (!foto) continue;
-        for (const item of porId.get(String(p.product_id)) ?? []) resultado.set(item, foto);
+        const d = {
+          foto: p.product_main_image_url || null,
+          original: numero(p.target_original_price ?? p.original_price),
+          venda: numero(p.target_sale_price ?? p.sale_price),
+          link: p.promotion_link || null,
+        };
+        for (const item of porId.get(String(p.product_id)) ?? []) resultado.set(item, d);
       }
     } catch (erro) {
-      console.warn(`[aliexpress] Não consegui buscar as fotos: ${erro.message}`);
+      console.warn(`[aliexpress] Não consegui buscar os detalhes: ${erro.message}`);
     }
   }
   return resultado;

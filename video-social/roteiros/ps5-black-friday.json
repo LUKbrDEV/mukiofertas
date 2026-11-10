@@ -1,0 +1,20 @@
+{
+  "tema": "blackfriday",
+  "gancho_titulo": ["PARA TUDO!", "É BLACK FRIDAY"],
+  "lojas_titulo": ["Desconto", "em tudo"],
+  "chips": ["Celulares", "Casa", "Beleza", "Moda", "Games", "Mercado"],
+  "cenas": [
+    { "id": "gancho", "fala": "Para tudo! É Black Friday no Muki Ofertas!", "legenda": "Para tudo! É Black Friday no MukiOfertas!" },
+    { "id": "marca", "fala": "A gente garimpa as melhores promoções e confere os preços pra você.", "legenda": "A gente garimpa as melhores promoções e confere os preços pra você." },
+    { "id": "detalhe", "fala": "Olha esse PlayStation 5: de 4.899 por 3.751 reais, com cupom.", "legenda": "Olha esse PS5: de R$ 4.899 por R$ 3.751 com cupom." },
+    { "id": "lojas", "fala": "E tem desconto em celular, casa, beleza, moda e muito mais.", "legenda": "E tem desconto em celular, casa, beleza, moda e muito mais." },
+    { "id": "cta", "fala": "Antes de comprar qualquer coisa nessa Black Friday, passa no Muki Ofertas. Link na bio!", "legenda": "Antes de comprar qualquer coisa nessa Black Friday, passa no MukiOfertas. Link na bio!" }
+  ],
+  "cta": {
+    "grande": "ECONOMIZE",
+    "sub": "nesta Black Friday",
+    "botao": "Acessar o site",
+    "rodape": "mukiofertas.com.br · preços sujeitos a alteração"
+  },
+  "post": "É Black Friday no MukiOfertas 🖤🔥 PS5 Slim Digital de R$ 4.899 por R$ 3.751 com cupom, e desconto em celular, casa, beleza, moda e muito mais. Confira antes de comprar! Link na bio. Preços sujeitos a alteração. #blackfriday #promocao #ofertas #economia #mukiofertas"
+}

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IndexNow: controle do que já foi enviado
+scripts/.indexnow-enviados.json

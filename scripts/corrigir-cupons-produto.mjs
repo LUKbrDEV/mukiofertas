@@ -7,7 +7,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../lib/classificar.mjs";
 import { produtoComCupom } from "../lib/titulo-cupom.mjs";
-import { imagensAliExpress } from "./fontes/aliexpress-imagem.mjs";
+import { detalhesAliExpress } from "./fontes/aliexpress-imagem.mjs";
 
 const APLICAR = process.argv.includes("--aplicar");
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -43,10 +43,26 @@ for (const o of data ?? []) {
   });
 }
 
-// fotos do AliExpress
-const semFoto = mudancas.filter((m) => !m.o.imagem && /aliexpress/i.test(m.o.loja ?? ""));
-const fotos = await imagensAliExpress(semFoto.map((m) => ({ m, link: m.o.link })));
-for (const [pedido, foto] of fotos) pedido.m.novo.imagem = foto;
+// foto do produto e preço "de" do AliExpress (o formato "Por: R$ ..." não traz o preço "de";
+// e a imagem gravada num cupom costuma ser só a logo da loja)
+const doAli = mudancas.filter((m) => /aliexpress/i.test(m.o.loja ?? ""));
+const detalhes = await detalhesAliExpress(doAli.map((m) => ({ m, link: m.o.link })));
+for (const [pedido, d] of detalhes) {
+  const { novo } = pedido.m;
+  if (d.foto) novo.imagem = d.foto;
+  if (!novo.preco_antigo) {
+    const de = Math.max(d.original || 0, d.venda || 0);
+    if (de > novo.preco_atual) novo.preco_antigo = Math.round(de * 100) / 100;
+  }
+}
+// sem preço "de" ou sem foto não vira produto (continua cupom)
+for (let i = mudancas.length - 1; i >= 0; i--) {
+  const { o, novo } = mudancas[i];
+  if (!novo.preco_antigo || !(novo.imagem || o.imagem)) {
+    console.log(`  (sem preço "de" ou sem foto, fica como cupom) #${o.id} ${novo.titulo}`);
+    mudancas.splice(i, 1);
+  }
+}
 
 for (const { o, novo } of mudancas) {
   console.log(

@@ -25,7 +25,7 @@ import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
 import { cuponsRakuten } from "./rakuten.mjs";
 import { classificar } from "../../lib/classificar.mjs";
 import { produtoComCupom } from "../../lib/titulo-cupom.mjs";
-import { imagensAliExpress } from "./aliexpress-imagem.mjs";
+import { detalhesAliExpress } from "./aliexpress-imagem.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
 const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
@@ -63,11 +63,30 @@ function validade(fim) {
 // Exceção: "De R$ 4.500 por R$ 3.750 com cupom AFFNOV09 - PlayStation 5 ..." (comum nos vouchers do
 // AliExpress na Awin) é um PRODUTO com cupom: vira oferta normal, com preço "de", preço "por",
 // o cupom e a categoria do produto. Se a categoria do produto não for reconhecida, fica como cupom.
-function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao, destino }) {
+// "Por: R$ 3.290,84. Xiaomi Poco ... cupom AEMEGA8" (comum nas campanhas do AliExpress na Lomadee) só traz
+// o preço final: o preço "de" e a foto são buscados na API do AliExpress em buscar(). Se não achar o
+// preço "de", volta a ser um cupom comum (_comoCupom).
+// `logo` (logo da loja) só serve para cupom: produto com cupom precisa da foto do produto.
+function cupom({ loja, id, titulo, codigo, link, imagem, logo, fim, descricao, destino }) {
   const produto = produtoComCupom(titulo) ?? produtoComCupom(descricao);
   const categoriaProduto = produto ? classificar(produto.nome, loja) : null;
+  const comoCupom = {
+    loja,
+    id_externo: id,
+    titulo: limpar(titulo || `Cupom ${loja}`),
+    categoria: "cupons",
+    preco_atual: 0,
+    preco_antigo: null,
+    cupom: codigo ? String(codigo).trim().toUpperCase().slice(0, 40) : null,
+    link,
+    imagem: imagem || logo || null,
+    sobre: descricao ? limpar(descricao, 1500) : null,
+    expires_at: validade(fim),
+  };
   if (produto && categoriaProduto && categoriaProduto !== "cupons") {
     return {
+      _comoCupom: produto.de ? null : comoCupom, // sem preço "de": plano B se a API não ajudar
+      _destino: destino || null, // só para achar a foto e o preço (sai antes de gravar)
       loja,
       id_externo: id,
       titulo: limpar(produto.nome),
@@ -81,22 +100,9 @@ function cupom({ loja, id, titulo, codigo, link, imagem, fim, descricao, destino
       expires_at: validade(fim),
       // o preço com cupom é uma oferta escolhida pela loja: aceita a partir de 5% de desconto
       desconto_minimo: 5,
-      _destino: destino || null, // só para achar a foto (sai antes de gravar)
     };
   }
-  return {
-    loja,
-    id_externo: id,
-    titulo: limpar(titulo || `Cupom ${loja}`),
-    categoria: "cupons",
-    preco_atual: 0,
-    preco_antigo: null,
-    cupom: codigo ? String(codigo).trim().toUpperCase().slice(0, 40) : null,
-    link,
-    imagem: imagem || null,
-    sobre: descricao ? limpar(descricao, 1500) : null,
-    expires_at: validade(fim),
-  };
+  return comoCupom;
 }
 
 // ---------- Lomadee ----------
@@ -184,9 +190,10 @@ async function cuponsLomadee(existentes) {
         titulo: c.name,
         codigo: c.code,
         link,
-        imagem: marca?.logo ?? marca?.image ?? marca?.logoUrl ?? null,
+        logo: marca?.logo ?? marca?.image ?? marca?.logoUrl ?? null,
         fim: c.period?.endAt,
         descricao: c.description,
+        destino: c.url, // endereço da loja/produto (para achar a foto e o preço do AliExpress)
       })
     );
     if (itens.length >= ajuste("cupons_max_por_rede")) break;
@@ -283,18 +290,43 @@ export async function buscar() {
     }
   }
 
-  // Produtos com cupom do AliExpress chegam sem foto: busca a foto na API do AliExpress
-  const semFoto = itens.filter((i) => i.categoria !== "cupons" && !i.imagem && /aliexpress/i.test(i.loja ?? ""));
-  if (semFoto.length) {
-    const fotos = await imagensAliExpress(semFoto.map((i) => ({ item: i, link: i.link, destino: i._destino })))
+  // Produtos com cupom do AliExpress chegam sem foto (e às vezes sem preço "de"): busca na API do AliExpress
+  const faltando = itens.filter(
+    (i) => i.categoria !== "cupons" && (!i.imagem || !i.preco_antigo) && /aliexpress/i.test(i.loja ?? "")
+  );
+  if (faltando.length) {
+    const detalhes = await detalhesAliExpress(faltando.map((i) => ({ item: i, link: i.link, destino: i._destino })))
       .catch(() => new Map());
-    let achadas = 0;
-    for (const [pedido, foto] of fotos) {
-      pedido.item.imagem = foto;
-      achadas++;
+    let fotos = 0;
+    let precos = 0;
+    for (const [pedido, d] of detalhes) {
+      const i = pedido.item;
+      if (!i.imagem && d.foto) {
+        i.imagem = d.foto;
+        fotos++;
+      }
+      if (!i.preco_antigo) {
+        // preço "de" = o maior preço da loja sem o cupom (cheio ou o de hoje), se for maior que o preço com cupom
+        const de = Math.max(d.original || 0, d.venda || 0);
+        if (de > i.preco_atual) {
+          i.preco_antigo = Math.round(de * 100) / 100;
+          precos++;
+        }
+      }
     }
-    console.log(`[cupons] Produtos com cupom do AliExpress: ${achadas} de ${semFoto.length} com foto.`);
+    console.log(
+      `[cupons] Produtos com cupom do AliExpress: ${faltando.length} sem foto/preço; achei ${fotos} foto(s) e ${precos} preço(s) "de".`
+    );
   }
-  for (const i of itens) delete i._destino;
-  return itens;
+
+  // Produto com cupom que ficou sem preço "de" ou sem foto: volta a ser cupom (não entra R$ 0,00 sem foto como produto)
+  const prontos = itens.map((i) => {
+    if (i.categoria !== "cupons" && i._comoCupom && (!i.preco_antigo || !i.imagem)) return i._comoCupom;
+    return i;
+  });
+  for (const i of prontos) {
+    delete i._destino;
+    delete i._comoCupom;
+  }
+  return prontos;
 }
