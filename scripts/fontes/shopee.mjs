@@ -115,6 +115,30 @@ const PALAVRAS_BELEZA = [
   "sandália feminina", "pijama feminino", "biquíni",
 ];
 const BUSCAS_BELEZA_POR_EXECUCAO = 4; // buscas de beleza/moda feminina a cada execução
+// Natal (página /natal): árvores de vários tamanhos, decorações variadas, ceia e roupas natalinas.
+// Lista própria, com buscas garantidas em toda execução durante a temporada.
+const PALAVRAS_NATAL = [
+  // árvores (tamanhos e tipos diferentes)
+  "árvore de natal 1,20m", "árvore de natal 1,50m", "árvore de natal 1,80m", "árvore de natal 2,10m",
+  "árvore de natal nevada", "árvore de natal branca", "árvore de natal pequena de mesa", "árvore de natal com led",
+  "árvore de natal pinheiro luxo", "árvore de natal cheia", "árvore de natal fibra ótica", "árvore de natal parede",
+  // enfeites da árvore
+  "kit bolas de natal", "enfeites para árvore de natal", "ponteira estrela árvore de natal", "saia para árvore de natal",
+  "laço de natal para árvore", "pendente de natal", "bola de natal dourada", "bola de natal vermelha",
+  // luzes
+  "pisca pisca led 100 lâmpadas", "pisca pisca cascata", "cortina de led natal", "fio de fada led",
+  "pisca pisca solar", "mangueira luminosa led", "projetor led natal", "luminária de natal",
+  // decoração da casa
+  "guirlanda de natal", "presépio", "papai noel decorativo", "boneco de neve decorativo", "enfeite de porta natal",
+  "festão de natal", "rena decorativa natal", "vila de natal", "trenó decorativo",
+  // mesa e casa
+  "toalha de mesa natal", "jogo americano natal", "caminho de mesa natal", "almofada de natal", "tapete de natal",
+  "caneca de natal", "pratos de natal", "kit cozinha natal",
+  // roupas, ceia e presentes
+  "pijama de natal família", "gorro papai noel", "fantasia papai noel", "meia de natal", "suéter de natal",
+  "panetone", "chocotone", "cesta de natal", "embalagem para presente natal", "papel de presente natal",
+];
+const BUSCAS_NATAL_POR_EXECUCAO = 4; // buscas de Natal a cada execução (só na temporada)
 const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
 const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
 const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
@@ -254,6 +278,13 @@ function chaveDoModelo(titulo) {
     .join(" ");
 }
 
+// Natal: só busca na temporada (1º de novembro até a véspera de Natal). Fora dela, a lista fica parada.
+const emTemporadaDeNatal = () => {
+  const hoje = new Date();
+  const m = hoje.getMonth(); // 10 = novembro, 11 = dezembro
+  return m === 10 || (m === 11 && hoje.getDate() <= 24);
+};
+
 // Palavras desta execução (rodízio pela hora do dia)
 function rodizio(lista, quantas) {
   const blocos = Math.max(1, Math.ceil(lista.length / quantas));
@@ -269,6 +300,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
     ...rodizio(PALAVRAS_BELEZA, BUSCAS_BELEZA_POR_EXECUCAO),
+    ...(emTemporadaDeNatal() ? rodizio(PALAVRAS_NATAL, BUSCAS_NATAL_POR_EXECUCAO) : []),
   ];
 }
 

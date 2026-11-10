@@ -97,6 +97,16 @@ const PALAVRAS_BELEZA = [
 ];
 const BUSCAS_BELEZA_POR_EXECUCAO = 2;
 
+// Natal (página /natal): o AliExpress é forte em enfeites e luzes. Rodízio próprio, só na temporada.
+const PALAVRAS_NATAL = [
+  "árvore de natal", "árvore de natal pequena", "árvore de natal com luz", "árvore de natal nevada",
+  "enfeites de natal", "bolas de natal", "ponteira de árvore de natal", "saia de árvore de natal",
+  "pisca pisca led", "cortina de luz led", "fio de fada", "luz de natal solar", "projetor de natal",
+  "guirlanda de natal", "presépio", "boneco papai noel", "boneco de neve", "enfeite de porta natal",
+  "toalha de mesa natal", "almofada natal", "meia de natal", "gorro de natal", "pijama de natal",
+];
+const BUSCAS_NATAL_POR_EXECUCAO = 2;
+
 // Palavras no título que fazem a oferta ser ignorada
 const PALAVRAS_BLOQUEADAS = [/r[eé]plica/i, /\bfake\b/i];
 // ===================
@@ -286,6 +296,13 @@ function chaveDoModelo(titulo) {
     .join(" ");
 }
 
+// Natal: só busca na temporada (1º de novembro até a véspera de Natal). Fora dela, a lista fica parada.
+const emTemporadaDeNatal = () => {
+  const hoje = new Date();
+  const m = hoje.getMonth(); // 10 = novembro, 11 = dezembro
+  return m === 10 || (m === 11 && hoje.getDate() <= 24);
+};
+
 function rodizio(lista, quantas) {
   if (!(quantas > 0)) return [];
   const blocos = Math.max(1, Math.ceil(lista.length / quantas));
@@ -300,6 +317,7 @@ function palavrasDaVez() {
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_AUTOMOTIVO, BUSCAS_AUTOMOTIVO_POR_EXECUCAO),
     ...rodizio(PALAVRAS_BELEZA, BUSCAS_BELEZA_POR_EXECUCAO),
+    ...(emTemporadaDeNatal() ? rodizio(PALAVRAS_NATAL, BUSCAS_NATAL_POR_EXECUCAO) : []),
   ];
 }
 

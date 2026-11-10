@@ -77,6 +77,10 @@ export const categorias = [
   { slug: "skincare", nome: "Skincare", emoji: "🧴", pai: "beleza" },
   { slug: "higiene-pessoal", nome: "Higiene Pessoal", emoji: "🪥", pai: "beleza" },
 
+  { slug: "natal", nome: "Especial de Natal", emoji: "🎄" },
+  { slug: "arvores-de-natal", nome: "Árvores de Natal", emoji: "🎄", pai: "natal" },
+  { slug: "decoracao-natal", nome: "Decorações de Natal", emoji: "✨", pai: "natal" },
+
   { slug: "moda", nome: "Moda", emoji: "👕" },
   { slug: "moda-infantil", nome: "Infantil", emoji: "🧒", pai: "moda" },
   { slug: "moda-masculina", nome: "Masculino", emoji: "👔", pai: "moda" },

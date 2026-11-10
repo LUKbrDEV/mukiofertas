@@ -12,6 +12,36 @@ export const MOSTRAR_VAZIAS = false; // false = esconde as subcategorias que ain
 
 export const menuDepartamentos = [
   {
+    id: "natal",
+    nome: "Especial de Natal",
+    icone: "🎄",
+    mostrarVazias: true, // sempre aparece na temporada (os links da página /natal não dependem de ofertas)
+    colunas: [
+      {
+        titulo: "Natal",
+        href: "/natal",
+        itens: [
+          { slug: "arvores-de-natal", nome: "Árvores de Natal" },
+          { slug: "decoracao-natal", nome: "Decorações" },
+          { slug: "natal", nome: "Ofertas de Natal" },
+        ],
+      },
+      {
+        titulo: "Dicas de presentes",
+        href: "/natal#presentes",
+        itens: [
+          { href: "/natal#ate-50", nome: "Presentes até R$ 50" },
+          { href: "/natal#ate-100", nome: "Presentes até R$ 100" },
+          { href: "/natal#para-ela", nome: "Para ela" },
+          { href: "/natal#para-ele", nome: "Para ele" },
+          { href: "/natal#para-criancas", nome: "Para as crianças" },
+          { href: "/natal#para-quem-joga", nome: "Para quem joga" },
+          { href: "/natal#para-casa", nome: "Para a casa" },
+        ],
+      },
+    ],
+  },
+  {
     id: "eletronicos",
     nome: "Smartphones, Eletrônicos e TV",
     icone: "📱",

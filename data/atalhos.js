@@ -2,11 +2,12 @@
 // "tambem": outros endereços em que o atalho também aparece como ativo
 // Salve como data/atalhos.js
 export const atalhos = [
+  { href: "/natal", nome: "🎄 Natal", tambem: ["/categoria/natal", "/categoria/arvores-de-natal", "/categoria/decoracao-natal"] },
   { href: "/black-friday", nome: "🖤 Black Friday" },
-  { href: "/cupons", nome: "🎟️ Ofertas com cupom" },
-  { href: "/cupons-de-desconto", nome: "🏷️ Cupons" },
-  { href: "/guias", nome: "📖 Guias de compra" },
-  { href: "/comunidade", nome: "👥 Comunidade" },
+  { href: "/cupons", nome: "Ofertas com cupom" },
+  { href: "/cupons-de-desconto", nome: "Cupons" },
+  { href: "/guias", nome: "Guias de compra" },
+  { href: "/comunidade", nome: "Comunidade" },
 ];
 
 // Palavras procuradas no título. O _ vale por qualquer letra (assim "vídeo" e "video" casam).

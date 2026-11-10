@@ -11,6 +11,90 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 
+// Ícones dos departamentos: traço simples, todos na mesma cor (azul do site), como nos grandes sites de ofertas.
+// A chave é o "id" do departamento em data/menu-departamentos.js. Sem ícone aqui, aparece o emoji do "icone".
+const P = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+const ICONES = {
+  natal: (
+    <g {...P}>
+      <path d="M12 3l5 6h-3l4 5h-3l4 5H5l4-5H6l4-5H7l5-6z" />
+      <path d="M12 19v2.5" />
+    </g>
+  ),
+  eletronicos: (
+    <g {...P}>
+      <rect x="7" y="2.5" width="10" height="19" rx="2.2" />
+      <path d="M11 18.5h2" />
+    </g>
+  ),
+  informatica: (
+    <g {...P}>
+      <path d="M7.5 7h9a4.5 4.5 0 0 1 4.4 5.4l-.9 4.4a2.4 2.4 0 0 1-4.2 1l-1.8-2.3h-4l-1.8 2.3a2.4 2.4 0 0 1-4.2-1l-.9-4.4A4.5 4.5 0 0 1 7.5 7z" />
+      <path d="M8 10.5v3M6.5 12h3" />
+      <path d="M15.5 11h.01M17.5 13h.01" />
+    </g>
+  ),
+  casa: (
+    <g {...P}>
+      <rect x="6" y="2.5" width="12" height="19" rx="2" />
+      <path d="M6 9.5h12M9 5.5v1.5M9 12.5v3" />
+    </g>
+  ),
+  moda: (
+    <g {...P}>
+      <path d="M9 3.5 4 6l-1.5 4.5 3 1.2L6.5 10v10.5h11V10l1 1.7 3-1.2L20 6l-5-2.5a3 3 0 0 1-6 0z" />
+    </g>
+  ),
+  bebes: (
+    <g {...P}>
+      <path d="M4 5h2l1.2 3" />
+      <path d="M7.2 8H20a6.5 6.5 0 0 1-6.5 6.5h-1.8A4.5 4.5 0 0 1 7.2 8z" />
+      <path d="M20 8a6.5 6.5 0 0 0-6.5-6.5V8" />
+      <circle cx="9" cy="19" r="1.8" />
+      <circle cx="17" cy="19" r="1.8" />
+    </g>
+  ),
+  beleza: (
+    <g {...P}>
+      <path d="M12 20.5s-8-4.6-8-10.4A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8 2.5c0 5.8-8 10.4-8 10.4z" />
+    </g>
+  ),
+  esporte: (
+    <g {...P}>
+      <path d="M6.5 6.5l11 11" />
+      <path d="M3.5 9.5l6-6M5 11l6-6M13 19l6-6M14.5 20.5l6-6" />
+    </g>
+  ),
+  mercado: (
+    <g {...P}>
+      <path d="M2.5 3.5h2.6l2.3 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 7.5H6" />
+      <circle cx="9.5" cy="20" r="1.4" />
+      <circle cx="17" cy="20" r="1.4" />
+    </g>
+  ),
+  livros: (
+    <g {...P}>
+      <path d="M12 6.5C10 4.8 6.8 4.3 3 4.8v13.5c3.8-.5 7 0 9 1.7 2-1.7 5.2-2.2 9-1.7V4.8c-3.8-.5-7 0-9 1.7z" />
+      <path d="M12 6.5V20" />
+    </g>
+  ),
+  ferramentas: (
+    <g {...P}>
+      <path d="M14.7 6.3a4 4 0 0 0 5 5L21 10a5 5 0 0 1-6.6 6.6L8 23l-3-3 6.4-6.4A5 5 0 0 1 18 7z" transform="translate(-1.5 -2)" />
+    </g>
+  ),
+};
+
+function IconeDepartamento({ id, emoji }) {
+  const desenho = ICONES[id];
+  if (!desenho) return emoji;
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      {desenho}
+    </svg>
+  );
+}
+
 const CSS = `
   .mm-fundo { position: fixed; inset: 0; z-index: 70; background: rgba(15, 23, 42, .35); }
   .mm-painel {
@@ -28,8 +112,9 @@ const CSS = `
   .mm-grupo:hover { background: #f1f5f9; }
   .mm-icone {
     flex: none; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
-    border-radius: 50%; background: #eef2ff; font-size: 16px;
+    border-radius: 50%; background: #eef4ff; color: #0a4bb8; font-size: 16px;
   }
+  .mm-grupo[aria-current="true"] .mm-icone, .mm-grupo:hover .mm-icone { background: #dbe8ff; }
   .mm-grupo-seta { margin-left: auto; color: #94a3b8; display: none; }
   .mm-conteudo { padding: 18px 22px 22px; overflow-y: auto; }
   .mm-topo-grupo { display: none; }
@@ -145,7 +230,7 @@ export default function MenuDepartamentos({ departamentos = [] }) {
                 }}
               >
                 <span className="mm-icone" aria-hidden="true">
-                  {d.icone}
+                  <IconeDepartamento id={d.id} emoji={d.icone} />
                 </span>
                 <span>{d.nome}</span>
                 <span className="mm-grupo-seta" aria-hidden="true">
@@ -168,13 +253,13 @@ export default function MenuDepartamentos({ departamentos = [] }) {
             <div className="mm-colunas">
               {grupo.colunas.map((c) => (
                 <div key={c.titulo} className="mm-coluna">
-                  <h3>{c.slug ? <Link href={`/categoria/${c.slug}`}>{c.titulo}</Link> : c.titulo}</h3>
+                  <h3>{c.href || c.slug ? <Link href={c.href ?? `/categoria/${c.slug}`}>{c.titulo}</Link> : c.titulo}</h3>
                   <ul>
                     {c.itens.map((i) => (
-                      <li key={i.slug}>
+                      <li key={i.href ?? i.slug}>
                         <Link
-                          href={`/categoria/${i.slug}`}
-                          aria-current={pathname === `/categoria/${i.slug}` ? "page" : undefined}
+                          href={i.href ?? `/categoria/${i.slug}`}
+                          aria-current={!i.href && pathname === `/categoria/${i.slug}` ? "page" : undefined}
                         >
                           {i.nome}
                         </Link>
