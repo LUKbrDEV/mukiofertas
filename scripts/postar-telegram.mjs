@@ -56,6 +56,7 @@ function montarMensagem(o) {
     escapar(o.titulo),
     "",
     linhaPreco,
+    Number(o.preco_pix) > 0 && Number(o.preco_pix) < Number(o.preco_atual) ? `💠 <b>${preco(o.preco_pix)} no PIX</b>` : null,
     `🏬 ${escapar(o.loja)}`,
     o.cupom ? `🎟️ Cupom: <code>${escapar(o.cupom)}</code>` : null,
     "",

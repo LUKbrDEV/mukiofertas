@@ -302,6 +302,11 @@ export default async function PaginaOferta({ params }) {
                 {economia > 0 && !expirada && <strong> · você economiza {formatarPreco(economia)}</strong>}
               </p>
             )}
+            {Number(oferta.preco_pix) > 0 && Number(oferta.preco_pix) < Number(oferta.preco_atual) && (
+              <p className="pd-pix">
+                💠 <strong>{formatarPreco(oferta.preco_pix)}</strong> no PIX
+              </p>
+            )}
             {ehRelampago(oferta) && !expirada && <ContagemRelampago ate={oferta.relampago_ate} variante="pagina" />}
             {resumoPreco?.menorPreco30 && !expirada && <p className="pd-selo">📉 Menor preço dos últimos 30 dias</p>}
             {/* Histórico de preço compacto, dentro do card (o grande ficava enorme em telas largas) */}

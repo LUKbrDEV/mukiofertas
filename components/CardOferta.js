@@ -193,6 +193,9 @@ export default function CardOferta({ oferta, previa = false }) {
                   </span>
                 )}
               </span>
+              {Number(oferta.preco_pix) > 0 && Number(oferta.preco_pix) < Number(oferta.preco_atual) && (
+                <span className="cv2-pix">ou <strong>{formatarPreco(oferta.preco_pix)}</strong> no PIX</span>
+              )}
             </>
           )}
         </div>

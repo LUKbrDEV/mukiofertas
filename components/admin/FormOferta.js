@@ -22,6 +22,7 @@ const vazio = {
   categoria: categorias[0].slug,
   preco_atual: "",
   preco_antigo: "",
+  preco_pix: "",
   link: "",
   imagem: "",
   selo: "",
@@ -67,6 +68,7 @@ function iniciar(oferta, sugestao) {
     categoria: oferta.categoria ?? categorias[0].slug,
     preco_atual: String(oferta.preco_atual ?? ""),
     preco_antigo: oferta.preco_antigo ? String(oferta.preco_antigo) : "",
+    preco_pix: oferta.preco_pix ? String(oferta.preco_pix) : "",
     link: oferta.link ?? "",
     imagem: oferta.imagem ?? "",
     selo: oferta.selo ?? "",
@@ -100,6 +102,7 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
 
   const atual = numero(f.preco_atual);
   const antigo = numero(f.preco_antigo);
+  const pix = numero(f.preco_pix);
 
   const previa = {
     id: 0,
@@ -108,6 +111,7 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
     categoria: f.categoria,
     preco_atual: atual > 0 ? atual : 0,
     preco_antigo: antigo > 0 ? antigo : null,
+    preco_pix: pix > 0 && pix < atual ? pix : null,
     link: "#",
     imagem: f.imagem.trim() || null,
     selo: f.selo.trim(),
@@ -129,6 +133,8 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
     if (!(atual > 0)) return setErro("Informe o preço atual (por exemplo, 199,90).");
     if (f.preco_antigo.trim() && !(antigo > atual))
       return setErro("O preço antigo precisa ser maior que o preço atual.");
+    if (f.preco_pix.trim() && !(pix > 0 && pix < atual))
+      return setErro("O preço no PIX precisa ser menor que o preço atual (ou deixe em branco).");
     if (f.imagem.trim() && !/^https?:\/\//i.test(f.imagem.trim()))
       return setErro("O endereço da imagem precisa começar com http:// ou https://");
 
@@ -140,6 +146,7 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
       categoria: f.categoria,
       preco_atual: atual,
       preco_antigo: f.preco_antigo.trim() ? antigo : null,
+      preco_pix: f.preco_pix.trim() ? pix : null,
       link: f.link.trim(),
       imagem: f.imagem.trim() || null,
       selo: f.selo.trim() || null,
@@ -271,6 +278,16 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
               />
             </Campo>
           </div>
+
+          <Campo rotulo="Preço no PIX (R$)" dica="Opcional. Só se pagar no PIX sair mais barato que o preço atual.">
+            <input
+              className="adm-input"
+              inputMode="decimal"
+              placeholder="1.199,00"
+              value={f.preco_pix}
+              onChange={(e) => mudar("preco_pix", e.target.value)}
+            />
+          </Campo>
 
           <Campo
             rotulo="Link de afiliado"
