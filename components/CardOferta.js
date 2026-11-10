@@ -112,7 +112,8 @@ export default function CardOferta({ oferta, previa = false }) {
       </div>
 
       <a {...paginaProps} {...clicavel} className="cartao-img" aria-hidden="true" tabIndex={-1}>
-        {oferta.imagem ? (
+        {/* cupom de loja com logo: sempre o cartão da loja (todos iguais, sem banners soltos da rede) */}
+        {oferta.imagem && !(ehCupom && lojaComLogo) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={oferta.imagem} alt="" loading="lazy" />
         ) : lojaComLogo ? (

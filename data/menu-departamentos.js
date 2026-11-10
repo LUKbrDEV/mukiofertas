@@ -157,6 +157,7 @@ export const menuDepartamentos = [
           { slug: "moda-feminina", nome: "Feminino" },
           { slug: "moda-infantil", nome: "Infantil" },
           { slug: "roupas-fitness", nome: "Fitness e academia" },
+          { slug: "camisas-de-time", nome: "Camisas de time" },
         ],
       },
       {

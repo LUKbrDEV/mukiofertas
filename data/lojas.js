@@ -36,16 +36,15 @@ export const lojasDestaque = [
   {
     nome: "AliExpress",
     slug: "aliexpress",
-    nomesNoBanco: ["AliExpress", "Aliexpress"],
+    nomesNoBanco: ["AliExpress", "Aliexpress", "Aliexpress BR & LATAM", "AliExpress BR & LATAM"], // Awin manda "BR & LATAM"
     artigo: "do",
     logo: "/lojas/aliexpress.png",
     cor: "#ff2651",
   },
   { nome: "Shopee", slug: "shopee", nomesNoBanco: ["Shopee"], artigo: "da", logo: "/lojas/shopee.png", cor: "#f6412e" },
-  // Netshoes e Dafiti: sem logo por enquanto (aparece o nome escrito na cor da loja).
-  // Com a logo salva em public/lojas/netshoes.png ou dafiti.png, troque null pelo caminho ("/lojas/netshoes.png").
-  { nome: "Netshoes", slug: "netshoes", nomesNoBanco: ["Netshoes", "Netshoes BR"], artigo: "da", logo: null, cor: "#5a1e8c" },
-  { nome: "Dafiti", slug: "dafiti", nomesNoBanco: ["Dafiti", "Dafiti BR"], artigo: "da", logo: null, cor: "#111111" },
+  // Netshoes e Dafiti: logos em public/lojas/ (netshoes.png e dafiti.png)
+  { nome: "Netshoes", slug: "netshoes", nomesNoBanco: ["Netshoes", "Netshoes BR"], artigo: "da", logo: "/lojas/netshoes.png", cor: "#5a1e8c" },
+  { nome: "Dafiti", slug: "dafiti", nomesNoBanco: ["Dafiti", "Dafiti BR"], artigo: "da", logo: "/lojas/dafiti.png", cor: "#111111" },
 ];
 
 export const lojaPorSlug = (slug) => lojasDestaque.find((l) => l.slug === slug) ?? null;
@@ -58,7 +57,8 @@ const simplificar = (s) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\.com(\.br)?$/g, "")
-    .replace(/\s+(br|brasil|brazil|oficial|loja oficial)$/g, "")
+    // tira os finais de região, mesmo juntos: " BR", " Brasil", " BR & LATAM", " - LATAM"...
+    .replace(/((\s+(&|e|-|\/|\|))?\s+(br|brasil|brazil|latam|latinoamerica|america latina|oficial|loja oficial))+$/g, "")
     .replace(/[^a-z0-9]/g, "");
 export const lojaDoNome = (nome) => {
   const alvo = simplificar(nome);

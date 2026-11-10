@@ -103,15 +103,23 @@ export default function CupomRevelar({ codigo }) {
   const [copiado, setCopiado] = useState(false);
   if (!codigo) return null;
 
-  async function copiar(evento) {
+  async function copiar(e) {
     // dentro de um card que é link: não abre a loja ao clicar
-    evento.preventDefault();
-    evento.stopPropagation();
-    await copiarTexto(codigo);
-    if (!revelado) evento("copiar_cupom", { cupom: codigo });
+    // (o parâmetro se chama "e" para não esconder a função evento() do Analytics)
+    e.preventDefault();
+    e.stopPropagation();
+    // revela na hora, mesmo se a cópia ou a estatística falharem
     setRevelado(true);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
+    await copiarTexto(codigo);
+    if (!revelado) {
+      try {
+        evento("copiar_cupom", { cupom: codigo });
+      } catch {
+        // estatística nunca pode travar o cupom
+      }
+    }
   }
 
   return (

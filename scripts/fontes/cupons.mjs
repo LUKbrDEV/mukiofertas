@@ -21,10 +21,10 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { CONFIG_ROBO } from "../../lib/prazos.mjs";
-import { lojasDeCupom, lojaDeCupomPermitida } from "../../lib/lojas-cupom.mjs";
+import { lojasDeCupom, lojaDeCupomPermitida, LOJAS_GRANDES } from "../../lib/lojas-cupom.mjs";
 import { cuponsRakuten } from "./rakuten.mjs";
 import { classificar } from "../../lib/classificar.mjs";
-import { produtoComCupom } from "../../lib/titulo-cupom.mjs";
+import { produtoComCupom, limparTituloCupom } from "../../lib/titulo-cupom.mjs";
 import { detalhesAliExpress } from "./aliexpress-imagem.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
@@ -67,7 +67,11 @@ function validade(fim) {
 // o preço final: o preço "de" e a foto são buscados na API do AliExpress em buscar(). Se não achar o
 // preço "de", volta a ser um cupom comum (_comoCupom).
 // `logo` (logo da loja) só serve para cupom: produto com cupom precisa da foto do produto.
-function cupom({ loja, id, titulo, codigo, link, imagem, logo, fim, descricao, destino }) {
+function cupom({ loja: lojaDaRede, id, titulo: tituloDaRede, codigo, link, imagem, logo, fim, descricao, destino }) {
+  // nome padrão das lojas grandes ("Aliexpress BR & LATAM" da Awin → "AliExpress")
+  const loja = LOJAS_GRANDES.find((l) => l.re.test(String(lojaDaRede ?? "")))?.nome ?? lojaDaRede;
+  // título sem o pedaço em espanhol e sem o código repetido ("Ofertas Noviembre. Ganhe US$ 3...")
+  const titulo = tituloDaRede ? limparTituloCupom(tituloDaRede) : tituloDaRede;
   const produto = produtoComCupom(titulo) ?? produtoComCupom(descricao);
   const categoriaProduto = produto ? classificar(produto.nome, loja) : null;
   const comoCupom = {

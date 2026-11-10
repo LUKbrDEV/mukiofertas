@@ -81,6 +81,7 @@ export const categorias = [
   { slug: "moda-infantil", nome: "Infantil", emoji: "🧒", pai: "moda" },
   { slug: "moda-masculina", nome: "Masculino", emoji: "👔", pai: "moda" },
   { slug: "moda-feminina", nome: "Feminino", emoji: "👗", pai: "moda" },
+  { slug: "camisas-de-time", nome: "Camisas de Time", emoji: "⚽", pai: "moda" },
 
   { slug: "sapatos", nome: "Sapatos", emoji: "👟" },
   { slug: "mochilas", nome: "Mochilas e Malas", emoji: "🎒" },
