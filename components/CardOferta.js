@@ -8,7 +8,6 @@ import SeloSuperDesconto from "./SeloSuperDesconto";
 import { ehRelampago } from "../lib/relampago.mjs";
 import { lojaDoNome } from "../data/lojas";
 import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
-import { comCupomDaLoja, precoComCupom } from "../lib/cupom-loja.mjs";
 import { SITE } from "../lib/site";
 import {
   calcularDesconto,
@@ -22,10 +21,7 @@ import {
 // Os estilos ficam em app/cards-v2.css. No celular o card vira uma linha (foto à esquerda,
 // texto à direita), um por vez, com botão de compartilhar no WhatsApp.
 // previa = true: usado na prévia do painel admin (links desativados)
-export default function CardOferta({ oferta: original, previa = false }) {
-  // Lojas com cupom fixo (ex.: Netshoes → MUKIOFERTAS): o cupom aparece em todas as ofertas delas
-  const oferta = comCupomDaLoja(original);
-  const comCupom = precoComCupom(oferta);
+export default function CardOferta({ oferta, previa = false }) {
   const desconto = calcularDesconto(oferta);
   const economia = desconto > 0 ? oferta.preco_antigo - oferta.preco_atual : 0;
   const expirada = Boolean(oferta.expirada);
@@ -197,11 +193,6 @@ export default function CardOferta({ oferta: original, previa = false }) {
                   </span>
                 )}
               </span>
-              {comCupom && !expirada && (
-                <span className="cv2-pix cv2-com-cupom">
-                  <strong>{formatarPreco(comCupom)}</strong> com o cupom ({oferta.cupom_percentual}% OFF)
-                </span>
-              )}
               {Number(oferta.preco_pix) > 0 && Number(oferta.preco_pix) < Number(oferta.preco_atual) && (
                 <span className="cv2-pix">ou <strong>{formatarPreco(oferta.preco_pix)}</strong> no PIX</span>
               )}

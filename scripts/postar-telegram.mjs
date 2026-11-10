@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { converterLinkMagalu } from "../lib/afiliado-magalu.mjs";
-import { comCupomDaLoja, precoComCupom } from "../lib/cupom-loja.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -35,9 +34,7 @@ const descontoDe = (o) =>
     ? Math.round(((o.preco_antigo - o.preco_atual) / o.preco_antigo) * 100)
     : 0;
 
-function montarMensagem(oferta) {
-  const o = comCupomDaLoja(oferta); // Netshoes: cupom MUKIOFERTAS em todas
-  const comCupom = precoComCupom(o);
+function montarMensagem(o) {
   const desconto = descontoDe(o);
   const relampagoAte = o.relampago_ate && new Date(o.relampago_ate) > new Date() ? new Date(o.relampago_ate) : null;
   const topo = relampagoAte
@@ -61,9 +58,7 @@ function montarMensagem(oferta) {
     linhaPreco,
     Number(o.preco_pix) > 0 && Number(o.preco_pix) < Number(o.preco_atual) ? `💠 <b>${preco(o.preco_pix)} no PIX</b>` : null,
     `🏬 ${escapar(o.loja)}`,
-    o.cupom
-      ? `🎟️ Cupom: <code>${escapar(o.cupom)}</code>${comCupom ? ` (${o.cupom_percentual}% OFF: <b>${preco(comCupom)}</b>)` : ""}`
-      : null,
+    o.cupom ? `🎟️ Cupom: <code>${escapar(o.cupom)}</code>` : null,
     "",
     `👉 <a href="${escapar(destino)}">Ver oferta</a>`,
     "",
