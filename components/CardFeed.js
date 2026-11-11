@@ -186,9 +186,17 @@ export default function CardFeed({ oferta: o, previa = false }) {
 
       <div className="cf-corpo">
         <div className="cf-loja">
-          <span className="cf-sigla" aria-hidden="true">
-            {sigla(nomeLoja)}
-          </span>
+          {/* logo da loja na bolinha (com a cor da loja); loja sem logo: a sigla */}
+          {loja?.logo ? (
+            <span className="cf-sigla cf-sigla--logo" aria-hidden="true" style={{ background: loja.cor }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={loja.logo} alt="" loading="lazy" />
+            </span>
+          ) : (
+            <span className="cf-sigla" aria-hidden="true">
+              {sigla(nomeLoja)}
+            </span>
+          )}
           <span className="cf-loja-txt">
             <span className="cf-loja-nome">
               {nomeLoja}
