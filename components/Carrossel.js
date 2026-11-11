@@ -44,7 +44,7 @@ export default function Carrossel({ children, auto = 0 }) {
 
     function medir() {
       const grade = document.querySelector(".grade-cartoes");
-      const cartao = document.querySelector(".grade-cartoes .cartao");
+      const cartao = document.querySelector(".grade-cartoes .cartao, .grade-cartoes .cf");
       if (!grade || !cartao) return;
 
       const largura = cartao.getBoundingClientRect().width;

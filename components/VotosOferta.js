@@ -11,7 +11,7 @@ import { supabase } from "../lib/supabase";
 const CHAVE_VOTOS = "muki-votos";
 const CHAVE_APARELHO = "muki-aparelho";
 
-function lerVotos() {
+export function lerVotos() {
   try {
     return JSON.parse(localStorage.getItem(CHAVE_VOTOS) || "{}");
   } catch {
@@ -19,7 +19,7 @@ function lerVotos() {
   }
 }
 
-function guardarVoto(id, voto) {
+export function guardarVoto(id, voto) {
   try {
     const votos = lerVotos();
     if (voto) votos[id] = voto;
@@ -30,7 +30,7 @@ function guardarVoto(id, voto) {
   }
 }
 
-function idDoAparelho() {
+export function idDoAparelho() {
   try {
     let id = localStorage.getItem(CHAVE_APARELHO);
     if (!id) {
@@ -47,7 +47,7 @@ function idDoAparelho() {
 // Conta 1 vez por produto: curtir de novo não soma, e tirar o like tira o XP.
 // Grava pela função registrar_like_xp do Supabase (xp-likes.sql), que usa o login de quem clicou
 // e não depende das regras de acesso (RLS) da tabela. Devolve "ok", "removido" ou "sem_login".
-async function registrarLikeNaConta(ofertaId, curtiu) {
+export async function registrarLikeNaConta(ofertaId, curtiu) {
   try {
     const { data: sessao } = await supabase.auth.getSession();
     if (!sessao?.session?.user?.id) return "sem_login"; // sem login o like vale, mas não dá XP
@@ -63,7 +63,7 @@ async function registrarLikeNaConta(ofertaId, curtiu) {
   }
 }
 
-const curto = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".", ",")} mil` : String(n));
+export const curto = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".", ",")} mil` : String(n));
 
 export default function VotosOferta({ ofertaId, likes = 0, dislikes = 0, previa = false }) {
   const [contagem, setContagem] = useState({ likes: Number(likes) || 0, dislikes: Number(dislikes) || 0 });
