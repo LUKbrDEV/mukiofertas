@@ -21,6 +21,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { chamarShopee, shopeeConfigurada } from "./fontes/shopee.mjs";
 import { chamarAliExpress, aliexpressConfigurado } from "./fontes/aliexpress.mjs";
+import { lerApiML } from "../lib/detalhes-ml.mjs";
 import {
   DIAS_NO_SITE,
   temCupom,
@@ -35,8 +36,10 @@ import {
 } from "../lib/prazos.mjs";
 
 // ===== AJUSTES =====
-const MAX_POR_EXECUCAO = 60; // quantas ofertas conferir por vez (o resto fica para a próxima)
-const PAUSA_MS = 1500; // pausa entre uma loja e outra, para não ser bloqueado
+const MAX_POR_EXECUCAO = 200; // quantas ofertas conferir por vez (o resto fica para a próxima) — era 60
+const PAUSA_MS = 1500; // pausa depois de ler a PÁGINA de uma loja, para não ser bloqueado
+const PAUSA_API_MS = 250; // pausa depois de conferir pela API (Shopee, AliExpress, Mercado Livre): não bloqueia
+const TEMPO_MAXIMO_MS = 12 * 60 * 1000; // para antes dos 15 min que a VPS dá para a conferência (o resto fica para a próxima)
 // Ofertas com cupom: a loja mostra o preço SEM o cupom, então o preço lido pode ser um pouco maior.
 // Até este % acima, a oferta continua (é o desconto do cupom). Passou disso, o preço subiu de
 // verdade ou o cupom acabou: a oferta expira. (Antes, com cupom, nunca expirava.)
@@ -227,8 +230,13 @@ async function precoShopee(link) {
 // ----- AliExpress pela API de afiliados (link .../item/CODIGO.html)
 async function precoAliExpress(link) {
   if (!aliexpressConfigurado()) return { erro: "AliExpress sem chave da API" };
-  const { url, html } = await destino(link);
-  const m = `${url} ${html.slice(0, 20000)}`.match(/\/item\/(\d{6,})\.html/) || `${url}`.match(/productIds?=(\d{6,})/);
+  // o código já está no link? então nem abre (abrir o link de afiliado pode contar como clique)
+  const noLink = decodeURIComponent(String(link)).match(/\/item\/(\d{6,})\.html/) || String(link).match(/productIds?=(\d{6,})/);
+  let m = noLink;
+  if (!m) {
+    const { url, html } = await destino(link);
+    m = `${url} ${html.slice(0, 20000)}`.match(/\/item\/(\d{6,})\.html/) || `${url}`.match(/productIds?=(\d{6,})/);
+  }
   if (!m) return { erro: "não achei o código do produto do AliExpress no link" };
   const json = await chamarAliExpress("aliexpress.affiliate.productdetail.get", {
     product_ids: m[1],
@@ -255,10 +263,34 @@ function codigoML(texto) {
   return null;
 }
 
+// ----- Mercado Livre pela API oficial (a mesma da importação; não é bloqueada como a página)
+// Só quando o código do produto (MLB...) está no próprio link: assim o link de afiliado não é aberto.
+async function precoMercadoLivreApi(link) {
+  const cod = codigoML(decodeURIComponent(String(link)));
+  if (!cod) return null;
+  try {
+    if (cod.tipo === "produto") {
+      const p = await lerApiML(`/products/MLB${cod.num}`);
+      const preco = numero(p?.buy_box_winner?.price);
+      if (preco) return { preco, via: "API Mercado Livre (catálogo)" };
+    } else {
+      const i = await lerApiML(`/items/MLB${cod.num}`);
+      if (i && i.status && i.status !== "active") return { erro: `o anúncio está ${i.status} no Mercado Livre`, encerrado: true };
+      const preco = numero(i?.price);
+      if (preco) return { preco, via: "API Mercado Livre" };
+    }
+  } catch {}
+  return null;
+}
+
 async function precoAtualDaLoja(link, loja = "") {
   const alvo = `${link} ${loja}`;
   if (/shopee/i.test(alvo)) return precoShopee(link);
   if (/aliexpress|s\.click\.ali/i.test(alvo)) return precoAliExpress(link);
+  if (/mercado\s*livre|mercadoli[vb]re/i.test(alvo)) {
+    const pelaApi = await precoMercadoLivreApi(link);
+    if (pelaApi) return pelaApi;
+  }
 
   const pagina = await abrir(link);
   if (/shopee\.com/i.test(pagina.url)) return precoShopee(pagina.url);
@@ -342,7 +374,11 @@ const pendentes = validar
       porLojaValidar.set(o.loja, n + 1);
       return true;
     })
-  : conferiveis.filter((o) => horaDeConferir(o, agora.getTime())).slice(0, MAX_POR_EXECUCAO);
+  : conferiveis
+      .filter((o) => horaDeConferir(o, agora.getTime()))
+      // ofertas com cupom primeiro (cupom esgota rápido); depois a fila normal (a que está há mais tempo sem conferir)
+      .sort((a, b) => Number(Boolean(b.cupom)) - Number(Boolean(a.cupom)))
+      .slice(0, MAX_POR_EXECUCAO);
 
 console.log(
   `\n${pendentes.length} ofertas para conferir agora (a cada ${HORAS_ENTRE_CONFERENCIAS}h, tolerância de ${TOLERANCIA_PERCENTUAL}%).` +
@@ -356,7 +392,14 @@ const tabela = {}; // relatório por loja: lidas, sem preço, bloqueadas, maior 
 const linhaDa = (loja) =>
   (tabela[loja] ??= { conferidas: 0, "preço lido": 0, "sem preço": 0, bloqueada: 0, "maior diferença %": 0, como: "" });
 
+const inicioDaConferencia = Date.now();
+let conferidasAgora = 0;
 for (const o of pendentes) {
+  if (Date.now() - inicioDaConferencia > TEMPO_MAXIMO_MS) {
+    console.log(`  (tempo da rodada acabou: ${pendentes.length - conferidasAgora} ficam para a próxima)`);
+    break;
+  }
+  conferidasAgora++;
   let resultado;
   try {
     resultado = await precoAtualDaLoja(o.link, o.loja);
@@ -384,7 +427,11 @@ for (const o of pendentes) {
   } else if (resultado.bloqueado) t.bloqueada++;
   else t["sem preço"]++;
 
-  if (!novo) {
+  if (!novo && resultado.encerrado) {
+    campos.expires_at = agoraIso;
+    resumo.expiradas++;
+    acao = `EXPIRADA: ${resultado.erro}`;
+  } else if (!novo) {
     resumo.semPreco++;
     falhasPorLoja[o.loja] = (falhasPorLoja[o.loja] ?? 0) + 1;
     acao = `sem preço (${resultado.erro})`;
@@ -424,7 +471,8 @@ for (const o of pendentes) {
     if (erroGravar) console.error(`    erro ao gravar: ${erroGravar.message}`);
   }
 
-  await esperar(PAUSA_MS);
+  // pausa longa só depois de ler a página de uma loja; pela API a pausa é curta
+  await esperar(String(resultado.via ?? "").startsWith("API") ? PAUSA_API_MS : PAUSA_MS);
 }
 
 console.log(
