@@ -13,6 +13,7 @@ import Configuracoes from "./Configuracoes";
 import UsuariosTags from "./UsuariosTags";
 import PaginaInicial from "./PaginaInicial";
 import FilaMercadoLivre from "./FilaMercadoLivre";
+import DoisFatores from "./DoisFatores";
 import "./admin.css";
 
 const MENU = [
@@ -163,12 +164,32 @@ export default function AdminApp() {
 
   // Confere se a conta é de administrador (tabela admins, criada pelo admin-painel.sql).
   // Se a função ainda não existir no banco, o painel abre como antes.
+  // Primeiro confere só se o e-mail está na lista de admins (eh_admin_sem_2fa, criada pelo admin-2fa.sql);
+  // a eh_admin "de verdade" só libera depois do 2FA.
   const usuarioId = sessao?.user?.id;
   useEffect(() => {
     if (!usuarioId) return;
     setAdmin(undefined);
-    supabase.rpc("eh_admin").then(({ data, error }) => setAdmin(error ? null : Boolean(data)));
+    supabase.rpc("eh_admin_sem_2fa").then(async ({ data, error }) => {
+      if (!error) return setAdmin(Boolean(data));
+      const antiga = await supabase.rpc("eh_admin"); // admin-2fa.sql ainda não rodado
+      setAdmin(antiga.error ? null : Boolean(antiga.data));
+    });
   }, [usuarioId]);
+
+  // Verificação em 2 etapas: "ok" = já passou; "cadastrar" = ainda não ativou; "verificar" = pedir o código
+  const [nivel2fa, setNivel2fa] = useState(undefined);
+  const [conferir2fa, setConferir2fa] = useState(0);
+  useEffect(() => {
+    if (!usuarioId || !admin) return;
+    setNivel2fa(undefined);
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
+      if (error) return setNivel2fa("verificar");
+      if (data.currentLevel === "aal2") setNivel2fa("ok");
+      else if (data.nextLevel === "aal2") setNivel2fa("verificar");
+      else setNivel2fa("cadastrar");
+    });
+  }, [usuarioId, admin, conferir2fa]);
 
   // Quantas sugestões da comunidade aguardam revisão (aparece no menu)
   useEffect(() => {
@@ -184,6 +205,16 @@ export default function AdminApp() {
   if (!sessao) return <Login />;
   if (admin === undefined) return <p className="adm-centro">Verificando acesso...</p>;
   if (admin === false) return <SemAcesso email={sessao.user?.email} />;
+  if (admin && nivel2fa === undefined) return <p className="adm-centro">Verificando acesso...</p>;
+  if (admin && nivel2fa !== "ok")
+    return (
+      <DoisFatores
+        key={nivel2fa}
+        modo={nivel2fa}
+        email={sessao.user?.email}
+        aoConcluir={() => setConferir2fa((n) => n + 1)}
+      />
+    );
 
   function irPara(id) {
     setEditando(null);

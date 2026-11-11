@@ -13,7 +13,7 @@ import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { guias } from "../data/guias";
 
-export const revalidate = 60;
+export const revalidate = 300; // refaz a página no máximo a cada 5 minutos
 
 // Página inicial (visual novo, pensado primeiro para o celular):
 //   1) Black Friday (some sozinha depois da data)

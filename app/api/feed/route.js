@@ -17,6 +17,6 @@ export async function GET(req) {
   });
   return NextResponse.json(resultado, {
     // a Vercel guarda a resposta por 1 minuto (o site fica rápido mesmo com muita gente rolando)
-    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
   });
 }

@@ -29,7 +29,7 @@ import AnaliseOferta from "../../../components/AnaliseOferta";
 import { guiaDaCategoria } from "../../../data/guias";
 import { deveIndexarOferta } from "../../../lib/indexacao";
 
-export const revalidate = 60;
+export const revalidate = 300; // refaz a página no máximo a cada 5 minutos
 
 // Visual do card do produto (complementa o app/cartoes.css)
 const CSS_PRODUTO = `

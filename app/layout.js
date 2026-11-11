@@ -18,7 +18,7 @@ import { buscarTotaisPorCategoria } from "../lib/ofertas";
 import { montarMenu } from "../lib/departamentos";
 import { SITE } from "../lib/site";
 
-export const revalidate = 60; // o menu Departamentos atualiza os totais a cada minuto (igual às páginas)
+export const revalidate = 300; // o menu Departamentos atualiza os totais a cada 5 minutos (igual às páginas)
 
 const fonteTitulo = Bricolage_Grotesque({
   subsets: ["latin"],
