@@ -7,12 +7,12 @@
 import RankingLateral from "./RankingLateral";
 
 const CSS = `
-  .home-grade { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 22px; align-items: start; }
+  .home-grade { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
   .home-grade-principal { min-width: 0; }
   .home-grade-lateral {
     position: sticky;
     top: calc(var(--mk-topo-fixo, 0px) + 14px);
-    margin-top: 18px;
+    margin-top: 0;
     max-height: calc(100vh - var(--mk-topo-fixo, 0px) - 28px);
     overflow-y: auto;
     scrollbar-width: none; /* rola com a roda do mouse, sem mostrar a barra */
@@ -26,13 +26,14 @@ const CSS = `
   }
 `;
 
-// extra = caixas que aparecem abaixo do ranking (canais, guias...)
-export default function HomeComRanking({ children, extra = null }) {
+// antes = caixas acima do ranking (WhatsApp, cupons do dia) · extra = caixas abaixo do ranking (enviar oferta, guia)
+export default function HomeComRanking({ children, extra = null, antes = null }) {
   return (
     <div className="home-grade">
       <style>{CSS}</style>
       <div className="home-grade-principal">{children}</div>
       <div className="home-grade-lateral">
+        {antes}
         <RankingLateral limite={5} />
         {extra}
       </div>

@@ -1,7 +1,7 @@
-// Banner da Black Friday do MukiOfertas (arte própria, sem imagem de loja e sem cronômetro).
+// Faixa da Black Friday na página inicial, com a cara do MukiOfertas em tons escuros (fundo quase preto, azul da marca e laranja):
+//   "ESQUENTA BLACK FRIDAY" · título · frase curta · botão laranja. Sem cronômetro e sem o mascote.
+//   Mesma altura da faixa anterior. Depois da Black Friday (fim da Cyber Monday), some sozinha.
 // Salve como components/BannerBlackFriday.js. Usado na página inicial (app/page.js).
-//
-// "As melhores ofertas da Black Friday já começaram". Depois da Cyber Monday, o banner some sozinho.
 
 import Link from "next/link";
 
@@ -10,108 +10,77 @@ export const BF_INICIO = new Date("2026-11-27T00:00:00-03:00").getTime(); // sex
 export const BF_FIM = new Date("2026-12-01T00:00:00-03:00").getTime(); // fim da Cyber Monday
 
 const CSS = `
-  .bfb {
-    position: relative; overflow: hidden; isolation: isolate;
-    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: 24px;
-    margin: 0 0 22px; padding: 16px 28px;
-    border-radius: 18px; color: #fff; text-decoration: none;
-    background:
-      radial-gradient(60% 120% at 0% 100%, rgba(255, 122, 26, .28), transparent 60%),
-      radial-gradient(50% 90% at 100% 0%, rgba(10, 75, 184, .55), transparent 65%),
-      #07090f;
-    box-shadow: 0 14px 36px rgba(5, 10, 30, .35);
+  .bfx {
+    position: relative; overflow: hidden; box-sizing: border-box;
+    display: flex; align-items: center; gap: 18px; min-height: 92px; margin: 0 0 14px; padding: 14px 24px;
+    border-radius: 16px; color: #fff;
+    background: linear-gradient(105deg, #0a0c12 0%, #0f1524 55%, #13224a 100%);
+    border: 1px solid #1c2233;
   }
-  /* listras diagonais bem leves no fundo */
-  .bfb::before {
-    content: ""; position: absolute; inset: 0; z-index: -1; opacity: .07;
-    background: repeating-linear-gradient(-55deg, #fff 0 1px, transparent 1px 22px);
+  /* detalhes da marca: faixa laranja inclinada e bolinhas claras no canto */
+  .bfx::before {
+    content: ""; position: absolute; right: -40px; top: -60%; width: 300px; height: 220%;
+    background: linear-gradient(180deg, #1d5bd8, #1749b4); transform: skewX(-18deg);
   }
-  /* brilho que passa devagar */
-  .bfb::after {
-    content: ""; position: absolute; inset: -40% auto -40% -30%; width: 28%; z-index: -1;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent);
-    transform: skewX(-20deg); animation: bfb-brilho 7s ease-in-out infinite;
+  .bfx::after {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #ff7a1a;
   }
-  @keyframes bfb-brilho { 0%, 55% { left: -30%; } 100% { left: 130%; } }
-
-  /* ---- arte: BLACK / FRIDAY ---- */
-  .bfb-arte { position: relative; display: flex; flex-direction: column; width: max-content; max-width: 100%;
-              padding-right: 96px; line-height: .86; user-select: none; justify-self: center; }
-  .bfb-black, .bfb-friday {
-    font-family: var(--fonte-titulo), system-ui, sans-serif; font-weight: 900; letter-spacing: -.02em;
-    font-size: clamp(2rem, 4vw, 3.2rem); text-transform: uppercase;
+  .bfx > * { position: relative; z-index: 1; }
+  .bfx-texto { flex: 1; min-width: 0; }
+  .bfx-selo {
+    display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px;
+    background: #ff7a1a; color: #fff; font-size: 0.68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
   }
-  .bfb-black { color: #fff; }
-  .bfb-friday { color: transparent; -webkit-text-stroke: 2px #ff7a1a; text-shadow: 0 0 28px rgba(255, 122, 26, .35); }
-  .bfb-ano {
-    align-self: flex-start; margin-top: 7px; padding: 3px 9px; border-radius: 6px;
-    background: #ff7a1a; color: #07090f; font-weight: 900; font-size: .78rem; letter-spacing: .3em;
+  .bfx-titulo { margin: 6px 0 0; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: 1.45rem; font-weight: 800; line-height: 1.15; }
+  .bfx-titulo em { font-style: normal; color: #ff9a3c; }
+  .bfx-linha { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .bfx-sub { font-size: 0.84rem; color: #aab4c8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bfx-botao {
+    flex: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 10px;
+    background: #ff7a1a; color: #fff; font-weight: 800; font-size: 0.92rem; text-decoration: none; white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(0,0,0,.35);
   }
-  /* etiquetas de desconto soltas */
-  .bfb-tag {
-    position: absolute; display: inline-flex; align-items: center; height: 26px; padding: 0 10px 0 15px;
-    border-radius: 6px 999px 999px 6px; background: #fff; color: #07090f; font-weight: 900; font-size: .85rem;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+  .bfx-botao:hover { background: #f06a0a; }
+  @media (max-width: 899px) {
+    .bfx { flex-wrap: wrap; gap: 10px 14px; padding: 14px 14px 14px 18px; border-radius: 14px; min-height: 0; }
+    .bfx::before { display: none; }
+    .bfx-texto { flex-basis: 100%; }
+    .bfx-titulo { font-size: 1.08rem; }
+    .bfx-sub { display: none; }
+    .bfx-botao { height: 40px; padding: 0 18px; font-size: 0.88rem; background: #ff7a1a; color: #fff; box-shadow: none; }
+    .bfx-botao:hover { background: #f06a0a; }
   }
-  .bfb-tag::before { content: ""; position: absolute; left: 6px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px;
-                     border-radius: 50%; background: #07090f; }
-  .bfb-tag--1 { right: 0; top: 2px; transform: rotate(8deg); background: #ff7a1a; color: #fff; }
-  .bfb-tag--1::before { background: #fff; }
-  .bfb-tag--2 { right: 12px; bottom: 26px; transform: rotate(-6deg); }
-
-  /* ---- texto ---- */
-  .bfb-texto { position: relative; }
-  .bfb-selo {
-    display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px;
-    border: 1px solid rgba(255, 122, 26, .6); color: #ffb37a; font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-  }
-  .bfb-titulo { margin: 8px 0 4px; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: clamp(1.15rem, 1.9vw, 1.5rem);
-                font-weight: 800; line-height: 1.15; }
-  .bfb-titulo span { color: #ff7a1a; }
-  .bfb-sub { margin: 0 0 12px; color: #cbd5e1; font-size: .9rem; line-height: 1.4; }
-  .bfb-botao {
-    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px; border-radius: 999px;
-    background: #ff7a1a; color: #fff; font-weight: 800; font-size: .92rem; box-shadow: 0 8px 22px rgba(255, 122, 26, .35);
-    transition: transform .15s, background .15s;
-  }
-  .bfb:hover .bfb-botao { background: #f06a0a; transform: translateX(3px); }
-
-  @media (max-width: 860px) {
-    .bfb { grid-template-columns: 1fr; padding: 18px 18px; gap: 12px; }
-    .bfb-tag--2 { display: none; }
-    .bfb-arte { justify-self: start; padding-right: 96px; }
-  }
-  @media (prefers-reduced-motion: reduce) { .bfb::after { animation: none; display: none; } }
 `;
 
 export default function BannerBlackFriday() {
   const agora = Date.now();
   if (agora >= BF_FIM) return null; // Black Friday terminou
+  const rolando = agora >= BF_INICIO;
 
   return (
-    <>
+    <section className="bfx" aria-label={`Black Friday ${ANO} no MukiOfertas`}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <Link href="/black-friday" className="bfb" aria-label={`Black Friday ${ANO} no MukiOfertas: ver as ofertas`}>
-        <div className="bfb-arte" aria-hidden="true">
-          <span className="bfb-black">Black</span>
-          <span className="bfb-friday">Friday</span>
-          <span className="bfb-ano">{ANO}</span>
-          <span className="bfb-tag bfb-tag--1">-70%</span>
-          <span className="bfb-tag bfb-tag--2">-50%</span>
+      <div className="bfx-texto">
+        <div className="bfx-linha">
+          <span className="bfx-selo">{rolando ? "Black Friday no ar" : "Esquenta Black Friday"}</span>
+          <span className="bfx-sub">Desconto de verdade, preço conferido o dia todo e compra na loja oficial.</span>
         </div>
-
-        <div className="bfb-texto">
-          <span className="bfb-selo">🖤 Black Friday MukiOfertas</span>
-          <p className="bfb-titulo">
-            As melhores ofertas da Black Friday <span>já começaram</span>
-          </p>
-          <p className="bfb-sub">Desconto real nas maiores lojas do Brasil, com preço conferido o dia todo.</p>
-          <span className="bfb-botao">
-            Ver ofertas da Black Friday <span aria-hidden="true">→</span>
-          </span>
-        </div>
+        <p className="bfx-titulo">
+          {rolando ? (
+            <>
+              A Black Friday chegou no <em>MukiOfertas</em>
+            </>
+          ) : (
+            <>
+              As ofertas da Black Friday <em>já começaram</em>
+            </>
+          )}
+        </p>
+      </div>
+      <Link href="/black-friday" className="bfx-botao">
+        Ver ofertas da Black <span aria-hidden="true">→</span>
       </Link>
-    </>
+    </section>
   );
 }
 

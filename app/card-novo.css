@@ -1,0 +1,151 @@
+/* Visual do card de oferta do site todo (components/CardFeed.js).
+   Importado no app/layout.js. As cores rosé dos departamentos femininos ficam no app/tema-beleza.css. */
+
+  .cf {
+    position: relative; display: flex; flex-direction: column; width: 100%;
+    background: #fff; border: 1px solid #e6e9ef; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04); transition: box-shadow .15s;
+  }
+  .cf:hover { box-shadow: 0 10px 24px rgba(15,23,42,.09); }
+  .cf-so-cel { display: none !important; }
+
+  /* Foto */
+  .cf-foto { position: relative; aspect-ratio: 5 / 4; background: #fff; border-bottom: 1px solid #eef1f5; }
+  .cf-foto-link { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 30px 18px 26px; }
+  .cf-foto-link > img { width: 100%; height: 100%; object-fit: contain; }
+  .cf-foto-vazia { width: 62%; aspect-ratio: 1; border-radius: 14px; background: #eef1f6; color: #94a3b8; display: flex; align-items: center; justify-content: center; }
+  .cf-foto-loja { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .cf-foto-loja img { width: 58%; max-height: 40%; object-fit: contain; }
+  .cf-selo-topo {
+    position: absolute; left: 10px; top: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 4px;
+    height: 24px; padding: 0 9px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .cf-selo-topo--relampago { background: #fbbf24; color: #3b2a00; }
+  .cf-selo-topo--super { background: #c2410c; color: #fff; }
+  .cf-selo-topo--menor { background: #dcfce7; color: #166534; }
+  .cf-off {
+    position: absolute; left: 10px; bottom: 10px; z-index: 2; padding: 3px 8px; border-radius: 7px;
+    background: #fdeee3; color: #c2410c; font-size: 0.82rem; font-weight: 800;
+  }
+  .cf-coracao { position: absolute; right: 6px; top: 6px; z-index: 3; width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,.92); box-shadow: 0 1px 4px rgba(15,23,42,.15); align-items: center; justify-content: center; }
+  .cf-coracao .bd--card { margin: 0; width: 32px; height: 32px; color: #d9440e; }
+
+  /* Corpo */
+  .cf-corpo { display: flex; flex-direction: column; gap: 6px; flex: 1; padding: 12px; }
+  .cf-loja { display: flex; align-items: center; gap: 8px; margin: 0; min-width: 0; }
+  .cf-sigla {
+    flex: none; width: 30px; height: 30px; border-radius: 50%; background: #e8eefb; color: #1e3a8a;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800;
+  }
+  .cf-sigla--logo { width: 34px; height: 34px; padding: 4px; overflow: hidden; border: 1px solid rgba(15,23,42,.06); }
+  .cf-sigla--logo img { width: 100%; height: 100%; object-fit: contain; }
+  .cf-loja-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+  .cf-loja-nome { display: inline-flex; align-items: center; gap: 4px; font-size: 0.84rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-verificada { flex: none; color: #1d5bd8; }
+  .cf-quando { font-size: 0.74rem; color: #64748b; }
+  .cf-titulo { margin: 2px 0 0; font-size: 0.9rem; font-weight: 700; line-height: 1.3; color: #0f172a; }
+  .cf-titulo a { color: inherit; text-decoration: none; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+  .cf-titulo a:hover { color: #1d5bd8; }
+  .cf-selos { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; align-items: center; }
+  .cf-cupom {
+    display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px;
+    border: 1px dashed #f0a070; border-radius: 6px; background: #fff7f1; color: #b4410c;
+    font: inherit; font-size: 0.76rem; font-weight: 800; letter-spacing: .04em; cursor: copy;
+  }
+  .cf-cupom[data-copiado="true"] { border-color: #15803d; background: #f0fdf4; color: #15803d; }
+  .cf-selo { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 6px; background: #f1f5f9; color: #334155; font-size: 0.76rem; font-weight: 600; }
+  .cf-precos { display: flex; flex-direction: column; margin-top: auto; }
+  .cf-de { color: #64748b; font-size: 0.78rem; min-height: 1.15em; }
+  .cf-por { color: #c2410c; font-size: 1.3rem; font-weight: 800; line-height: 1.1; letter-spacing: -.01em; }
+  .cf-pix { color: #15803d; font-size: 0.74rem; font-weight: 600; }
+  .cf-botao {
+    display: flex; align-items: center; justify-content: center; height: 40px; margin-top: 4px; padding: 0 8px; border-radius: 10px;
+    background: #1d5bd8; color: #fff; font-size: 0.88rem; font-weight: 700; text-decoration: none; white-space: nowrap; overflow: hidden;
+  }
+  .cf-botao:hover { background: #1749b4; }
+
+  /* Pé: comentários, viram, compartilhar, salvar */
+  .cf { container-type: inline-size; }
+  .cf-pe { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px; border-top: 1px solid #eef1f5; color: #475569; font-size: 0.78rem; white-space: nowrap; }
+  .cf-pe-item { display: inline-flex; align-items: center; gap: 4px; color: inherit; text-decoration: none; white-space: nowrap; }
+  .cf-pe-acoes { gap: 0; }
+  /* card estreito (muitas colunas): esconde o "viram" para o UP, comentários e ações caberem */
+  @container (max-width: 215px) { .cf-viram { display: none; } }
+  @container (max-width: 170px) { .cf-pe a.cf-pe-item { display: none; } }
+  a.cf-pe-item:hover { color: #1d5bd8; }
+  .cf-viram svg { color: #d9440e; }
+  .cf-pe-acoes { margin-left: auto; display: inline-flex; align-items: center; }
+  .cf-zap { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; color: #15803d; }
+  .cf-zap:hover { background: #f0fdf4; }
+  .cf-pe .bd--card { width: 30px; height: 30px; margin: 0; color: #d9440e; }
+
+  /* Celular: card "deitado" (foto à esquerda, compra à direita), sem o pé */
+  @media (max-width: 639px) {
+    .cf-so-cel { display: inline-flex !important; }
+    .cf-so-pc { display: none !important; }
+    .cf { display: grid; grid-template-columns: 116px minmax(0, 1fr); border-radius: 14px; }
+    .cf-foto { aspect-ratio: auto; min-height: 100%; border-bottom: 0; border-right: 1px solid #eef1f5; }
+    .cf-foto-link { padding: 26px 8px 24px; }
+    .cf-foto-vazia { width: 70%; border-radius: 12px; }
+    .cf-foto-vazia svg { width: 28px; height: 28px; }
+    .cf-foto-loja img { width: 72%; }
+    .cf-selo-topo { left: 4px; top: 4px; height: 20px; padding: 0 6px; font-size: 0.62rem; border-radius: 5px; max-width: calc(100% - 44px); overflow: hidden; }
+    .cf-off { left: 6px; bottom: 6px; padding: 2px 6px; font-size: 0.74rem; }
+    .cf-corpo { gap: 4px; padding: 9px 10px 10px; }
+    .cf-sigla { display: none; }
+    .cf-loja-txt { flex-direction: row; align-items: center; gap: 4px; }
+    .cf-loja-nome { font-size: 0.74rem; }
+    .cf-quando { font-size: 0.72rem; white-space: nowrap; }
+    .cf-quando::before { content: "\00B7  "; }
+    .cf-titulo { font-size: 0.86rem; line-height: 1.25; margin: 0; }
+    .cf-titulo a { min-height: 2.5em; }
+    .cf-selos { min-height: 0; gap: 5px; }
+    .cf-selos:empty { display: none; }
+    .cf-cupom, .cf-selo { height: 24px; padding: 0 8px; font-size: 0.72rem; }
+    .cf-precos { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+    .cf-por { order: 1; font-size: 1.15rem; }
+    .cf-de { order: 2; font-size: 0.74rem; min-height: 0; }
+    .cf-pix { order: 3; width: 100%; font-size: 0.7rem; }
+    .cf-botao { height: 36px; margin-top: 2px; border-radius: 9px; font-size: 0.88rem; }
+    .cf-pe { display: none; }
+  }
+
+  /* Oferta expirada: foto cinza, tag "Expirado" e o botão leva para a página da oferta (comentários) */
+  .cf--expirada .cf-foto-link > img, .cf--expirada .cf-foto-loja { filter: grayscale(1); opacity: .6; }
+  .cf-expirado {
+    position: absolute; right: 10px; bottom: 10px; z-index: 2; padding: 3px 9px; border-radius: 7px;
+    background: #334155; color: #fff; font-size: 0.74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .cf--expirada .cf-por { color: #64748b; }
+  .cf--expirada .cf-botao { background: #64748b; }
+  .cf--expirada .cf-botao:hover { background: #475569; }
+
+  /* carrosséis antigos (Mais ofertas de..., páginas especiais): o card ocupa o item todo */
+  .carrossel-item > .cf { height: 100%; }
+
+  /* Botão UP (components/BotaoUp.js) */
+  .up {
+    display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px 0 7px;
+    border: 1.5px solid #e2e8f0; border-radius: 999px; background: #fff; color: #475569;
+    font: inherit; font-size: 0.82rem; font-weight: 800; line-height: 1; cursor: pointer;
+    transition: transform .12s, background .15s, color .15s, border-color .15s; position: relative;
+  }
+  .up:hover { border-color: #ff7a1a; color: #d9440e; }
+  .up:active { transform: scale(.94); }
+  .up svg { transition: transform .2s; }
+  .up[data-nivel="morno"] { border-color: #fed7aa; color: #c2410c; background: #fff7ed; }
+  .up[data-nivel="quente"] { border-color: #fca5a5; color: #b91c1c; background: #fef2f2; }
+  .up[aria-pressed="true"] { border-color: #ff7a1a; background: #ff7a1a; color: #fff; }
+  .up[aria-pressed="true"] svg { transform: translateY(-1px); }
+  .up--subiu svg { animation: up-pulo .45s ease; }
+  @keyframes up-pulo { 40% { transform: translateY(-5px); } }
+  .up-aviso {
+    position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); z-index: 5;
+    padding: 4px 9px; border-radius: 8px; background: #0f172a; color: #fff; font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+    pointer-events: none;
+  }
+  @media (max-width: 639px) { .up { height: 26px; padding: 0 8px 0 6px; font-size: 0.74rem; } .up svg { width: 13px; height: 13px; } }
+
+  .cf-loja .up { margin-left: auto; flex: none; }

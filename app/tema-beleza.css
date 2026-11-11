@@ -107,6 +107,24 @@ body:has(.tema-beleza) { background: #fff6f8; }
 .tema-beleza .cartao.cv2 .cv2-pe { border-top-color: #fbe9ef; }
 .tema-beleza .cartao.cv2 .cv2-comentarios:hover { background: #fff0f5; }
 
+/* Card novo (components/CardFeed.js): mesmas peças, cores rosé */
+.tema-beleza .cf { border-color: var(--rose-borda); border-radius: 18px; }
+.tema-beleza .cf:hover { border-color: #efb9cc; box-shadow: 0 12px 26px -14px rgba(182, 46, 99, 0.35); }
+.tema-beleza .cf-foto, .tema-beleza .cf-pe { border-color: #fbe9ef; }
+.tema-beleza .cf-botao { background: var(--rose); border-radius: 999px; }
+.tema-beleza .cf-botao:hover { background: var(--rose-escuro); }
+.tema-beleza .cf-por { color: var(--rose-escuro); }
+.tema-beleza .cf-off { background: var(--rose-claro); color: var(--rose-escuro); }
+.tema-beleza .cf-sigla { background: var(--rose-claro); color: var(--rose-escuro); }
+.tema-beleza .cf-verificada, .tema-beleza .cf-titulo a:hover, .tema-beleza a.cf-pe-item:hover { color: var(--rose); }
+.tema-beleza .cf-cupom { border-color: #eaa3bf; background: #fff0f5; color: var(--rose-escuro); }
+.tema-beleza .cf-selo { background: #fdf0f4; color: var(--rose-tinta); }
+.tema-beleza .cf-selo-topo--super { background: var(--rose-escuro); }
+.tema-beleza .cf-viram svg, .tema-beleza .cf-pe .bd--card, .tema-beleza .cf-coracao .bd--card { color: var(--rose); }
+
+.tema-beleza .up:hover { border-color: var(--rose); color: var(--rose-escuro); }
+.tema-beleza .up[aria-pressed="true"] { border-color: var(--rose); background: var(--rose); color: #fff; }
+
 /* ordenar e paginação */
 .tema-beleza select { border-color: var(--rose-borda); }
 .tema-beleza .cat-paginas a, .tema-beleza .cat-paginas span { border-color: var(--rose-borda); }
@@ -119,4 +137,5 @@ body:has(.tema-beleza) { background: #fff6f8; }
   .beleza-aba { padding: 7px 13px; font-size: 0.85rem; }
   .beleza-aba[aria-current="page"] { order: -1; } /* a categoria atual aparece primeiro */
   .tema-beleza .cartao.cv2 { border-radius: 14px; }
+  .tema-beleza .cf { border-radius: 14px; }
 }

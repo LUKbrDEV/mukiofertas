@@ -85,12 +85,11 @@ export async function POST(req) {
 
   // Netshoes não manda o preço "de" e bloqueia a leitura da página: entra só com o preço atual
   const SEM_PRECO_ANTIGO = new Set(["Netshoes"]);
-  // AliExpress, Shopee e Mercado Livre: a foto oficial da API da loja vem primeiro
-  // (a foto postada no grupo às vezes é só o logo da loja ou um banner de cupom)
-  const FOTO_DA_API_PRIMEIRO = new Set(["AliExpress", "Shopee", "Mercado Livre"]);
-  const foto = FOTO_DA_API_PRIMEIRO.has(c.loja) ? c.imagem || imagem : imagem || c.imagem;
+  // Foto: a OFICIAL da loja (API do Mercado Livre, Shopee, AliExpress...) vem primeiro.
+  // A foto da postagem do grupo só entra quando a loja não deu foto (ex.: Amazon), porque quem posta
+  // nos grupos às vezes manda foto tirada no celular.
   const resultado = await salvarOferta(final, "telegram", {
-    imagem: foto || null,
+    imagem: c.imagem || imagem || null,
     aceitarSemDesconto: SEM_PRECO_ANTIGO.has(c.loja),
   });
   const situacao = resultado?.motivo ?? (resultado?.ok ? "publicada" : "erro");
