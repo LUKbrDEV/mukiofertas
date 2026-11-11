@@ -19,6 +19,9 @@ const CSS = `
     transition: transform .15s, box-shadow .15s;
   }
   .lc-loja:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(15,23,42,.15); }
+  .lc-loja--breve { gap: 8px; background: #e5e7eb; color: #6b7280; cursor: not-allowed; }
+  .lc-loja--breve:hover { transform: none; box-shadow: none; }
+  .lc-loja--breve small { padding: 2px 7px; border-radius: 999px; background: #fff; color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
   .lc-todas { flex: 0 0 auto; min-width: auto; gap: 8px; background: #fff; color: #0f172a; border: 1px solid #e2e8f0; font-weight: 600; }
   .lc-todas:hover { border-color: #94a3b8; }
   @media (max-width: 899px) {
@@ -44,7 +47,9 @@ function corDoTexto(hex) {
   return luz > 160 ? "#1f2937" : "#fff";
 }
 
-export default function LojasChips() {
+// emBreve = slugs das lojas que ainda não têm ofertas no site: aparecem em cinza, com "Em breve", sem link
+// (a página da loja daria erro 404). Quando a loja ganhar ofertas, o botão volta ao normal sozinho.
+export default function LojasChips({ emBreve = [] }) {
   return (
     <section className="lc" aria-labelledby="lc-titulo">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -63,11 +68,17 @@ export default function LojasChips() {
         </a>
       </div>
       <div className="lc-lista">
-        {lojasDestaque.map((l) => (
-          <a key={l.slug} href={`/loja/${l.slug}`} className="lc-loja" style={{ background: l.cor, color: corDoTexto(l.cor) }}>
-            {l.nome}
-          </a>
-        ))}
+        {lojasDestaque.map((l) =>
+          emBreve.includes(l.slug) ? (
+            <span key={l.slug} className="lc-loja lc-loja--breve" aria-disabled="true" title={`${l.nome}: em breve`}>
+              {l.nome} <small>Em breve</small>
+            </span>
+          ) : (
+            <a key={l.slug} href={`/loja/${l.slug}`} className="lc-loja" style={{ background: l.cor, color: corDoTexto(l.cor) }}>
+              {l.nome}
+            </a>
+          )
+        )}
         <a href="#todas-as-lojas" className="lc-loja lc-todas">
           Ver todas as lojas <span aria-hidden="true">›</span>
         </a>

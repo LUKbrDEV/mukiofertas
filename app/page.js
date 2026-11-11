@@ -74,13 +74,15 @@ function montarLojas(doBanco) {
 export default async function Home() {
   const [feed, contagemLojas] = await Promise.all([inicioDoFeed(), buscarLojasComCategorias()]);
 
+  const lojas = montarLojas(contagemLojas);
+
   return (
     <>
       <h1 className="so-leitor">Ofertas do dia, cupons e promoções relâmpago</h1>
 
       <BannerBlackFriday />
 
-      <LojasChips />
+      <LojasChips emBreve={lojas.filter((l) => !l.total).map((l) => l.slug)} />
 
       <HomeComRanking
         antes={<LateralAntes cupons={feed.cuponsDoDia} />}
@@ -95,7 +97,7 @@ export default async function Home() {
       </HomeComRanking>
 
       <div id="todas-as-lojas" style={{ scrollMarginTop: "var(--mk-topo-fixo, 0px)" }}>
-        <FaixaLojas lojas={montarLojas(contagemLojas)} />
+        <FaixaLojas lojas={lojas} />
       </div>
 
       <GuiasHome comoEscolhemos={false} />
