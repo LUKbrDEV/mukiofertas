@@ -26,6 +26,7 @@ import { cuponsRakuten } from "./rakuten.mjs";
 import { classificar } from "../../lib/classificar.mjs";
 import { produtoComCupom, limparTituloCupom } from "../../lib/titulo-cupom.mjs";
 import { detalhesAliExpress } from "./aliexpress-imagem.mjs";
+import { imagemDoLink } from "../../lib/foto-produto.mjs";
 
 // Só cupons das lojas escolhidas no painel (padrão: Amazon, Mercado Livre, Shopee, KaBuM! e Magalu)
 const permitida = (loja) => lojaDeCupomPermitida(loja, lojasDeCupom(CONFIG_ROBO));
@@ -89,7 +90,9 @@ function cupom({ loja: lojaDaRede, id, titulo: tituloDaRede, codigo, link, image
   };
   if (produto && categoriaProduto && categoriaProduto !== "cupons") {
     return {
-      _comoCupom: produto.de ? null : comoCupom, // sem preço "de": plano B se a API não ajudar
+      // plano B: se não achar a foto do produto (ou o preço "de"), volta a ser um cupom comum.
+      // (antes só valia quando faltava o preço "de"; produto sem foto ia para o site com o logo da loja)
+      _comoCupom: comoCupom,
       _destino: destino || null, // só para achar a foto e o preço (sai antes de gravar)
       loja,
       id_externo: id,
@@ -318,6 +321,14 @@ export async function buscar() {
         }
       }
     }
+    // a API não achou a foto: tenta a página do próprio produto (endereço da loja, não o link de afiliado)
+    for (const i of faltando.filter((x) => !x.imagem && x._destino)) {
+      const foto = await imagemDoLink(i._destino).catch(() => null);
+      if (foto) {
+        i.imagem = foto;
+        fotos++;
+      }
+    }
     console.log(
       `[cupons] Produtos com cupom do AliExpress: ${faltando.length} sem foto/preço; achei ${fotos} foto(s) e ${precos} preço(s) "de".`
     );
@@ -325,7 +336,10 @@ export async function buscar() {
 
   // Produto com cupom que ficou sem preço "de" ou sem foto: volta a ser cupom (não entra R$ 0,00 sem foto como produto)
   const prontos = itens.map((i) => {
-    if (i.categoria !== "cupons" && i._comoCupom && (!i.preco_antigo || !i.imagem)) return i._comoCupom;
+    if (i.categoria !== "cupons" && i._comoCupom && (!i.preco_antigo || !i.imagem)) {
+      if (!i.imagem) console.log(`[cupons] Sem foto do produto, vai como cupom: ${String(i.titulo).slice(0, 60)}`);
+      return i._comoCupom;
+    }
     return i;
   });
   for (const i of prontos) {
