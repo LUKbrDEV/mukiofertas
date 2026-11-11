@@ -23,6 +23,7 @@ import { chamarShopee, shopeeConfigurada } from "./fontes/shopee.mjs";
 import { chamarAliExpress, aliexpressConfigurado } from "./fontes/aliexpress.mjs";
 import {
   DIAS_NO_SITE,
+  temCupom,
   HORAS_ENTRE_CONFERENCIAS,
   TOLERANCIA_PERCENTUAL,
   precoSubiu,
@@ -408,7 +409,8 @@ for (const o of pendentes) {
       resumo.mantidas++;
       acao = `mantida (R$ ${novo})`;
     }
-    if (podeRenovar(o, novo, agora.getTime())) {
+    // oferta com cupom não ganha dias pela conferência: só a repostagem renova (o preço da página não mostra o cupom)
+    if (!temCupom(o) && podeRenovar(o, novo, agora.getTime())) {
       Object.assign(campos, camposDaRenovacao(o, agora));
       resumo.renovadas++;
       acao += " + renovada";

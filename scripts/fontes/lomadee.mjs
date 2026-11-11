@@ -23,9 +23,9 @@ const DESCONTO_MINIMO = 20; // % só para o diagnóstico; na coleta vale o desco
 const MAX_PAGINAS_MARCAS = 20; // 20 marcas por página (lê até 400 lojas para achar as gigantes aceitas)
 const MAX_MARCAS = 15; // quantas lojas consultar por execução (se houver mais, elas se revezam a cada 30 min)
 const PAGINAS_POR_MARCA = 2; // 100 produtos por página
-const MAX_LINKS_NOVOS = 40; // links de afiliado novos por execução (cada um é uma chamada à API)
+const MAX_LINKS_NOVOS = 60; // era 40 // links de afiliado novos por execução (cada um é uma chamada à API)
 const MDASC = "mukiofertas"; // identificador que vai no fim dos links (?mdasc=), para relatórios
-const MAX_NOVOS_POR_MARCA = 4; // no máximo X ofertas novas da mesma loja por execução (variedade)
+const MAX_NOVOS_POR_MARCA = 6; // era 4 // no máximo X ofertas novas da mesma loja por execução (variedade)
 const PRECO_MINIMO = 5; // abaixo disso (R$) o preço é considerado erro da loja e a oferta é ignorada
 
 // Só as GIGANTES conhecidas entram na busca (as outras lojas aceitas na Lomadee são ignoradas).

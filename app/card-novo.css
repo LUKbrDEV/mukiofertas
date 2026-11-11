@@ -56,6 +56,7 @@
   }
   .cf-cupom[data-copiado="true"] { border-color: #15803d; background: #f0fdf4; color: #15803d; }
   .cf-selo { display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 6px; background: #f1f5f9; color: #334155; font-size: 0.76rem; font-weight: 600; }
+  .cf-selo--ativar { background: #ecfdf3; color: #166534; }
   .cf-precos { display: flex; flex-direction: column; margin-top: auto; }
   .cf-de { color: #64748b; font-size: 0.78rem; min-height: 1.15em; }
   .cf-por { color: #c2410c; font-size: 1.3rem; font-weight: 800; line-height: 1.1; letter-spacing: -.01em; }
@@ -104,7 +105,8 @@
     .cf-selos { min-height: 0; gap: 5px; }
     .cf-selos:empty { display: none; }
     .cf-cupom, .cf-selo { height: 24px; padding: 0 8px; font-size: 0.72rem; }
-    .cf-precos { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+    .cf-selo--ativar { background: #ecfdf3; color: #166534; }
+  .cf-precos { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
     .cf-por { order: 1; font-size: 1.15rem; }
     .cf-de { order: 2; font-size: 0.74rem; min-height: 0; }
     .cf-pix { order: 3; width: 100%; font-size: 0.7rem; }

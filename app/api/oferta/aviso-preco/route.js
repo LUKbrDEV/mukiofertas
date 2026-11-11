@@ -4,6 +4,8 @@
 // - Visitante: o aviso é guardado (1 por pessoa por oferta). Com X avisos de pessoas diferentes
 //   (painel admin → Configurações → Validade), a oferta vira Expirada sozinha.
 // - Administrador logado: a oferta expira na hora.
+// - Oferta com cupom: quando ela expira por aqui, TODAS as ofertas ativas da mesma loja com o mesmo
+//   código de cupom expiram junto (o cupom esgotou para todo mundo).
 // Precisa do validade.sql rodado no Supabase (tabela avisos_preco).
 
 import { createClient } from "@supabase/supabase-js";
@@ -41,14 +43,30 @@ export async function POST(request) {
 
   const db = banco();
   const agora = new Date().toISOString();
-  const expirar = () =>
-    db.from("ofertas").update({ expires_at: agora }).eq("id", ofertaId).or(`expires_at.is.null,expires_at.gt.${agora}`);
+  // Expira a oferta; se ela tem cupom, expira também as outras da mesma loja com o mesmo código
+  const expirar = async () => {
+    const r = await db.from("ofertas").update({ expires_at: agora }).eq("id", ofertaId).or(`expires_at.is.null,expires_at.gt.${agora}`);
+    if (r.error) return r;
+    const { data: o } = await db.from("ofertas").select("loja, cupom").eq("id", ofertaId).maybeSingle();
+    if (o?.cupom) {
+      const { data: mesmas } = await db
+        .from("ofertas")
+        .update({ expires_at: agora })
+        .eq("loja", o.loja)
+        .ilike("cupom", o.cupom.replace(/[%_]/g, ""))
+        .neq("id", ofertaId)
+        .or(`expires_at.is.null,expires_at.gt.${agora}`)
+        .select("id");
+      return { ...r, junto: mesmas?.length ?? 0 };
+    }
+    return r;
+  };
 
   // Administrador: expira na hora
   if (await ehAdmin(request)) {
-    const { error } = await expirar();
+    const { error, junto = 0 } = await expirar();
     if (error) return resposta({ erro: error.message }, 500);
-    return resposta({ ok: true, expirou: true, admin: true });
+    return resposta({ ok: true, expirou: true, admin: true, junto });
   }
 
   // Quem é o visitante: um código guardado no navegador (cookie) + o endereço de internet
@@ -85,8 +103,8 @@ export async function POST(request) {
   const precisa = Math.max(1, Number(cfg?.dados?.avisos_para_expirar) || AVISOS_PADRAO);
 
   if (pessoas >= precisa) {
-    await expirar();
-    return resposta({ ok: true, expirou: true, avisos: pessoas });
+    const { junto = 0 } = await expirar();
+    return resposta({ ok: true, expirou: true, avisos: pessoas, junto });
   }
   return resposta({ ok: true, expirou: false, avisos: pessoas, faltam: precisa - pessoas });
 }

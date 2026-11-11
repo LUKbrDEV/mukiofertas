@@ -354,7 +354,7 @@ export default async function PaginaOferta({ params }) {
 
           <div className="pd-rodape">
             <VotosOferta ofertaId={oferta.id} likes={oferta.likes} dislikes={oferta.dislikes} />
-            {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} />}
+            {!expirada && <BotaoPrecoSubiu ofertaId={oferta.id} cupom={oferta.cupom || (oferta.categoria === "cupons" ? "deste cupom" : null)} />}
           </div>
         </div>
       </article>

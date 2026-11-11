@@ -10,7 +10,7 @@
 //   TELEGRAM_LEITOR_CHATS                 ids ou @nomes dos grupos/canais, separados por vírgula
 //   TELEGRAM_WEBHOOK_SECRET               o mesmo que está na Vercel (protege a rota do site)
 //   TELEGRAM_LEITOR_LOJAS                 (opcional) só essas lojas entram, separadas por vírgula.
-//                                         Padrão: Netshoes (fase de teste). Use "todas" para liberar todas.
+//                                         Padrão: as lojas em que você é afiliado (lista abaixo). Use "todas" para liberar todas.
 //   SITE_URL                              (opcional) padrão https://www.mukiofertas.com.br
 //   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (já existem; usados para guardar as fotos)
 //
@@ -40,8 +40,10 @@ const SITE = (process.env.SITE_URL || "https://www.mukiofertas.com.br").replace(
 const ARQUIVO_SESSAO = path.join(os.homedir(), ".mukiofertas-telegram-sessao");
 const BUCKET_FOTOS = "telegram-grupos"; // pasta pública no Supabase Storage (criada sozinha)
 const INTERVALO_ENTRE_ENVIOS_MS = 3000; // uma oferta a cada 3 s para o site
-// Lojas aceitas (por enquanto só a Netshoes, para teste)
-const LOJAS = (process.env.TELEGRAM_LEITOR_LOJAS || "Netshoes").split(",").map((s) => s.trim()).filter(Boolean);
+// Lojas aceitas: as que o site consegue trocar pelo SEU link de afiliado
+// (antes era só a Netshoes, na fase de teste; a variável TELEGRAM_LEITOR_LOJAS no .env.robo ainda manda, se existir)
+const LOJAS_PADRAO = "Netshoes,Mercado Livre,Amazon,Shopee,AliExpress,KaBuM!";
+const LOJAS = (process.env.TELEGRAM_LEITOR_LOJAS || LOJAS_PADRAO).split(",").map((s) => s.trim()).filter(Boolean);
 // ===================
 
 const apiId = Number(process.env.TELEGRAM_API_ID);

@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import BotaoDesejo from "./BotaoDesejo";
 import BotaoUp from "./BotaoUp";
+import BotaoPrecoSubiu from "./BotaoPrecoSubiu";
 import { lojaDoNome } from "../data/lojas";
 import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
 import { SITE } from "../lib/site";
@@ -51,6 +52,7 @@ function sigla(nome) {
 
 // "Pegar no Mercado Livre", "Pegar na KaBuM!"
 function textoDoBotao(loja, nome, ehCupom) {
+  if (ehCupom === "sem-codigo") return "Ativar cupom"; // (o nome da loja não cabe no botão do card)
   if (ehCupom) return "Pegar cupom";
   if (!loja) return "Pegar oferta";
   return `Pegar ${loja.artigo === "do" ? "no" : "na"} ${nome}`;
@@ -130,6 +132,7 @@ function ChipCupom({ codigo }) {
 
 export default function CardFeed({ oferta: o, previa = false }) {
   const ehCupom = o.categoria === "cupons";
+  const semCodigo = ehCupom && !o.cupom; // cupom ativado direto na loja (ex.: Mercado Livre): não tem código para copiar
   const off = ehCupom ? 0 : desconto(o);
   const loja = lojaDoNome(o.loja);
   const nomeLoja = loja?.nome ?? o.loja;
@@ -220,6 +223,7 @@ export default function CardFeed({ oferta: o, previa = false }) {
 
         <div className="cf-selos">
           {o.cupom && !expirada && <ChipCupom codigo={o.cupom} />}
+          {semCodigo && !expirada && <span className="cf-selo cf-selo--ativar">Ativa direto na loja, sem código</span>}
           {o.frete_gratis && !expirada && <span className="cf-selo">Frete grátis</span>}
         </div>
 
@@ -236,8 +240,8 @@ export default function CardFeed({ oferta: o, previa = false }) {
             "Ver comentários"
           ) : (
             <>
-              <span className="cf-so-pc">{textoDoBotao(loja, nomeLoja, ehCupom)}</span>
-              <span className="cf-so-cel">{ehCupom ? "Pegar cupom" : "Pegar oferta"}</span>
+              <span className="cf-so-pc">{textoDoBotao(loja, nomeLoja, semCodigo ? "sem-codigo" : ehCupom)}</span>
+              <span className="cf-so-cel">{semCodigo ? "Ativar cupom" : ehCupom ? "Pegar cupom" : "Pegar oferta"}</span>
             </>
           )}
         </a>
@@ -262,6 +266,10 @@ export default function CardFeed({ oferta: o, previa = false }) {
           </span>
         )}
         <span className="cf-pe-acoes">
+          {/* cupom: bandeira "O cupom não funcionou?" (com avisos suficientes a oferta sai do ar) */}
+          {(o.cupom || ehCupom) && !expirada && !previa && (
+            <BotaoPrecoSubiu ofertaId={o.id} cupom={o.cupom || "deste cupom"} compacto />
+          )}
           <a className="cf-zap" href={previa ? "#" : compartilhar} target="_blank" rel="noopener noreferrer" aria-label="Compartilhar no WhatsApp" title="Compartilhar no WhatsApp">
             <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
               <path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z" />

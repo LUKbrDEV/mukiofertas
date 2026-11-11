@@ -118,7 +118,7 @@ chmod +x "$HOME/rodar-robo.sh"
 echo "==> 6/6 Agendando (e desligando o acionamento antigo do GitHub)..."
 # Tira as linhas antigas que só acionavam o GitHub Actions e qualquer agendamento anterior deste robô
 ( { crontab -l 2>/dev/null || true; } | { grep -v -e 'acionar-' -e 'rodar-robo.sh' || true; } ; \
-  echo "11,41 * * * * $HOME/rodar-robo.sh coleta"; \
+  echo "1,21,41 * * * * $HOME/rodar-robo.sh coleta"; \
   echo "*/10 * * * * $HOME/rodar-robo.sh whatsapp" ) | crontab -
 
 echo

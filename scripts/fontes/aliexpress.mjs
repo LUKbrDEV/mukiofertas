@@ -30,7 +30,7 @@ const PADRAO = {
   aliexpress_avaliacao_minima: 90, // % de avaliações positivas
   aliexpress_vendas_minimas: 50, // vendas recentes do produto
   aliexpress_por_busca: 20, // produtos pedidos à API em cada busca (máximo da API: 50)
-  aliexpress_max_por_execucao: 12, // ofertas do AliExpress por execução
+  aliexpress_max_por_execucao: 20, // ofertas do AliExpress por execução — era 12
   aliexpress_buscas_tecnologia: 3, // buscas de tecnologia a cada execução
   aliexpress_buscas_outras: 2, // buscas das outras categorias a cada execução
   aliexpress_max_por_busca: 3, // no máximo X ofertas de cada busca
