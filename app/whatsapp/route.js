@@ -42,6 +42,8 @@ export async function GET() {
     siteUrl: process.env.SITE_URL || "https://www.mukiofertas.com.br",
     hoje,
     ultimas,
+    // Pixel da Meta: ID (só números) em NEXT_PUBLIC_META_PIXEL_ID, no .env.local e na Vercel
+    pixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
   });
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }
