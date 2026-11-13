@@ -229,7 +229,7 @@ async function main() {
           return true;
         }
 
-        if (precoSubiu(existente.preco_atual, l.preco_atual)) {
+        if (precoSubiu(existente.preco_atual, l.preco_atual, existente)) {
           paraExpirar.push({ loja: l.loja, id_externo: l.id_externo });
           return false;
         }

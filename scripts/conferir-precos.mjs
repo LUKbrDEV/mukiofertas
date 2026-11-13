@@ -27,6 +27,7 @@ import {
   temCupom,
   HORAS_ENTRE_CONFERENCIAS,
   TOLERANCIA_PERCENTUAL,
+  TOLERANCIA_SHOPEE,
   precoSubiu,
   horaDeConferir,
   podeRenovar,
@@ -406,7 +407,7 @@ function filaDaRodada() {
 }
 
 console.log(
-  `\n${pendentes.length} ofertas para conferir agora (a cada ${HORAS_ENTRE_CONFERENCIAS}h, tolerância de ${TOLERANCIA_PERCENTUAL}%).` +
+  `\n${pendentes.length} ofertas para conferir agora (a cada ${HORAS_ENTRE_CONFERENCIAS}h, tolerância de ${TOLERANCIA_PERCENTUAL}%; Shopee ${TOLERANCIA_SHOPEE}%).` +
     (teste ? " Modo teste: nada será gravado." : "") +
     "\n"
 );
@@ -468,7 +469,7 @@ for (const o of pendentes) {
     campos.expires_at = agoraIso;
     resumo.expiradas++;
     acao = `EXPIRADA: com cupom ${o.cupom}, mas subiu de R$ ${atual} para R$ ${novo} (mais de ${TOLERANCIA_COM_CUPOM}%)`;
-  } else if (precoSubiu(atual, novo)) {
+  } else if (precoSubiu(atual, novo, o)) {
     campos.expires_at = agoraIso;
     resumo.expiradas++;
     acao = `EXPIRADA: subiu de R$ ${atual} para R$ ${novo}`;
