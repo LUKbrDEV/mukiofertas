@@ -1,6 +1,7 @@
 // Robô do Mercado Livre: procura os MAIS VENDIDOS das categorias, confere o preço "de" e "por"
-// e coloca as boas ofertas na FILA do painel admin (aba "Fila Mercado Livre").
-// Lá você copia os links, gera os links de afiliado no painel do ML e cola de volta: o site publica.
+// e PUBLICA as boas ofertas direto no site, já com o seu link de afiliado (matt_word/matt_tool,
+// o mesmo que o site usa nas ofertas do Telegram). Passou do limite por execução? O resto vai
+// para a FILA do painel admin (aba "Fila Mercado Livre"), como antes.
 // Salve como scripts/fila-mercadolivre.mjs. A VPS roda junto com a coleta (robo-na-vps.sh).
 //
 // Teste sem gravar nada:  node --env-file=.env.local scripts/fila-mercadolivre.mjs --teste
@@ -13,7 +14,9 @@ import { lerApiML } from "../lib/detalhes-ml.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { avaliarDesconto } from "../lib/desconto-confiavel.mjs";
 import { lojaBloqueada, precoMinimoPara } from "../lib/qualidade.mjs";
-import { aplicarConfigDoBanco, descontoMinimoDa, registrarExecucao } from "../lib/prazos.mjs";
+import { aplicarConfigDoBanco, descontoMinimoDa, registrarExecucao, DIAS_NO_SITE } from "../lib/prazos.mjs";
+import { linkAfiliadoML } from "../lib/extrair-oferta.mjs";
+import { chaveDaOferta } from "../lib/duplicadas.mjs";
 
 // ===== AJUSTES =====
 // Categorias do Mercado Livre visitadas (ids do ML Brasil). A cada execução o robô visita algumas (rodízio).
@@ -36,9 +39,11 @@ const CATEGORIAS = [
   { id: "MLB1196", nome: "Livros, Revistas e Comics" },
 ];
 const CATEGORIAS_POR_EXECUCAO = 8; // 8 categorias a cada 30 min = todas visitadas a cada 2 horas
-const PRODUTOS_POR_CATEGORIA = 20; // a lista de mais vendidos tem até 20
+const PRODUTOS_POR_CATEGORIA = 30; // a lista de mais vendidos tem até 30
 const PRECO_MINIMO = 30; // R$ — abaixo disso não vale a pena (carregador de R$ 15...)
 const HORAS_NA_FILA = 24; // oferta que ficou mais que isso na fila sem link é descartada (o preço pode ter mudado)
+const PUBLICAR_DIRETO = true; // true = publica no site sozinho com o link de afiliado; false = só coloca na fila (como era antes)
+const MAX_PUBLICAR_POR_EXECUCAO = 25; // ofertas novas do ML publicadas a cada execução (30 min); as que sobrarem vão para a fila
 // ===================
 
 const TESTE = process.argv.includes("--teste");
@@ -79,6 +84,50 @@ async function lerProduto(h) {
     imagem: (it.pictures?.[0]?.secure_url || it.pictures?.[0]?.url || it.thumbnail) ?? null,
     url: it.permalink,
   };
+}
+
+// Publica uma oferta no site (mesmos campos do botão "Publicar" da fila no painel)
+async function publicar(db, c) {
+  let link;
+  try {
+    link = linkAfiliadoML(c.url);
+  } catch {
+    return false;
+  }
+  const agora = new Date();
+  const idExterno = `ml-${c.produto_id}`;
+  const campos = {
+    loja: "Mercado Livre",
+    id_externo: idExterno,
+    titulo: c.titulo,
+    categoria: c.categoria,
+    preco_atual: c.preco_atual,
+    preco_antigo: c.preco_antigo,
+    link,
+    imagem: c.imagem,
+    origem: "automatica",
+    ativa: true,
+    publicada_em: agora.toISOString(),
+    atualizado_em: agora.toISOString(),
+    preco_conferido_em: agora.toISOString(),
+    expires_at: new Date(agora.getTime() + DIAS_NO_SITE * 86400000).toISOString(),
+  };
+  // Se a oferta já existiu (expirada), reaproveita a mesma linha (mesma página)
+  const { data: existente } = await db.from("ofertas").select("id, oculta_manual").eq("id_externo", idExterno).maybeSingle();
+  if (existente?.oculta_manual) return true; // você ocultou no painel: não volta
+  const { data: salva, error } = existente
+    ? await db.from("ofertas").update({ ...campos, postada_telegram_em: null, renovacoes: 0 }).eq("id", existente.id).select("id").maybeSingle()
+    : await db.from("ofertas").insert(campos).select("id").maybeSingle();
+  if (error) {
+    console.warn(`  ✗ ${c.titulo.slice(0, 50)}: ${error.message}`);
+    return false;
+  }
+  await db.from("ml_fila").upsert(
+    { ...c, status: "publicada", oferta_id: salva?.id ?? null, atualizado_em: agora.toISOString() },
+    { onConflict: "produto_id" }
+  );
+  console.log(`  ✓ publicada: ${c.desconto}% | ${reais(c.preco_atual)} | ${c.titulo.slice(0, 60)}`);
+  return true;
 }
 
 async function main() {
@@ -133,12 +182,40 @@ async function main() {
     for (const f of fila ?? []) naFila.set(f.produto_id, f);
   }
 
+  // mesmo produto já no site por outro caminho (ex.: veio do canal do Telegram): mesma loja, título e preço
+  const chavesNoSite = new Set();
+  {
+    const { data: doML } = await db.from("ofertas").select("loja, titulo, preco_atual").eq("loja", "Mercado Livre").eq("ativa", true).limit(3000);
+    for (const o of doML ?? []) chavesNoSite.add(chaveDaOferta(o));
+  }
+
+  // as de maior desconto primeiro
+  candidatas.sort((a, b) => b.desconto - a.desconto);
+
   let novas = 0;
+  let publicadas = 0;
   for (const c of candidatas) {
     if (noSite.has(c.produto_id)) { fora("já está no site"); continue; }
+    if (chavesNoSite.has(chaveDaOferta({ loja: "Mercado Livre", titulo: c.titulo, preco_atual: c.preco_atual }))) { fora("já está no site"); continue; }
     const antes = naFila.get(c.produto_id);
     // publicada ou descartada há pouco: só volta para a fila se o preço caiu
     if (antes && antes.status !== "pendente" && Number(c.preco_atual) >= Number(antes.preco_atual)) { fora("já passou pela fila"); continue; }
+
+    // Publica direto no site, com o link de afiliado
+    if (PUBLICAR_DIRETO && publicadas < MAX_PUBLICAR_POR_EXECUCAO) {
+      if (TESTE) {
+        console.log(`  ✓ publicaria: ${c.desconto}% | de ${reais(c.preco_antigo)} por ${reais(c.preco_atual)} | ${c.categoria} | ${c.titulo.slice(0, 60)}`);
+        publicadas++;
+        continue;
+      }
+      const ok = await publicar(db, c);
+      if (ok) {
+        publicadas++;
+        continue;
+      }
+      // deu erro ao publicar: cai na fila, como antes
+    }
+
     if (TESTE) {
       console.log(`  + ${c.desconto}% | de ${reais(c.preco_antigo)} por ${reais(c.preco_atual)} | ${c.categoria} | ${c.titulo.slice(0, 60)}`);
       novas++;
@@ -156,7 +233,7 @@ async function main() {
     novas++;
   }
 
-  const resumo = `${novas} ofertas ${TESTE ? "seriam colocadas" : "na fila"}` +
+  const resumo = `${publicadas} ${TESTE ? "seriam publicadas" : "publicadas no site"}, ${novas} ofertas ${TESTE ? "seriam colocadas" : "na fila"}` +
     (Object.keys(foraPor).length ? ` | fora: ${Object.entries(foraPor).map(([k, n]) => `${n} ${k}`).join(", ")}` : "");
   console.log(`[ml] ${resumo}`);
   if (TESTE) console.log("(teste: nada foi gravado)");
