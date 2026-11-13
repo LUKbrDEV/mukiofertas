@@ -48,6 +48,22 @@ export const COMANDOS = [
     ],
   },
   {
+    grupo: "Ligar os botões do painel (uma vez só)",
+    icone: "🔌",
+    itens: [
+      {
+        nome: "1) Baixar o código novo",
+        cmd: `${PASTA} git pull`,
+      },
+      {
+        nome: "2) Colocar o executor no cron (confere os pedidos do painel a cada minuto)",
+        cmd: `mkdir -p ~/logs && (crontab -l 2>/dev/null | grep -v executar-pedidos; echo "* * * * * bash -lc 'cd ~/mukiofertas-robo && node --env-file=.env.robo scripts/executar-pedidos.mjs >> ~/logs/robo-pedidos.log 2>&1'") | crontab -`,
+      },
+      { nome: "3) Testar agora (deve responder sem erro)", cmd: `${NODE} scripts/executar-pedidos.mjs` },
+      { nome: "Registro dos pedidos do painel", cmd: "tail -n 40 ~/logs/robo-pedidos.log" },
+    ],
+  },
+  {
     grupo: "Chaves e atualização",
     icone: "🔑",
     itens: [

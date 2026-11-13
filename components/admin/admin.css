@@ -1038,3 +1038,42 @@ a.adm-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .adm-entrada-caixa { position: relative; z-index: 1; }
 .adm-entrada-campo, .adm-entrada-input { min-width: 0; }
 .adm-entrada-input input { flex: 1 1 0; width: 0; }
+
+/* =====================================================================
+   Botões "Rodar agora" (RodarRobos.js)
+   ===================================================================== */
+.adm3-rodar { margin-bottom: 22px; }
+.adm3-rodar h2 { margin: 0 0 4px; }
+.adm3-titulo-secao { margin: 0 0 10px; font-size: 1.05rem; }
+.adm3-rodar-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 16px; }
+.adm3-rodar-botao {
+  display: flex; align-items: center; gap: 12px; min-height: 66px; padding: 12px 14px; font: inherit; text-align: left; color: inherit;
+  background: #f8fafc; border: 1.5px solid #e6e9f0; border-radius: 16px; cursor: pointer; transition: border-color .15s, background .15s, transform .1s;
+}
+.adm3-rodar-botao:hover:not(:disabled) { background: #fff; border-color: #ff7a1a; }
+.adm3-rodar-botao:active:not(:disabled) { transform: translateY(1px); }
+.adm3-rodar-botao:disabled { cursor: default; opacity: .7; }
+.adm3-rodar-botao--ativo { background: #eef4ff; border-color: #93b4f0; opacity: 1 !important; }
+.adm3-rodar-icone { display: grid; place-items: center; flex: none; width: 40px; height: 40px; font-size: 1.25rem; background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(15, 23, 42, .08); }
+.adm3-rodar-botao strong { display: block; font-size: .92rem; color: #0b1530; }
+.adm3-rodar-botao small { display: block; margin-top: 2px; font-size: .76rem; line-height: 1.3; color: #64748b; }
+.adm3-rodar-sub { margin: 20px 0 8px; font-size: .95rem; }
+.adm3-pedidos { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.adm3-pedido {
+  display: grid; grid-template-columns: 120px minmax(0, 1fr) auto 16px; align-items: center; gap: 12px; width: 100%; padding: 9px 12px;
+  font: inherit; text-align: left; color: inherit; background: #fafbfd; border: 1px solid #eef1f6; border-radius: 12px; cursor: pointer;
+}
+.adm3-pedido:hover { background: #f4f6fa; }
+.adm3-pedido small { color: #64748b; }
+.adm3-status--azul { color: #1e40af; background: #dbeafe; }
+.adm3-status--cinza { color: #475569; background: #e2e8f0; }
+.adm3-saida {
+  max-height: 320px; margin: 6px 0 4px; padding: 12px 14px; overflow: auto; font-size: .76rem; line-height: 1.45; color: #e2e8f0;
+  white-space: pre-wrap; word-break: break-word; background: #0b1530; border-radius: 12px;
+}
+@media (max-width: 699px) {
+  .adm3-pedido { grid-template-columns: minmax(0, 1fr) 16px; }
+  .adm3-pedido strong { grid-row: 2; }
+  .adm3-pedido small { grid-row: 3; }
+  .adm3-pedido .adm3-seta { grid-row: 1; grid-column: 2; }
+}

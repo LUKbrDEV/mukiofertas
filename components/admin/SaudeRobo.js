@@ -15,6 +15,7 @@ import { estaExpirada } from "../../lib/ofertas";
 import { HORAS_ENTRE_CONFERENCIAS } from "../../lib/prazos.mjs";
 import { buscarTudo, ha, dataHora } from "./util";
 import { problemasDasOfertas } from "./OfertasAtencao";
+import RodarRobos from "./RodarRobos";
 
 const HORA = 3600000;
 // verde = em dia, amarelo = atrasado, vermelho = parado
@@ -241,6 +242,9 @@ export default function SaudeRobo({ irPara }) {
         </div>
       </div>
 
+      <RodarRobos />
+
+      <h2 className="adm3-titulo-secao">Status de cada robô</h2>
       <ul className="adm3-robos">
         {ordenados.map((r) => (
           <LinhaRobo key={r.titulo} r={r} />
