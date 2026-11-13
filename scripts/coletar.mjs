@@ -1,3 +1,4 @@
+import { aplicarLimitesDeLoja } from "../lib/limite-lojas.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { buscar as buscarLomadee } from "./fontes/lomadee.mjs";
 import { buscar as buscarShopee } from "./fontes/shopee.mjs";
@@ -365,8 +366,19 @@ async function main() {
     .lt("atualizado_em", limite)
     .eq("origem", "automatica")
     .eq("ativa", true)
+    .not("id_externo", "like", "ml-%") // Mercado Livre tem regra própria: 62 h + renovação enquanto em promoção
     .or(`expires_at.is.null,expires_at.gt.${agora}`);
   if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
+
+  // Limite de ofertas no ar por loja (Shopee 300, Amazon 300, Mercado Livre 500: lib/limite-lojas.mjs).
+  // Conta todos os nomes da loja ("Shopee", "Shopee Brasil"...), igual à aba do site.
+  let resumoLimites = "";
+  try {
+    resumoLimites = await aplicarLimitesDeLoja(supabase);
+    if (resumoLimites) console.log(`[limite por loja] ${resumoLimites}`);
+  } catch (e) {
+    console.error("Erro no limite por loja:", e.message);
+  }
 
   // 🔥 Super desconto: recalcula o limite (só as X% de maior economia ficam com a tag).
   // Precisa do supabase/super-desconto-v2.sql rodado; sem ele, só avisa.
@@ -390,6 +402,7 @@ async function main() {
     (SO ? `Só ${SO === "awin" ? "KaBuM!" : SO} (pelo painel): ` : "") +
     `${publicadas} publicadas/atualizadas, ${expiradasPorPreco} expiradas por preço, ` +
     `${renovadas} renovadas, ${voltaram} voltaram, ${limpeza.arquivadas} arquivadas (página mantida)` +
+    (resumoLimites ? ` | limite por loja: ${resumoLimites}` : "") +
     (falhas.length ? ` | falha: ${falhas.join("; ")}` : "");
   await registrarExecucao(supabase, "coletar", falhas.length === 0, resumo);
 

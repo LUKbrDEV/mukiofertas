@@ -23,7 +23,9 @@ import {
   podeVoltar,
   podeRenovar,
   camposDaRenovacao,
+  expiraNovaML,
 } from "../lib/prazos.mjs";
+import { vagasDaLoja } from "../lib/limite-lojas.mjs";
 import { ehPrioritaria } from "../lib/qualidade.mjs";
 import { linkAfiliadoML } from "../lib/extrair-oferta.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
@@ -56,10 +58,10 @@ const CATEGORIAS = [
   { id: "MLB1403", nome: "Alimentos e Bebidas" },
   { id: "MLB1196", nome: "Livros, Revistas e Comics" },
 ];
-const CATEGORIAS_POR_EXECUCAO = 5; // 5 categorias a cada 30 min = todas visitadas a cada ~1h30
+const CATEGORIAS_POR_EXECUCAO = 7; // 7 categorias a cada 30 min = todas visitadas a cada 1 h (mais ofertas do ML)
 const PRODUTOS_POR_CATEGORIA = 30; // a lista de mais vendidos tem até 30
 const PRECO_MINIMO = 30; // R$ — abaixo disso não vale a pena (carregador de R$ 15...)
-const HORAS_NA_FILA = 24; // oferta que ficou mais que isso na fila sem link é descartada (o preço pode ter mudado)
+const HORAS_NA_FILA = 62; // oferta que ficou mais que isso na fila sem link é descartada (o preço pode ter mudado)
 const PUBLICAR_DIRETO = true; // true = publica no site sozinho com o link de afiliado; false = só coloca na fila (como era antes)
 const MAX_PUBLICAR_POR_EXECUCAO = 45; // ofertas novas do ML publicadas a cada execução (30 min); as que sobrarem vão para a fila
 // ===================
@@ -148,7 +150,7 @@ async function publicar(db, c) {
     publicada_em: agora.toISOString(),
     atualizado_em: agora.toISOString(),
     preco_conferido_em: agora.toISOString(),
-    expires_at: new Date(agora.getTime() + DIAS_NO_SITE * 86400000).toISOString(),
+    expires_at: expiraNovaML(agora).toISOString(), // 62 h; renova enquanto estiver em promoção
   };
   // Se a oferta já existiu (expirada), reaproveita a mesma linha (mesma página)
   const { data: existente } = await db.from("ofertas").select("id, oculta_manual").eq("id_externo", idExterno).maybeSingle();
@@ -222,7 +224,7 @@ async function main() {
   if (ids.length) {
     const { data: ofertas } = await db
       .from("ofertas")
-      .select("id, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, renovacoes")
+      .select("id, id_externo, loja, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, renovacoes")
       .in("id_externo", ids.map((i) => `ml-${i}`))
       .eq("ativa", true);
     for (const o of ofertas ?? []) {
@@ -266,6 +268,11 @@ async function main() {
     }
   }
 
+  // Limite do ML no ar (lib/limite-lojas.mjs, 500): não publica além das vagas
+  const vagas = await vagasDaLoja(db, "Mercado Livre");
+  const maxAgora = Math.min(MAX_PUBLICAR_POR_EXECUCAO, vagas);
+  if (vagas !== Infinity) console.log(`[ml] vagas no site: ${vagas} (publica até ${maxAgora} agora)`);
+
   let novas = 0;
   let publicadas = 0;
   for (const c0 of candidatas) {
@@ -278,7 +285,7 @@ async function main() {
     if (antes && antes.status !== "pendente" && Number(c.preco_atual) >= Number(antes.preco_atual)) { fora("já passou pela fila"); continue; }
 
     // Publica direto no site, com o link de afiliado
-    if (PUBLICAR_DIRETO && publicadas < MAX_PUBLICAR_POR_EXECUCAO) {
+    if (PUBLICAR_DIRETO && publicadas < maxAgora) {
       if (TESTE) {
         console.log(`  ✓ publicaria: ${c.desconto}% | de ${reais(c.preco_antigo)} por ${reais(c.preco_atual)} | ${c.categoria} | ${c.titulo.slice(0, 60)}`);
         publicadas++;
