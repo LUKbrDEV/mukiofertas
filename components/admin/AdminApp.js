@@ -14,6 +14,7 @@ import UsuariosTags from "./UsuariosTags";
 import PaginaInicial from "./PaginaInicial";
 import FilaMercadoLivre from "./FilaMercadoLivre";
 import DoisFatores from "./DoisFatores";
+import MolduraLogin from "./MolduraLogin";
 import OfertasAtencao from "./OfertasAtencao";
 import ImportacaoTelegram from "./ImportacaoTelegram";
 import ComandosVPS from "./ComandosVPS";
@@ -50,29 +51,29 @@ const GRUPOS = [
 // Tela para quem entrou com uma conta que não é de administrador
 function SemAcesso({ email }) {
   return (
-    <div className="adm-login">
-      <div className="adm-login-caixa">
-        <h1>
-          Muki<span>Ofertas</span>
-        </h1>
-        <p>
+    <MolduraLogin>
+      <div className="adm-entrada-form">
+        <span className="adm-entrada-selo adm-entrada-selo--alerta">🚫 Sem acesso</span>
+        <h1>Esta conta não é de administrador</h1>
+        <p className="adm-entrada-sub">
           A conta <strong>{email}</strong> não tem acesso ao painel admin.
         </p>
-        <p>
+        <p className="adm-entrada-sub">
           Se ela deveria ter, coloque este e-mail na lista do passo 1 do arquivo <strong>admin-painel.sql</strong> e
           rode o arquivo de novo no Supabase.
         </p>
-        <button className="adm-btn adm-btn--primario" onClick={() => supabase.auth.signOut()}>
-          Sair
+        <button className="adm-entrada-botao" onClick={() => supabase.auth.signOut()}>
+          Sair e entrar com outra conta
         </button>
       </div>
-    </div>
+    </MolduraLogin>
   );
 }
 
 function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [verSenha, setVerSenha] = useState(false);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -80,44 +81,72 @@ function Login() {
     e.preventDefault();
     setErro("");
     setEnviando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) setErro("E-mail ou senha incorretos.");
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+    if (error) setErro("E-mail ou senha incorretos. Confira e tente de novo.");
     setEnviando(false);
   }
 
   return (
-    <div className="adm-login">
-      <form onSubmit={entrar} className="adm-login-caixa">
-        <h1>
-          Muki<span>Ofertas</span>
-        </h1>
-        <p>Acesso restrito ao painel.</p>
-        <label className="adm-campo">
-          <span className="adm-rotulo">E-mail</span>
-          <input
-            className="adm-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <MolduraLogin>
+      <form onSubmit={entrar} className="adm-entrada-form">
+        <span className="adm-entrada-selo">🔒 Área restrita</span>
+        <h1>Bem-vindo de volta 👋</h1>
+        <p className="adm-entrada-sub">Entre com a sua conta de administrador.</p>
+
+        <label className="adm-entrada-campo">
+          <span>E-mail</span>
+          <div className="adm-entrada-input">
+            <span aria-hidden="true">✉️</span>
+            <input
+              type="email"
+              autoComplete="email"
+              placeholder="seuemail@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
         </label>
-        <label className="adm-campo">
-          <span className="adm-rotulo">Senha</span>
-          <input
-            className="adm-input"
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-          />
+
+        <label className="adm-entrada-campo">
+          <span>Senha</span>
+          <div className="adm-entrada-input">
+            <span aria-hidden="true">🔑</span>
+            <input
+              type={verSenha ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Sua senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="adm-entrada-olho"
+              onClick={() => setVerSenha((v) => !v)}
+              aria-label={verSenha ? "Esconder senha" : "Mostrar senha"}
+            >
+              {verSenha ? "Esconder" : "Mostrar"}
+            </button>
+          </div>
         </label>
-        <button className="adm-btn adm-btn--primario" disabled={enviando}>
-          {enviando ? "Entrando..." : "Entrar"}
+
+        {erro && <p className="adm-entrada-erro">⚠️ {erro}</p>}
+
+        <button className="adm-entrada-botao" disabled={enviando}>
+          {enviando ? (
+            <>
+              <span className="adm-entrada-girando" aria-hidden="true" /> Entrando...
+            </>
+          ) : (
+            "Entrar no painel"
+          )}
         </button>
-        {erro && <p className="adm-erro">{erro}</p>}
+
+        <p className="adm-entrada-nota">Depois da senha, o painel pede o código de 6 dígitos do seu aplicativo autenticador.</p>
       </form>
-    </div>
+    </MolduraLogin>
   );
 }
 

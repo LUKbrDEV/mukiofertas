@@ -934,3 +934,107 @@ a.adm-btn { display: inline-flex; align-items: center; text-decoration: none; }
   .adm3-layout .adm-bloco { padding: 18px; }
 }
 .adm3-topo .adm3-nova { order: 0; }
+
+/* =====================================================================
+   Telas de entrada do painel (login, 2 etapas, sem acesso) — MolduraLogin.js
+   ===================================================================== */
+.adm-entrada { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 100vh; background: #f3f5f9; }
+
+/* Lado da marca */
+.adm-entrada-marca {
+  position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 48px;
+  color: #fff; background: linear-gradient(150deg, #1a5fd6 0%, #0d3a9c 45%, #0b1530 100%);
+  border-radius: 0 36px 36px 0;
+}
+.adm-entrada-bolha { position: absolute; border-radius: 50%; filter: blur(2px); opacity: .5; }
+.adm-entrada-bolha--1 { width: 380px; height: 380px; top: -120px; right: -100px; background: radial-gradient(circle, rgba(255, 122, 26, .55), transparent 70%); }
+.adm-entrada-bolha--2 { width: 460px; height: 460px; bottom: -180px; left: -140px; background: radial-gradient(circle, rgba(96, 165, 250, .45), transparent 70%); }
+.adm-entrada-marca-conteudo { position: relative; max-width: 420px; }
+.adm-entrada-logo {
+  display: block; width: 132px; height: 132px; margin-bottom: 26px; border-radius: 50%;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .35), 0 0 0 6px rgba(255, 255, 255, .12);
+}
+.adm-entrada-marca h2 { margin: 0 0 8px; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: 2.2rem; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; }
+.adm-entrada-marca h2 span { color: #ffb066; }
+.adm-entrada-marca p { margin: 0 0 26px; font-size: 1.05rem; color: #c9d8f5; }
+.adm-entrada-marca ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.adm-entrada-marca li {
+  padding: 11px 16px; font-weight: 600; color: #eaf1ff;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px; backdrop-filter: blur(4px);
+}
+
+/* Lado do formulário */
+.adm-entrada-lado { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 40px 24px; }
+.adm-entrada-caixa {
+  width: 100%; max-width: 420px; padding: 36px 34px; background: #fff;
+  border: 1px solid #e8ebf2; border-radius: 26px; box-shadow: 0 2px 4px rgba(15, 23, 42, .04), 0 24px 60px rgba(15, 23, 42, .10);
+}
+.adm-entrada-form { display: grid; gap: 16px; }
+.adm-entrada-form h1 { margin: 0; font-family: var(--fonte-titulo), system-ui, sans-serif; font-size: 1.7rem; font-weight: 800; color: #0b1530; letter-spacing: -.02em; }
+.adm-entrada-form p { margin: 0; color: #64748b; }
+.adm-entrada-sub { margin-top: -8px !important; }
+.adm-entrada-selo {
+  justify-self: start; padding: 5px 12px; font-size: .78rem; font-weight: 800; color: #c2410c;
+  background: #fff1e6; border-radius: 999px;
+}
+.adm-entrada-selo--alerta { color: #b42318; background: #fde2e2; }
+
+.adm-entrada-campo { display: grid; gap: 7px; }
+.adm-entrada-campo > span { font-size: .86rem; font-weight: 700; color: #0b1530; }
+.adm-entrada-input {
+  display: flex; align-items: center; gap: 10px; padding: 0 6px 0 14px; background: #f8fafc;
+  border: 1.5px solid #e2e8f0; border-radius: 14px; transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.adm-entrada-input:focus-within { background: #fff; border-color: #1a5fd6; box-shadow: 0 0 0 4px rgba(26, 95, 214, .12); }
+.adm-entrada-input > span { font-size: 1rem; opacity: .7; }
+.adm-entrada-input input { flex: 1 1 auto; min-width: 0; height: 48px; font: inherit; font-size: .98rem; color: #0b1530; background: transparent; border: 0; outline: 0; }
+.adm-entrada-olho {
+  flex: none; padding: 7px 10px; font: inherit; font-size: .8rem; font-weight: 700; color: #1a5fd6;
+  background: transparent; border: 0; border-radius: 10px; cursor: pointer;
+}
+.adm-entrada-olho:hover { background: #eef4ff; }
+
+.adm-entrada-codigo {
+  width: 100%; height: 60px; font: inherit; font-size: 1.8rem; font-weight: 800; letter-spacing: .5em; text-align: center; color: #0b1530;
+  background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; outline: 0; transition: border-color .15s, box-shadow .15s;
+}
+.adm-entrada-codigo:focus { background: #fff; border-color: #1a5fd6; box-shadow: 0 0 0 4px rgba(26, 95, 214, .12); }
+
+.adm-entrada-erro { padding: 10px 14px; font-size: .88rem; font-weight: 600; color: #b42318 !important; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; }
+
+.adm-entrada-botao {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 50px; margin-top: 4px;
+  font: inherit; font-size: 1rem; font-weight: 800; color: #fff; background: linear-gradient(180deg, #ff8a2f, #ff6a00);
+  border: 0; border-radius: 999px; box-shadow: 0 10px 24px rgba(255, 106, 0, .30); cursor: pointer; transition: transform .1s, box-shadow .15s, opacity .15s;
+}
+.adm-entrada-botao:hover { box-shadow: 0 12px 28px rgba(255, 106, 0, .40); }
+.adm-entrada-botao:active { transform: translateY(1px); }
+.adm-entrada-botao:disabled { opacity: .75; cursor: default; }
+.adm-entrada-girando { width: 16px; height: 16px; border: 2.5px solid rgba(255, 255, 255, .45); border-top-color: #fff; border-radius: 50%; animation: adm-girar .8s linear infinite; }
+@keyframes adm-girar { to { transform: rotate(360deg); } }
+
+.adm-entrada-sair { justify-self: center; padding: 6px 10px; font: inherit; font-size: .86rem; font-weight: 600; color: #64748b; background: none; border: 0; border-radius: 10px; cursor: pointer; }
+.adm-entrada-sair:hover { color: #0b1530; background: #f1f5f9; }
+.adm-entrada-nota { font-size: .8rem; text-align: center; }
+.adm-entrada-form code { padding: 2px 6px; background: #f1f5f9; border-radius: 6px; }
+.adm-entrada-form img { border-radius: 16px !important; box-shadow: 0 6px 20px rgba(15, 23, 42, .10); }
+.adm-entrada-voltar { font-size: .9rem; font-weight: 600; color: #64748b; text-decoration: none; }
+.adm-entrada-voltar:hover { color: #0b1530; }
+
+/* Celular e tablet: a marca vira uma faixa no topo */
+@media (max-width: 899px) {
+  .adm-entrada { grid-template-columns: minmax(0, 1fr); }
+  .adm-entrada-marca { padding: 28px 22px 34px; border-radius: 0 0 30px 30px; }
+  .adm-entrada-marca-conteudo { display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .adm-entrada-logo { width: 86px; height: 86px; margin-bottom: 12px; }
+  .adm-entrada-marca h2 { font-size: 1.5rem; }
+  .adm-entrada-marca p { margin-bottom: 0; font-size: .95rem; }
+  .adm-entrada-marca ul { display: none; }
+  .adm-entrada-lado { justify-content: flex-start; padding: 0 16px 30px; margin-top: -18px; }
+  .adm-entrada-caixa { padding: 28px 22px; border-radius: 22px; }
+}
+.adm-entrada *, .adm-entrada *::before, .adm-entrada *::after { box-sizing: border-box; }
+.adm-entrada-form { grid-template-columns: minmax(0, 1fr); }
+.adm-entrada-caixa { position: relative; z-index: 1; }
+.adm-entrada-campo, .adm-entrada-input { min-width: 0; }
+.adm-entrada-input input { flex: 1 1 0; width: 0; }
