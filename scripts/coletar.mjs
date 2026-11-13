@@ -237,7 +237,7 @@ async function main() {
       const { data: existentes } = await supabase
         .from("ofertas")
         .select(
-          "id, loja, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes"
+          "id, loja, id_externo, categoria, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes"
         )
         .in("id_externo", ids);
 
@@ -274,6 +274,8 @@ async function main() {
       // Entre uma conferência e outra, o preço salvo não muda.
       paraGravar = paraGravar.filter((l) => {
         const existente = existentePor.get(`${l.loja}|${l.id_externo}`);
+        // Oferta que já existe mantém a categoria gravada (correções feitas no painel/banco não são desfeitas)
+        if (existente?.categoria && existente.categoria !== "outros") l.categoria = existente.categoria;
         if (!existente || !existente.publicada_em) {
           l.preco_conferido_em = agora; // oferta nova
           return true;
