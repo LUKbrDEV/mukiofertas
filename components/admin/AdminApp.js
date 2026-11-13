@@ -14,20 +14,37 @@ import UsuariosTags from "./UsuariosTags";
 import PaginaInicial from "./PaginaInicial";
 import FilaMercadoLivre from "./FilaMercadoLivre";
 import DoisFatores from "./DoisFatores";
+import OfertasAtencao from "./OfertasAtencao";
+import ImportacaoTelegram from "./ImportacaoTelegram";
+import ComandosVPS from "./ComandosVPS";
+import AvisosComunidade from "./AvisosComunidade";
 import "./admin.css";
 
+// Menu lateral, em grupos. "Nova oferta" não está aqui: é o botão em destaque no topo do menu.
 const MENU = [
-  { id: "resumo", nome: "Resumo", icone: "📊", grupo: "Geral" },
-  { id: "ofertas", nome: "Ofertas", icone: "🏷️", grupo: "Conteúdo" },
-  { id: "form", nome: "Nova oferta", icone: "➕", grupo: "Conteúdo" },
-  { id: "inicial", nome: "Página inicial", icone: "🏠", grupo: "Conteúdo" },
-  { id: "cupons", nome: "Cupons", icone: "🎟️", grupo: "Conteúdo" },
-  { id: "mlfila", nome: "Fila Mercado Livre", icone: "🛒", grupo: "Conteúdo" },
-  { id: "comunidade", nome: "Comunidade", icone: "👥", grupo: "Pessoas" },
-  { id: "usuarios", nome: "Usuários e tags", icone: "🏆", grupo: "Pessoas" },
-  { id: "robo", nome: "Saúde do robô", icone: "🤖", grupo: "Sistema" },
+  { id: "resumo", nome: "Resumo", icone: "📊", grupo: "Visão geral" },
+  { id: "robo", nome: "Saúde do robô", icone: "🤖", grupo: "Visão geral" },
+  { id: "ofertas", nome: "Todas as ofertas", icone: "🏷️", grupo: "Ofertas" },
+  { id: "atencao", nome: "Precisam de atenção", icone: "⚠️", grupo: "Ofertas" },
+  { id: "mlfila", nome: "Fila Mercado Livre", icone: "🛒", grupo: "Ofertas" },
+  { id: "telegram", nome: "Canal do Telegram", icone: "📨", grupo: "Ofertas" },
+  { id: "inicial", nome: "Página inicial", icone: "🏠", grupo: "Site" },
+  { id: "cupons", nome: "Cupons", icone: "🎟️", grupo: "Site" },
+  { id: "comunidade", nome: "Sugestões", icone: "💡", grupo: "Comunidade" },
+  { id: "avisos", nome: "Avisos e alertas", icone: "🔔", grupo: "Comunidade" },
+  { id: "usuarios", nome: "Usuários e tags", icone: "🏆", grupo: "Comunidade" },
   { id: "config", nome: "Configurações", icone: "⚙️", grupo: "Sistema" },
+  { id: "vps", nome: "Comandos da VPS", icone: "🖥️", grupo: "Sistema" },
   { id: "vendas", nome: "Vendas", icone: "💰", grupo: "Sistema" },
+];
+
+// Grupos do menu, na ordem em que aparecem no topo
+const GRUPOS = [
+  { nome: "Visão geral", icone: "📊" },
+  { nome: "Ofertas", icone: "🏷️" },
+  { nome: "Site", icone: "🏠" },
+  { nome: "Comunidade", icone: "👥" },
+  { nome: "Sistema", icone: "⚙️" },
 ];
 
 // Tela para quem entrou com uma conta que não é de administrador
@@ -240,49 +257,71 @@ export default function AdminApp() {
     setAba(veioDaComunidade ? "comunidade" : "ofertas");
   }
 
+  // Grupo aberto no topo: o da aba atual (a tela de Nova/Editar oferta fica no grupo Ofertas)
+  const grupoAtual = MENU.find((m) => m.id === aba)?.grupo ?? "Ofertas";
+
   return (
-    <div className="adm">
-      <aside className="adm-lateral">
-        <div className="adm-marca">
-          Muki<span>Ofertas</span>
-          <small>Painel admin</small>
+    <div className="adm adm3-layout">
+      <header className="adm3-topo">
+        <div className="adm3-topo-linha">
+          <div className="adm-marca">
+            Muki<span>Ofertas</span>
+            <small>Painel admin</small>
+          </div>
+
+          {/* Grupos do menu (1ª linha). As abas do grupo escolhido aparecem na 2ª linha. */}
+          <nav className="adm3-grupos" aria-label="Seções do painel">
+            {GRUPOS.map((g) => (
+              <button
+                key={g.nome}
+                className={grupoAtual === g.nome ? "adm3-grupo adm3-grupo--ativo" : "adm3-grupo"}
+                onClick={() => irPara(MENU.find((m) => m.grupo === g.nome).id)}
+              >
+                <span aria-hidden="true">{g.icone}</span> {g.nome}
+                {g.nome === "Comunidade" && pendentes > 0 && <span className="adm-menu-badge">{pendentes}</span>}
+              </button>
+            ))}
+          </nav>
+
+          <div className="adm3-topo-acoes">
+            <button
+              className={aba === "form" ? "adm3-nova adm3-nova--ativa" : "adm3-nova"}
+              onClick={() => {
+                if (editando || sugestao) return setAba("form");
+                irPara("form");
+              }}
+            >
+              {editando ? "✏️ Editando oferta" : sugestao ? "💡 Publicando sugestão" : "＋ Nova oferta"}
+            </button>
+            <Link className="adm3-topo-link" href="/" target="_blank" title="Abrir o site em outra aba">
+              Ver o site ↗
+            </Link>
+            <button className="adm3-topo-link" onClick={() => supabase.auth.signOut()} title={sessao.user?.email ?? ""}>
+              Sair
+            </button>
+          </div>
         </div>
 
-        <nav>
-          {MENU.map((item, i) => (
-            <div key={item.id} style={{ display: "contents" }}>
-              {item.grupo !== MENU[i - 1]?.grupo && <span className="adm2-grupo">{item.grupo}</span>}
+        <nav className="adm3-abas" aria-label={grupoAtual}>
+          {MENU.filter((m) => m.grupo === grupoAtual).map((item) => (
             <button
-              className={aba === item.id ? "adm-menu adm-menu--ativo" : "adm-menu"}
+              key={item.id}
+              className={aba === item.id ? "adm3-aba adm3-aba--ativa" : "adm3-aba"}
               onClick={() => irPara(item.id)}
             >
-              <span className="adm-menu-icone" aria-hidden="true">
-                {item.icone}
-              </span>
-              <span className="adm-menu-nome">
-                {item.id === "form" && editando
-                  ? "Editar oferta"
-                  : item.id === "form" && sugestao
-                    ? "Publicar sugestão"
-                    : item.nome}
-              </span>
+              <span aria-hidden="true">{item.icone}</span>
+              {item.nome}
               {item.id === "comunidade" && pendentes > 0 && <span className="adm-menu-badge">{pendentes}</span>}
             </button>
-            </div>
           ))}
-        </nav>
-
-        <div className="adm-rodape">
-          {sessao.user?.email && <small className="adm-usuario">{sessao.user.email}</small>}
-          {admin === null && (
-            <small className="adm-usuario adm-usuario--alerta">Rode o admin-painel.sql para ativar o controle de acesso</small>
+          {aba === "form" && (
+            <span className="adm3-aba adm3-aba--ativa">
+              {editando ? "✏️ Editar oferta" : sugestao ? "💡 Publicar sugestão" : "＋ Nova oferta"}
+            </span>
           )}
-          <Link href="/" target="_blank">
-            Ver o site
-          </Link>
-          <button onClick={() => supabase.auth.signOut()}>Sair</button>
-        </div>
-      </aside>
+          {admin === null && <small className="adm3-alerta-acesso">Rode o admin-painel.sql para ativar o controle de acesso</small>}
+        </nav>
+      </header>
 
       <main className="adm-conteudo">
         {aba === "resumo" && <Resumo irPara={irPara} />}
@@ -300,7 +339,19 @@ export default function AdminApp() {
         {aba === "usuarios" && <UsuariosTags />}
         {aba === "cupons" && <AdminCupons />}
         {aba === "mlfila" && <FilaMercadoLivre />}
-        {aba === "robo" && <SaudeRobo aoEditar={editar} />}
+        {aba === "robo" && <SaudeRobo irPara={irPara} />}
+        {aba === "atencao" && <OfertasAtencao aoEditar={editar} />}
+        {aba === "telegram" && (
+          <>
+            <h1>Canal do Telegram</h1>
+            <p className="adm-sub">
+              O que aconteceu com cada postagem do canal: quantas entraram no site e por que as outras ficaram de fora.
+            </p>
+            <ImportacaoTelegram />
+          </>
+        )}
+        {aba === "avisos" && <AvisosComunidade />}
+        {aba === "vps" && <ComandosVPS />}
         {aba === "config" && <Configuracoes />}
         {aba === "vendas" && <Vendas />}
       </main>

@@ -274,6 +274,14 @@ function Chave({ rotulo, dica, ligado, aoMudar, perigo }) {
   );
 }
 
+// Abas das configurações (cada bloco abaixo pertence a uma aba)
+const GRUPOS_CONFIG = [
+  { id: "vitrine", nome: "🏠 Vitrine do site", dica: "Relâmpago, Super desconto, Destaque e o que aparece na página inicial." },
+  { id: "robo", nome: "🤖 Robô e validade", dica: "Coleta, quanto tempo a oferta fica no ar, conferência de preço e renovação." },
+  { id: "lojas", nome: "🛍️ Lojas e cupons", dica: "Regras da KaBuM!, Shopee, AliExpress e de quais lojas os cupons entram." },
+  { id: "canais", nome: "📣 Telegram e WhatsApp", dica: "O que entra pelo canal do Telegram e como as ofertas vão para o grupo do WhatsApp." },
+];
+
 export default function Configuracoes() {
   const [c, setC] = useState(null);
   const [original, setOriginal] = useState(null);
@@ -282,6 +290,7 @@ export default function Configuracoes() {
   const [salvando, setSalvando] = useState(false);
   const [aplicando, setAplicando] = useState(false);
   const [atualizadoEm, setAtualizadoEm] = useState(null);
+  const [grupo, setGrupo] = useState("vitrine"); // aba aberta (as configurações ficam separadas em abas)
 
   const carregar = useCallback(async () => {
     const { data, error } = await supabase.from("config_site").select("dados, atualizado_em").eq("id", 1).maybeSingle();
@@ -390,6 +399,16 @@ export default function Configuracoes() {
         </p>
       )}
 
+      <div className="adm2-atalhos adm3-abas-config" role="tablist">
+        {GRUPOS_CONFIG.map((g) => (
+          <button key={g.id} role="tab" className="adm2-atalho" aria-selected={grupo === g.id} onClick={() => setGrupo(g.id)}>
+            {g.nome}
+          </button>
+        ))}
+      </div>
+      <p className="adm-legenda">{GRUPOS_CONFIG.find((g) => g.id === grupo)?.dica} O botão Salvar guarda as alterações de todas as abas.</p>
+
+      {grupo === "vitrine" && (
       <section className="adm-bloco">
         <h2>⚡ Promoção relâmpago</h2>
         <p>
@@ -408,7 +427,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "vitrine" && (
       <section className="adm-bloco">
         <h2>🔥 Super desconto</h2>
         <p>
@@ -468,7 +489,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "vitrine" && (
       <section className="adm-bloco">
         <h2>⭐ Destaque</h2>
         <p>Ofertas em destaque ganham a borda laranja e sobem na lista.</p>
@@ -488,7 +511,9 @@ export default function Configuracoes() {
           <small>As regras sempre valem para ofertas novas e quando o preço muda. Este botão recalcula as que já estão no site.</small>
         </div>
       </section>
+      )}
 
+      {grupo === "robo" && (
       <section className="adm-bloco">
         <h2>🤖 Robô</h2>
         <div className="adm-duas-colunas">
@@ -526,7 +551,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "canais" && (
       <section className="adm-bloco">
         <h2>📨 Ofertas do canal do Telegram</h2>
         <p>
@@ -567,7 +594,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "lojas" && (
       <section className="adm-bloco">
         <h2>🟠 KaBuM! (Awin)</h2>
         <p>O robô baixa o catálogo da KaBuM! pela Awin e publica os produtos com desconto.</p>
@@ -656,7 +685,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "robo" && (
       <section className="adm-bloco">
         <h2>⏱️ Validade das ofertas</h2>
         <p>
@@ -683,7 +714,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "lojas" && (
       <section className="adm-bloco">
         <h2>🛍️ Shopee e AliExpress (qualidade)</h2>
         <p>
@@ -755,7 +788,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "vitrine" && (
       <section className="adm-bloco">
         <h2>🏠 Página inicial</h2>
         <p>
@@ -833,7 +868,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "canais" && (
       <section className="adm-bloco">
         <h2>🟢 WhatsApp</h2>
         <p>
@@ -1072,7 +1109,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "lojas" && (
       <section className="adm-bloco">
         <h2>🏷️ Cupons</h2>
         <p>
@@ -1107,7 +1146,9 @@ export default function Configuracoes() {
           aoMudar={mudar("cupons_lojas")}
         />
       </section>
+      )}
 
+      {grupo === "lojas" && (
       <section className="adm-bloco">
         <h2>🛒 AliExpress</h2>
         <p>O robô do AliExpress roda junto com a coleta, a cada 30 minutos.</p>
@@ -1207,7 +1248,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "robo" && (
       <section className="adm-bloco">
         <h2>💲 Conferência de preço</h2>
         <div className="adm-duas-colunas">
@@ -1229,7 +1272,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "robo" && (
       <section className="adm-bloco">
         <h2>🔄 Renovação</h2>
         <p>Oferta perto de expirar que continua com o preço de promoção ganha mais dias no site.</p>
@@ -1259,7 +1304,9 @@ export default function Configuracoes() {
           />
         </div>
       </section>
+      )}
 
+      {grupo === "robo" && (
       <section className="adm-bloco adm-bloco--info">
         <h2>📅 Prazos fixos</h2>
         <p>
@@ -1277,6 +1324,7 @@ export default function Configuracoes() {
           </li>
         </ul>
       </section>
+      )}
     </>
   );
 }

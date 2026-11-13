@@ -57,7 +57,7 @@ export default function ListaSugestoes({ aoRevisar }) {
 
   return (
     <>
-      <h1>Comunidade</h1>
+      <h1>Sugestões da comunidade</h1>
       <p className="adm-sub">
         Promoções enviadas pelos membros. {pendentes} aguardando revisão.
       </p>

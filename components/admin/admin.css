@@ -724,3 +724,213 @@ a.adm-btn { display: inline-flex; align-items: center; text-decoration: none; }
   .adm-conteudo { padding: 18px 14px 50px; }
   .adm2-toggles, .adm2-botoes { flex-wrap: wrap; }
 }
+
+/* =====================================================================
+   Painel organizado (nov/2026): botão Nova oferta, Saúde do robô em linhas,
+   Comandos da VPS, abas das Configurações. Fica por cima dos estilos acima.
+   ===================================================================== */
+
+/* Botão "Nova oferta" em destaque no topo do menu */
+.adm3-nova {
+  width: 100%; padding: 10px 12px; font: inherit; font-weight: 800; font-size: .95rem; color: #fff;
+  background: #ff7a1a; border: 0; border-radius: 10px; cursor: pointer; transition: background .15s;
+}
+.adm3-nova:hover { background: #f06a0a; }
+.adm3-nova--ativa { box-shadow: 0 0 0 2px #fff inset; }
+.adm-lateral nav { flex: 1 1 auto; min-height: 0; }
+/* menu mais compacto: os 14 itens cabem numa tela de notebook sem rolar */
+.adm-lateral { gap: 10px; }
+.adm-menu { padding: 7px 12px; font-size: .9rem; }
+.adm2-grupo { margin: 10px 10px 2px; }
+.adm-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; padding-top: 8px; }
+.adm-rodape .adm-usuario { flex: 1 1 100%; padding-bottom: 2px; }
+.adm-rodape a, .adm-rodape button { padding: 6px 10px; font-size: .86rem; }
+
+/* Placar no topo (em dia / atrasados / parados) */
+.adm3-placar { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; }
+.adm3-placar-item {
+  display: inline-flex; align-items: baseline; gap: 6px; padding: 8px 14px; font-size: .88rem; color: #475569;
+  background: #fff; border: 1px solid #e6e9f0; border-radius: 12px;
+}
+.adm3-placar-item strong { font-size: 1.25rem; color: #0b1530; }
+.adm3-placar-item--verde strong { color: #16a34a; }
+.adm3-placar-item--amarelo strong { color: #ca8a04; }
+.adm3-placar-item--vermelho strong { color: #dc2626; }
+
+/* Saúde do robô: uma linha por robô */
+.adm3-robos { display: grid; gap: 8px; margin: 0 0 20px; padding: 0; list-style: none; }
+.adm3-robo { background: #fff; border: 1px solid #e6e9f0; border-left: 4px solid #94a3b8; border-radius: 12px; overflow: hidden; }
+.adm3-robo--verde { border-left-color: #16a34a; }
+.adm3-robo--amarelo { border-left-color: #eab308; }
+.adm3-robo--vermelho { border-left-color: #dc2626; background: #fffafa; }
+.adm3-robo-linha {
+  display: grid; grid-template-columns: 12px minmax(180px, 260px) 92px 110px minmax(0, 1fr) 16px; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px; font: inherit; text-align: left; color: inherit; background: transparent; border: 0; cursor: pointer;
+}
+.adm3-robo-linha:hover { background: #f8fafc; }
+.adm3-luz { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; }
+.adm3-robo--verde .adm3-luz { background: #16a34a; }
+.adm3-robo--amarelo .adm3-luz { background: #eab308; }
+.adm3-robo--vermelho .adm3-luz { background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, .15); }
+.adm3-robo-nome { font-weight: 800; color: #0b1530; }
+.adm3-robo-nome em { display: block; font-style: normal; font-size: .76rem; font-weight: 600; color: #64748b; }
+.adm3-status { justify-self: start; padding: 2px 10px; font-size: .74rem; font-weight: 800; border-radius: 999px; }
+.adm3-status--verde { color: #0b6b3a; background: #dcf5e7; }
+.adm3-status--amarelo { color: #854d0e; background: #fef3c7; }
+.adm3-status--vermelho { color: #b42318; background: #fde2e2; }
+.adm3-robo-quando { font-weight: 700; font-size: .9rem; color: #0b1530; }
+.adm3-robo-resumo { overflow: hidden; font-size: .84rem; color: #64748b; white-space: nowrap; text-overflow: ellipsis; }
+.adm3-seta { color: #94a3b8; }
+.adm3-robo-mais { display: grid; gap: 6px; padding: 4px 14px 14px 38px; font-size: .88rem; color: #475569; border-top: 1px dashed #e6e9f0; }
+.adm3-robo-mais p { margin: 6px 0 0; }
+
+/* Atalhos no fim da Saúde do robô */
+.adm3-atalhos-rodape { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.adm3-atalho-card {
+  display: flex; align-items: center; gap: 12px; padding: 14px; font: inherit; text-align: left; color: inherit;
+  background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; cursor: pointer;
+}
+.adm3-atalho-card:hover { border-color: #94a3b8; }
+.adm3-atalho-card > span { font-size: 1.4rem; }
+.adm3-atalho-card strong { display: block; color: #0b1530; }
+.adm3-atalho-card small { display: block; color: #64748b; }
+
+/* Comandos da VPS */
+.adm3-busca { max-width: 520px; margin: 0 0 16px; }
+.adm3-grade-comandos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.adm3-comandos { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.adm3-comandos li { display: flex; align-items: center; gap: 10px; padding-top: 8px; border-top: 1px solid #eef1f5; }
+.adm3-comandos li:first-child { padding-top: 0; border-top: 0; }
+.adm3-comando-texto { flex: 1 1 auto; min-width: 0; }
+.adm3-comando-texto strong { display: block; font-size: .9rem; }
+.adm3-comando-texto code {
+  display: block; margin-top: 3px; padding: 4px 8px; font-size: .76rem; color: #334155; background: #f1f5f9;
+  border-radius: 6px; word-break: break-all;
+}
+.adm3-comandos .adm-btn { flex: none; padding: 4px 10px; font-size: .8rem; }
+
+/* Configurações: abas fixas no topo ao rolar */
+.adm3-abas-config { position: sticky; top: 0; z-index: 6; padding: 8px 0; background: #f3f5f9; }
+
+@media (max-width: 1099px) {
+  .adm3-robo-linha { grid-template-columns: 12px minmax(0, 1fr) auto 16px; row-gap: 4px; }
+  .adm3-luz { grid-row: 1; grid-column: 1; }
+  .adm3-robo-nome { grid-row: 1; grid-column: 2; }
+  .adm3-status { grid-row: 1; grid-column: 3; }
+  .adm3-seta { grid-row: 1; grid-column: 4; }
+  .adm3-robo-quando { grid-row: 2; grid-column: 2 / 4; font-size: .82rem; }
+  .adm3-robo-resumo { grid-row: 3; grid-column: 2 / 4; white-space: normal; }
+  .adm3-grade-comandos, .adm3-atalhos-rodape { grid-template-columns: minmax(0, 1fr); }
+}
+/* Tablet e celular: menu vira uma barra no topo (marca, Nova oferta, Sair) com os itens rolando para o lado */
+@media (max-width: 899px) {
+  .adm { grid-template-columns: minmax(0, 1fr); }
+  .adm-lateral {
+    position: sticky; top: 0; z-index: 20; flex-direction: row; flex-wrap: wrap; align-items: center;
+    height: auto; gap: 8px; padding: 10px 12px; border-right: 0;
+  }
+  .adm-marca { padding: 0 6px; font-size: 1.15rem; border-bottom: 0; }
+  .adm-marca small { display: none; }
+  .adm3-nova { order: 2; width: auto; padding: 8px 12px; font-size: .88rem; }
+  .adm-rodape { order: 3; flex-wrap: nowrap; margin: 0 0 0 auto; padding: 0; border-top: 0; }
+  .adm-rodape .adm-usuario { display: none; }
+  .adm-lateral nav {
+    order: 4; display: flex; flex: 1 1 100%; flex-wrap: nowrap; gap: 4px; overflow-x: auto; padding-bottom: 2px;
+  }
+  .adm2-grupo { display: none; }
+  .adm-menu { flex: none; width: auto; white-space: nowrap; }
+  .adm3-abas-config { position: static; }
+  .adm-conteudo { padding: 18px 14px 40px; }
+}
+
+/* =====================================================================
+   Menu no topo + visual mais arredondado (nov/2026). Fica por cima de tudo acima.
+   ===================================================================== */
+.adm3-layout { display: block; min-height: 100vh; background: radial-gradient(1200px 400px at 10% -10%, #e9eefb 0%, transparent 60%), #f3f5f9; }
+
+/* Barra do topo (fixa ao rolar) */
+.adm3-topo {
+  position: sticky; top: 0; z-index: 30;
+  background: linear-gradient(180deg, #0b1530 0%, #0d1a3a 100%);
+  box-shadow: 0 8px 24px rgba(11, 21, 48, .18);
+  border-radius: 0 0 22px 22px;
+}
+.adm3-topo-linha {
+  display: flex; align-items: center; gap: 18px; max-width: 1400px; margin: 0 auto; padding: 12px 24px 10px;
+}
+.adm3-topo .adm-marca { flex: none; padding: 0; color: #fff; border: 0; font-size: 1.35rem; }
+.adm3-topo .adm-marca small { color: #8fa0c2; }
+
+.adm3-grupos { display: flex; flex: 1 1 auto; justify-content: center; gap: 4px; min-width: 0; overflow-x: auto; }
+.adm3-grupo {
+  display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 8px 16px; font: inherit; font-size: .92rem; font-weight: 700;
+  color: #c3cde0; background: transparent; border: 1px solid transparent; border-radius: 999px; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.adm3-grupo:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.adm3-grupo--ativo, .adm3-grupo--ativo:hover { color: #fff; background: rgba(255, 122, 26, .18); border-color: rgba(255, 122, 26, .55); }
+.adm3-grupo .adm-menu-badge { margin-left: 2px; }
+
+.adm3-topo-acoes { display: flex; flex: none; align-items: center; gap: 6px; }
+.adm3-topo .adm3-nova { width: auto; padding: 9px 16px; border-radius: 999px; box-shadow: 0 4px 14px rgba(255, 122, 26, .35); }
+.adm3-topo .adm3-nova--ativa { box-shadow: 0 0 0 2px #fff inset, 0 4px 14px rgba(255, 122, 26, .35); }
+.adm3-topo-link {
+  padding: 8px 12px; font: inherit; font-size: .88rem; font-weight: 600; color: #c3cde0; text-decoration: none;
+  background: transparent; border: 0; border-radius: 999px; cursor: pointer;
+}
+.adm3-topo-link:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+
+/* 2ª linha: abas do grupo escolhido */
+.adm3-abas {
+  display: flex; align-items: center; gap: 6px; max-width: 1400px; margin: 0 auto; padding: 0 24px 12px; overflow-x: auto;
+}
+.adm3-aba {
+  display: inline-flex; align-items: center; gap: 7px; flex: none; padding: 7px 14px; font: inherit; font-size: .88rem; font-weight: 700;
+  color: #dbe3f2; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .08); border-radius: 12px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.adm3-aba:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+.adm3-aba--ativa, .adm3-aba--ativa:hover { color: #0b1530; background: #fff; border-color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, .15); }
+.adm3-alerta-acesso { margin-left: auto; font-size: .78rem; color: #ffd60a; }
+
+/* Conteúdo centralizado, com respiro */
+.adm3-layout .adm-conteudo { max-width: 1400px; margin: 0 auto; padding: 28px 24px 70px; }
+.adm3-layout .adm-conteudo h1 { font-size: 1.9rem; letter-spacing: -.02em; }
+
+/* Tudo mais arredondado e com sombra suave */
+.adm3-layout .adm-bloco, .adm3-layout .adm-card { border-radius: 20px; border-color: #e8ebf2; box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 10px 30px rgba(15, 23, 42, .05); }
+.adm3-layout .adm-bloco { padding: 22px 24px; }
+.adm3-layout .adm-card { padding: 18px 20px; }
+.adm3-layout .adm-btn { border-radius: 12px; }
+.adm3-layout .adm-btn--primario { border-radius: 999px; box-shadow: 0 4px 12px rgba(255, 122, 26, .25); }
+.adm3-layout .adm-input, .adm3-layout select.adm-input, .adm3-layout textarea.adm-input { border-radius: 12px; }
+.adm3-layout .adm-aviso { border-radius: 16px; }
+.adm3-layout .adm2-atalho { height: 38px; padding: 0 14px; }
+.adm3-layout .adm-alerta-lista li { padding: 10px 12px; background: #fafbfd; border: 1px solid #eef1f6; border-radius: 14px; }
+.adm3-layout .adm2-oferta, .adm3-layout .adm-linha { border-radius: 18px; }
+.adm3-layout .adm-foto { border-radius: 12px; overflow: hidden; }
+.adm3-layout .adm3-robo { border-radius: 16px; }
+.adm3-layout .adm3-placar-item { border-radius: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+.adm3-layout .adm3-atalho-card { border-radius: 18px; }
+.adm3-layout .adm3-comando-texto code { border-radius: 8px; }
+.adm3-layout .adm-etiqueta { border-radius: 999px; }
+
+/* As abas das Configurações não grudam no topo (a barra do painel já gruda) */
+.adm3-layout .adm3-abas-config { position: static; padding: 0; background: transparent; }
+
+/* Celular e tablet */
+@media (max-width: 899px) {
+  .adm3-topo { border-radius: 0 0 18px 18px; }
+  .adm3-topo-linha { flex-wrap: wrap; gap: 10px; padding: 10px 14px 8px; }
+  .adm3-topo .adm-marca { font-size: 1.15rem; }
+  .adm3-topo .adm-marca small { display: none; }
+  .adm3-topo-acoes { margin-left: auto; }
+  .adm3-topo-link { padding: 6px 8px; font-size: .82rem; }
+  .adm3-topo .adm3-nova { padding: 8px 12px; font-size: .85rem; }
+  .adm3-grupos { order: 3; flex: 1 1 100%; justify-content: flex-start; }
+  .adm3-grupo { padding: 7px 12px; font-size: .86rem; }
+  .adm3-abas { padding: 0 14px 10px; }
+  .adm3-layout .adm-conteudo { padding: 18px 14px 40px; }
+  .adm3-layout .adm-bloco { padding: 18px; }
+}
+.adm3-topo .adm3-nova { order: 0; }

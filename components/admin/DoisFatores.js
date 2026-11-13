@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import MolduraLogin from "./MolduraLogin";
 
 export default function DoisFatores({ modo, email, aoConcluir }) {
   const [fatorId, setFatorId] = useState(null);
@@ -75,11 +76,10 @@ export default function DoisFatores({ modo, email, aoConcluir }) {
   }
 
   return (
-    <div className="adm-login">
-      <form onSubmit={confirmar} className="adm-login-caixa">
-        <h1>
-          Muki<span>Ofertas</span>
-        </h1>
+    <MolduraLogin>
+      <form onSubmit={confirmar} className="adm-entrada-form">
+        <span className="adm-entrada-selo">🛡️ Verificação em 2 etapas</span>
+        <h1>{modo === "cadastrar" ? "Proteja a sua conta" : "Confirme que é você"}</h1>
 
         {modo === "cadastrar" ? (
           <>
@@ -122,10 +122,10 @@ export default function DoisFatores({ modo, email, aoConcluir }) {
           </p>
         )}
 
-        <label className="adm-campo">
-          <span className="adm-rotulo">Código</span>
+        <label className="adm-entrada-campo">
+          <span>Código</span>
           <input
-            className="adm-input"
+            className="adm-entrada-codigo"
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9 ]{6,7}"
@@ -138,15 +138,16 @@ export default function DoisFatores({ modo, email, aoConcluir }) {
           />
         </label>
 
-        <button className="adm-btn adm-btn--primario" disabled={enviando || !fatorId}>
+        {erro && <p className="adm-entrada-erro">⚠️ {erro}</p>}
+
+        <button className="adm-entrada-botao" disabled={enviando || !fatorId}>
           {enviando ? "Conferindo..." : modo === "cadastrar" ? "Ativar e entrar" : "Entrar"}
         </button>
-        {erro && <p className="adm-erro">{erro}</p>}
 
-        <button type="button" className="adm-btn" style={{ marginTop: 8 }} onClick={() => supabase.auth.signOut()}>
-          Sair
+        <button type="button" className="adm-entrada-sair" onClick={() => supabase.auth.signOut()}>
+          Sair e entrar com outra conta
         </button>
       </form>
-    </div>
+    </MolduraLogin>
   );
 }
