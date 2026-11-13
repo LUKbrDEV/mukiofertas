@@ -37,6 +37,9 @@ import {
 
 // ===== AJUSTES =====
 const MAX_POR_EXECUCAO = 200; // quantas ofertas conferir por vez (o resto fica para a próxima) — era 60
+// Shopee tem fila própria (pela API, rápida): não disputa vaga com as outras lojas.
+// Inclui as ofertas que vieram da API da Shopee (shp-), que antes ficavam de fora.
+const MAX_SHOPEE_POR_EXECUCAO = 300;
 const PAUSA_MS = 1500; // pausa depois de ler a PÁGINA de uma loja, para não ser bloqueado
 const PAUSA_API_MS = 250; // pausa depois de conferir pela API (Shopee, AliExpress, Mercado Livre): não bloqueia
 const TEMPO_MAXIMO_MS = 12 * 60 * 1000; // para antes dos 15 min que a VPS dá para a conferência (o resto fica para a próxima)
@@ -199,8 +202,18 @@ function idsShopee(texto) {
   return inv ? { loja: inv[2], item: inv[1] } : null;
 }
 
-async function precoShopee(link) {
+async function precoShopee(link, idExterno = "") {
   if (!shopeeConfigurada()) return { erro: "Shopee sem chave da API (SHOPEE_APP_ID/SHOPEE_SECRET)" };
+  // Oferta que veio da API (shp-CODIGO): já temos o código do produto, nem abre o link
+  const doId = String(idExterno).match(/^shp-(\d{3,})$/);
+  if (doId) {
+    const dados = await chamarShopee(`{ productOfferV2(itemId: ${doId[1]}, limit: 1) { nodes { priceMin priceMax itemId } } }`);
+    const no = dados?.productOfferV2?.nodes?.find((n) => String(n.itemId) === doId[1]) ?? null;
+    const preco = no ? Number(no.priceMin ?? no.priceMax) : null;
+    return preco
+      ? { preco, via: "API Shopee" }
+      : { erro: "a API da Shopee não devolveu o produto (saiu do ar ou não está no programa de afiliados)" };
+  }
   // primeiro tenta no próprio link (sem abrir nada); depois segue o link curto
   let ids = idsShopee(link);
   let destinoFinal = link;
@@ -283,9 +296,9 @@ async function precoMercadoLivreApi(link) {
   return null;
 }
 
-async function precoAtualDaLoja(link, loja = "") {
+async function precoAtualDaLoja(link, loja = "", idExterno = "") {
   const alvo = `${link} ${loja}`;
-  if (/shopee/i.test(alvo)) return precoShopee(link);
+  if (/shopee/i.test(alvo) || /^shp-/.test(idExterno)) return precoShopee(link, idExterno);
   if (/aliexpress|s\.click\.ali/i.test(alvo)) return precoAliExpress(link);
   if (/mercado\s*livre|mercadoli[vb]re/i.test(alvo)) {
     const pelaApi = await precoMercadoLivreApi(link);
@@ -345,7 +358,6 @@ const { data, error } = await supabase
   .select("id, titulo, loja, link, ativa, oculta_manual, publicada_em, expires_at, preco_atual, preco_antigo, preco_conferido_em, renovacoes, id_externo, cupom")
   .eq("ativa", true)
   .not("id_externo", "like", "lmd-%") // as da Lomadee são conferidas pelo coletar.mjs
-  .not("id_externo", "like", "shp-%") // as da Shopee (API) também
   .not("id_externo", "like", "ali-%") // e as do AliExpress (API)
   .not("id_externo", "like", "awn-%") // e as da Awin (KaBuM!), que o feed atualiza
   .not("id_externo", "like", "cp%-%") // cupons da Lomadee/Awin: a coleta atualiza
@@ -353,7 +365,7 @@ const { data, error } = await supabase
   .or(`expires_at.is.null,expires_at.gt.${agoraIso}`)
   .gt("publicada_em", corte)
   .order("preco_conferido_em", { ascending: true, nullsFirst: true })
-  .limit(1000);
+  .limit(3000); // era 1000: agora entram também as da API da Shopee
 
 if (error) {
   console.error("Erro ao buscar ofertas:", error.message);
@@ -374,11 +386,24 @@ const pendentes = validar
       porLojaValidar.set(o.loja, n + 1);
       return true;
     })
-  : conferiveis
-      .filter((o) => horaDeConferir(o, agora.getTime()))
-      // ofertas com cupom primeiro (cupom esgota rápido); depois a fila normal (a que está há mais tempo sem conferir)
-      .sort((a, b) => Number(Boolean(b.cupom)) - Number(Boolean(a.cupom)))
-      .slice(0, MAX_POR_EXECUCAO);
+  : filaDaRodada();
+
+function filaDaRodada() {
+  const ehShopee = (o) => /^shp-/.test(o.id_externo ?? "") || /shopee|shope\.ee/i.test(`${o.loja} ${o.link}`);
+  // ofertas com cupom primeiro (cupom esgota rápido); depois a fila normal (a que está há mais tempo sem conferir)
+  const naHora = conferiveis
+    .filter((o) => horaDeConferir(o, agora.getTime()))
+    .sort((a, b) => Number(Boolean(b.cupom)) - Number(Boolean(a.cupom)));
+  const shopee = naHora.filter(ehShopee).slice(0, MAX_SHOPEE_POR_EXECUCAO);
+  const outras = naHora.filter((o) => !ehShopee(o)).slice(0, MAX_POR_EXECUCAO);
+  // intercala as duas filas, para o tempo da rodada não acabar antes de uma delas começar
+  const fila = [];
+  for (let i = 0; i < Math.max(shopee.length, outras.length); i++) {
+    if (outras[i]) fila.push(outras[i]);
+    if (shopee[i]) fila.push(shopee[i]);
+  }
+  return fila;
+}
 
 console.log(
   `\n${pendentes.length} ofertas para conferir agora (a cada ${HORAS_ENTRE_CONFERENCIAS}h, tolerância de ${TOLERANCIA_PERCENTUAL}%).` +
@@ -402,7 +427,7 @@ for (const o of pendentes) {
   conferidasAgora++;
   let resultado;
   try {
-    resultado = await precoAtualDaLoja(o.link, o.loja);
+    resultado = await precoAtualDaLoja(o.link, o.loja, o.id_externo);
   } catch (erro) {
     resultado = { erro: erro.message };
   }
