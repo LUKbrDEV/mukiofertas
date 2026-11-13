@@ -14,17 +14,35 @@ import { lerApiML } from "../lib/detalhes-ml.mjs";
 import { classificar } from "../lib/classificar.mjs";
 import { avaliarDesconto } from "../lib/desconto-confiavel.mjs";
 import { lojaBloqueada, precoMinimoPara } from "../lib/qualidade.mjs";
-import { aplicarConfigDoBanco, descontoMinimoDa, registrarExecucao, DIAS_NO_SITE } from "../lib/prazos.mjs";
+import {
+  aplicarConfigDoBanco,
+  descontoMinimoDa,
+  registrarExecucao,
+  DIAS_NO_SITE,
+  momentoExpiracao,
+  podeVoltar,
+  podeRenovar,
+  camposDaRenovacao,
+} from "../lib/prazos.mjs";
+import { ehPrioritaria } from "../lib/qualidade.mjs";
 import { linkAfiliadoML } from "../lib/extrair-oferta.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 
 // ===== AJUSTES =====
-// Categorias do Mercado Livre visitadas (ids do ML Brasil). A cada execução o robô visita algumas (rodízio).
-const CATEGORIAS = [
+// PRIORIDADE (o que mais vende): Eletrodomésticos (geladeira, lavadora, fogão, coifa/exaustor, ar e ventilação,
+// pequenos eletros...) e Eletrônicos, Áudio e Vídeo (TVs, som, home theater). O robô lê as SUBCATEGORIAS
+// delas na API do ML e visita a lista de mais vendidos de cada uma (muito mais produtos do que só a principal).
+const CATEGORIAS_PRIORITARIAS = [
   { id: "MLB5726", nome: "Eletrodomésticos" },
+  { id: "MLB1000", nome: "Eletrônicos, Áudio e Vídeo" },
+];
+const SUBCATEGORIAS_PRIORITARIAS_POR_EXECUCAO = 8; // listas de eletro/eletrônicos visitadas a cada execução
+const DESCONTO_MINIMO_PRIORITARIAS = 10; // % — geladeira/ar-condicionado com 10% já é uma boa oferta
+
+// Outras categorias do Mercado Livre visitadas (ids do ML Brasil). A cada execução o robô visita algumas (rodízio).
+const CATEGORIAS = [
   { id: "MLB1051", nome: "Celulares e Telefones" },
   { id: "MLB1648", nome: "Informática" },
-  { id: "MLB1000", nome: "Eletrônicos, Áudio e Vídeo" },
   { id: "MLB1144", nome: "Games" },
   { id: "MLB1574", nome: "Casa, Móveis e Decoração" },
   { id: "MLB1246", nome: "Beleza e Cuidado Pessoal" },
@@ -38,21 +56,41 @@ const CATEGORIAS = [
   { id: "MLB1403", nome: "Alimentos e Bebidas" },
   { id: "MLB1196", nome: "Livros, Revistas e Comics" },
 ];
-const CATEGORIAS_POR_EXECUCAO = 8; // 8 categorias a cada 30 min = todas visitadas a cada 2 horas
+const CATEGORIAS_POR_EXECUCAO = 5; // 5 categorias a cada 30 min = todas visitadas a cada ~1h30
 const PRODUTOS_POR_CATEGORIA = 30; // a lista de mais vendidos tem até 30
 const PRECO_MINIMO = 30; // R$ — abaixo disso não vale a pena (carregador de R$ 15...)
 const HORAS_NA_FILA = 24; // oferta que ficou mais que isso na fila sem link é descartada (o preço pode ter mudado)
 const PUBLICAR_DIRETO = true; // true = publica no site sozinho com o link de afiliado; false = só coloca na fila (como era antes)
-const MAX_PUBLICAR_POR_EXECUCAO = 25; // ofertas novas do ML publicadas a cada execução (30 min); as que sobrarem vão para a fila
+const MAX_PUBLICAR_POR_EXECUCAO = 45; // ofertas novas do ML publicadas a cada execução (30 min); as que sobrarem vão para a fila
 // ===================
 
 const TESTE = process.argv.includes("--teste");
 const reais = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function categoriasDaVez() {
-  const blocos = Math.ceil(CATEGORIAS.length / CATEGORIAS_POR_EXECUCAO);
+function rodizio(lista, quantas) {
+  const blocos = Math.max(1, Math.ceil(lista.length / quantas));
   const vez = Math.floor(Date.now() / (30 * 60 * 1000)) % blocos;
-  return CATEGORIAS.slice(vez * CATEGORIAS_POR_EXECUCAO, (vez + 1) * CATEGORIAS_POR_EXECUCAO);
+  return lista.slice(vez * quantas, (vez + 1) * quantas);
+}
+
+// Subcategorias de Eletrodomésticos e Eletrônicos (lidas da API do ML; se falhar, usa a categoria principal)
+async function subcategoriasPrioritarias() {
+  const todas = [];
+  for (const cat of CATEGORIAS_PRIORITARIAS) {
+    todas.push({ ...cat, prioritaria: true });
+    const info = await lerApiML(`/categories/${cat.id}`);
+    for (const f of info?.children_categories ?? []) {
+      todas.push({ id: f.id, nome: `${cat.nome} › ${f.name}`, prioritaria: true });
+    }
+  }
+  return todas;
+}
+
+async function categoriasDaVez() {
+  return [
+    ...rodizio(await subcategoriasPrioritarias(), SUBCATEGORIAS_PRIORITARIAS_POR_EXECUCAO),
+    ...rodizio(CATEGORIAS, CATEGORIAS_POR_EXECUCAO),
+  ];
 }
 
 // Preço, preço "de", nome, foto e página de um item da lista de mais vendidos
@@ -146,7 +184,7 @@ async function main() {
   const foraPor = {};
   const fora = (m) => (foraPor[m] = (foraPor[m] ?? 0) + 1);
 
-  for (const cat of categoriasDaVez()) {
+  for (const cat of await categoriasDaVez()) {
     const lista = await lerApiML(`/highlights/MLB/category/${cat.id}`);
     if (!lista?.content) {
       console.warn(`[ml] ${cat.nome}: não consegui ler os mais vendidos.`);
@@ -164,8 +202,12 @@ async function main() {
       if (!categoria || categoria === "cupons") { fora("sem categoria"); continue; }
       const trava = avaliarDesconto({ loja: "Mercado Livre", preco_atual: p.preco_atual, preco_antigo: p.preco_antigo });
       if (!trava.ok) { fora("desconto inflado"); continue; }
-      if (trava.desconto < descontoMinimoDa(categoria)) { fora("desconto baixo"); continue; }
-      candidatas.push({ ...p, categoria, desconto: trava.desconto });
+      const prioritaria = ehPrioritaria(categoria);
+      const minimoDesconto = prioritaria
+        ? Math.min(descontoMinimoDa(categoria), DESCONTO_MINIMO_PRIORITARIAS)
+        : descontoMinimoDa(categoria);
+      if (trava.desconto < minimoDesconto) { fora("desconto baixo"); continue; }
+      candidatas.push({ ...p, categoria, desconto: trava.desconto, _prioritaria: prioritaria });
       boas++;
     }
     console.log(`[ml] ${cat.nome}: ${boas} ofertas boas entre os mais vendidos.`);
@@ -173,11 +215,24 @@ async function main() {
 
   // 2) tira as que já estão no site ou já foram resolvidas na fila
   const ids = candidatas.map((c) => c.produto_id);
-  const noSite = new Set();
+  const noSite = new Set(); // no ar e ainda dentro do prazo
+  const bloqueadas = new Set(); // expiradas há pouco tempo (ainda não podem voltar)
+  const existentesNoSite = new Map();
   const naFila = new Map();
   if (ids.length) {
-    const { data: ofertas } = await db.from("ofertas").select("id_externo").in("id_externo", ids.map((i) => `ml-${i}`)).eq("ativa", true);
-    for (const o of ofertas ?? []) noSite.add(o.id_externo.slice(3));
+    const { data: ofertas } = await db
+      .from("ofertas")
+      .select("id, id_externo, ativa, oculta_manual, publicada_em, expires_at, preco_atual, renovacoes")
+      .in("id_externo", ids.map((i) => `ml-${i}`))
+      .eq("ativa", true);
+    for (const o of ofertas ?? []) {
+      const pid = o.id_externo.slice(3);
+      const expira = momentoExpiracao(o);
+      existentesNoSite.set(pid, o);
+      if (expira === null || expira > Date.now()) noSite.add(pid);
+      else if (!podeVoltar(o)) bloqueadas.add(pid);
+      // podeVoltar: saiu das listas há tempo suficiente, pode ser publicada de novo (mesma página)
+    }
     const { data: fila } = await db.from("ml_fila").select("produto_id, status, preco_atual").in("produto_id", ids);
     for (const f of fila ?? []) naFila.set(f.produto_id, f);
   }
@@ -189,13 +244,34 @@ async function main() {
     for (const o of doML ?? []) chavesNoSite.add(chaveDaOferta(o));
   }
 
-  // as de maior desconto primeiro
-  candidatas.sort((a, b) => b.desconto - a.desconto);
+  // Eletrodomésticos/eletrônicos para casa primeiro; dentro de cada grupo, as de maior desconto
+  candidatas.sort((a, b) => Number(b._prioritaria) - Number(a._prioritaria) || b.desconto - a.desconto);
+
+  // Ofertas que já estão no site e continuam entre as mais vendidas: marca que foram vistas agora
+  // (senão a coleta acha que sumiram e expira com 48 h) e renova as que estão perto de expirar com o mesmo preço.
+  let vistas = 0;
+  let renovadas = 0;
+  if (!TESTE) {
+    const agoraIso = new Date().toISOString();
+    const vistasIds = candidatas.filter((c) => noSite.has(c.produto_id)).map((c) => `ml-${c.produto_id}`);
+    for (let i = 0; i < vistasIds.length; i += 200) {
+      const { error } = await db.from("ofertas").update({ atualizado_em: agoraIso }).in("id_externo", vistasIds.slice(i, i + 200));
+      if (!error) vistas += Math.min(200, vistasIds.length - i);
+    }
+    for (const c of candidatas) {
+      const e = existentesNoSite.get(c.produto_id);
+      if (!e || !noSite.has(c.produto_id) || !podeRenovar(e, c.preco_atual)) continue;
+      const { error } = await db.from("ofertas").update(camposDaRenovacao(e)).eq("id", e.id);
+      if (!error) renovadas++;
+    }
+  }
 
   let novas = 0;
   let publicadas = 0;
-  for (const c of candidatas) {
+  for (const c0 of candidatas) {
+    const { _prioritaria, ...c } = c0;
     if (noSite.has(c.produto_id)) { fora("já está no site"); continue; }
+    if (bloqueadas.has(c.produto_id)) { fora("expirada há pouco"); continue; }
     if (chavesNoSite.has(chaveDaOferta({ loja: "Mercado Livre", titulo: c.titulo, preco_atual: c.preco_atual }))) { fora("já está no site"); continue; }
     const antes = naFila.get(c.produto_id);
     // publicada ou descartada há pouco: só volta para a fila se o preço caiu
@@ -234,6 +310,7 @@ async function main() {
   }
 
   const resumo = `${publicadas} ${TESTE ? "seriam publicadas" : "publicadas no site"}, ${novas} ofertas ${TESTE ? "seriam colocadas" : "na fila"}` +
+    (TESTE ? "" : `, ${vistas} continuam no ar, ${renovadas} renovadas`) +
     (Object.keys(foraPor).length ? ` | fora: ${Object.entries(foraPor).map(([k, n]) => `${n} ${k}`).join(", ")}` : "");
   console.log(`[ml] ${resumo}`);
   if (TESTE) console.log("(teste: nada foi gravado)");

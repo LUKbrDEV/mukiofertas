@@ -72,6 +72,19 @@ const PALAVRAS_OUTRAS = [
   "console retrô", "r36s", "controle sem fio switch", "action figure", "quebra-cabeça",
 ];
 
+// PRIORIDADE: eletrodomésticos, climatização, exaustores e eletrônicos para casa (o que mais vende).
+// Buscada ANTES das outras listas, com mais buscas por execução.
+const PALAVRAS_CASA = [
+  "ar condicionado portátil", "climatizador de ar", "ventilador de coluna", "ventilador de teto", "circulador de ar",
+  "aquecedor elétrico", "umidificador de ar", "purificador de ar", "desumidificador", "exaustor de cozinha",
+  "coifa", "exaustor de banheiro", "air fryer", "forno elétrico", "micro-ondas", "cafeteira expresso",
+  "liquidificador portátil", "processador de alimentos", "aspirador robô", "aspirador vertical",
+  "lavadora de alta pressão", "vaporizador de roupas", "mini lava louças", "purificador de água",
+  "tv box", "soundbar", "projetor 4k", "câmera de segurança wifi", "fechadura digital", "videoporteiro",
+  "lâmpada inteligente", "tomada inteligente",
+];
+const BUSCAS_CASA_POR_EXECUCAO = 4;
+
 // Fitness e academia: 2 buscas garantidas em toda execução (rodízio próprio)
 const PALAVRAS_FITNESS = [
   "legging fitness", "conjunto fitness", "top fitness", "short fitness", "camiseta dry fit", "regata academia",
@@ -312,6 +325,7 @@ function rodizio(lista, quantas) {
 
 function palavrasDaVez() {
   return [
+    ...rodizio(PALAVRAS_CASA, BUSCAS_CASA_POR_EXECUCAO), // primeiro: prioridade
     ...rodizio(PALAVRAS_TECNOLOGIA, ajuste("aliexpress_buscas_tecnologia")),
     ...rodizio(PALAVRAS_OUTRAS, ajuste("aliexpress_buscas_outras")),
     ...rodizio(PALAVRAS_FITNESS, BUSCAS_FITNESS_POR_EXECUCAO),

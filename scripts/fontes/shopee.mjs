@@ -48,9 +48,6 @@ const PALAVRAS_OUTRAS = [
   "carregador turbo", "power bank", "câmera de segurança wifi", "roteador wifi", "lâmpada inteligente",
   "furadeira parafusadeira", "jogo de ferramentas", "garrafa térmica", "jogo de panelas", "jogo de cama",
   "cadeira gamer", "suporte monitor", "controle ps5", "controle xbox",
-  // Eletrodomésticos (alta procura na Black Friday)
-  "geladeira frost free", "máquina de lavar", "lava e seca", "micro-ondas", "air fryer 5l", "fogão 4 bocas",
-  "cooktop indução", "ventilador", "aspirador vertical", "batedeira planetária", "cafeteira expresso", "freezer",
   // Natal: brinquedos e video games
   "lego", "boneca", "carrinho controle remoto", "pista hot wheels", "nerf", "pelúcia", "jogo de tabuleiro",
   "blocos de montar", "bicicleta infantil", "playstation 5", "nintendo switch", "xbox series", "console retrô",
@@ -58,6 +55,26 @@ const PALAVRAS_OUTRAS = [
   "carrinho de bebê", "bebê conforto", "cadeirinha para carro", "berço", "babá eletrônica", "mamadeira",
   "cadeira de alimentação", "fralda pampers", "fralda huggies", "lenço umedecido", "banheira bebê", "velotrol",
 ];
+// PRIORIDADE: eletrodomésticos, climatização, exaustores e eletrônicos para casa (o que mais vende).
+// Lista própria, com mais buscas por execução e buscada ANTES das outras (pega as vagas primeiro).
+const PALAVRAS_CASA = [
+  // climatização
+  "ar condicionado split", "ar condicionado inverter", "ar condicionado portátil", "climatizador de ar",
+  "ventilador de coluna", "ventilador de teto", "circulador de ar", "aquecedor elétrico", "umidificador de ar",
+  "purificador de ar", "desumidificador",
+  // cozinha
+  "exaustor de cozinha", "coifa", "depurador de ar", "cooktop indução", "cooktop 5 bocas", "fogão 4 bocas",
+  "forno elétrico", "micro-ondas", "air fryer", "air fryer forno", "geladeira frost free", "freezer", "frigobar",
+  "lava louças", "purificador de água", "bebedouro", "panela elétrica", "cafeteira expresso",
+  "batedeira planetária", "liquidificador", "processador de alimentos", "sanduicheira", "chaleira elétrica",
+  // lavanderia e limpeza
+  "máquina de lavar", "lava e seca", "tanquinho", "secadora de roupas", "aspirador vertical", "aspirador robô",
+  "lavadora de alta pressão", "ferro de passar a vapor", "vaporizador de roupas",
+  // eletrônicos para casa
+  "smart tv 50", "smart tv 43", "soundbar", "home theater", "fire tv stick", "tv box", "alexa echo",
+  "câmera de segurança wifi", "fechadura digital", "lâmpada inteligente", "tomada inteligente", "videoporteiro",
+];
+const BUSCAS_CASA_POR_EXECUCAO = 7; // buscas de casa/eletro a cada execução (as que mais vendem)
 // Saúde e Beleza, Esporte, Mercado, Pet, Livros, Ferramentas e Automotivo: lista própria,
 // com buscas garantidas em toda execução (assim não perdem o rodízio para tecnologia)
 const PALAVRAS_NICHOS = [
@@ -139,9 +156,9 @@ const PALAVRAS_NATAL = [
   "panetone", "chocotone", "cesta de natal", "embalagem para presente natal", "papel de presente natal",
 ];
 const BUSCAS_NATAL_POR_EXECUCAO = 4; // buscas de Natal a cada execução (só na temporada)
-const BUSCAS_NICHOS_POR_EXECUCAO = 3; // buscas dessas áreas a cada execução
-const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 6; // buscas de tecnologia a cada execução
-const BUSCAS_OUTRAS_POR_EXECUCAO = 5; // buscas das outras categorias a cada execução
+const BUSCAS_NICHOS_POR_EXECUCAO = 2; // buscas dessas áreas a cada execução — era 3
+const BUSCAS_TECNOLOGIA_POR_EXECUCAO = 4; // buscas de tecnologia a cada execução — era 6
+const BUSCAS_OUTRAS_POR_EXECUCAO = 4; // buscas das outras categorias a cada execução — era 5
 const MAX_POR_PALAVRA = 5; // no máximo X ofertas de cada busca (para uma busca não ocupar tudo)
 
 // Vendedores que você NÃO quer no site (nome da loja na Shopee). Ex.: ["Loja X"]
@@ -294,6 +311,7 @@ function rodizio(lista, quantas) {
 
 function palavrasDaVez() {
   return [
+    ...rodizio(PALAVRAS_CASA, BUSCAS_CASA_POR_EXECUCAO), // primeiro: prioridade
     ...rodizio(PALAVRAS_TECNOLOGIA, BUSCAS_TECNOLOGIA_POR_EXECUCAO),
     ...rodizio(PALAVRAS_OUTRAS, BUSCAS_OUTRAS_POR_EXECUCAO),
     ...rodizio(PALAVRAS_NICHOS, BUSCAS_NICHOS_POR_EXECUCAO),

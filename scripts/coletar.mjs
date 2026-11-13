@@ -6,7 +6,15 @@ import { buscar as buscarAwin } from "./fontes/awin.mjs";
 import { buscar as buscarRakuten } from "./fontes/rakuten.mjs";
 import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
-import { regrasDeQualidade, motivoDeRecusa, ehMarketplace, maximoNoAr, lojaBloqueada } from "../lib/qualidade.mjs";
+import {
+  regrasDeQualidade,
+  motivoDeRecusa,
+  ehMarketplace,
+  maximoNoAr,
+  lojaBloqueada,
+  ehPrioritaria,
+  FRACAO_MAX_OUTRAS,
+} from "../lib/qualidade.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
 import { limparExpiradas } from "../lib/limpeza.mjs";
 import {
@@ -85,20 +93,62 @@ async function main() {
   const qualidade = regrasDeQualidade(config);
   const { data: marketplaceNoAr } = await supabase
     .from("ofertas")
-    .select("loja, id_externo, publicada_em, expires_at")
+    .select("id, loja, id_externo, categoria, publicada_em, expires_at")
     .eq("ativa", true)
     .in("loja", ["Shopee", "AliExpress", "Aliexpress"])
     .gte("publicada_em", limiteSite.toISOString())
     .limit(5000);
   // Só contam as que ainda não expiraram (as expiradas continuam no banco, mas não ocupam vaga)
-  const marketplaceValidas = (marketplaceNoAr ?? []).filter((o) => {
+  let marketplaceValidas = (marketplaceNoAr ?? []).filter((o) => {
     const expira = momentoExpiracao(o);
     return expira === null || expira > Date.now();
   });
+
+  // Loja acima do limite (ex.: Shopee com 400 e limite 300): expira o excesso agora.
+  // Saem primeiro as que NÃO são das categorias prioritárias, das mais antigas para as mais novas.
+  let cortadasPorLimite = 0;
+  {
+    const porLoja = new Map();
+    for (const o of marketplaceValidas) {
+      const l = o.loja.toLowerCase();
+      if (!porLoja.has(l)) porLoja.set(l, []);
+      porLoja.get(l).push(o);
+    }
+    const cortar = [];
+    for (const [loja, lista] of porLoja) {
+      const excesso = lista.length - maximoNoAr(loja, qualidade);
+      if (excesso <= 0) continue;
+      lista.sort(
+        (a, b) =>
+          Number(ehPrioritaria(a.categoria)) - Number(ehPrioritaria(b.categoria)) ||
+          new Date(a.publicada_em) - new Date(b.publicada_em)
+      );
+      cortar.push(...lista.slice(0, excesso));
+    }
+    for (let i = 0; i < cortar.length; i += 200) {
+      const ids = cortar.slice(i, i + 200).map((o) => o.id);
+      const { error } = await supabase.from("ofertas").update({ expires_at: agora }).in("id", ids);
+      if (error) console.error("Erro ao expirar o excesso da loja:", error.message);
+      else cortadasPorLimite += ids.length;
+    }
+    if (cortar.length) {
+      const fora = new Set(cortar.map((o) => o.id));
+      marketplaceValidas = marketplaceValidas.filter((o) => !fora.has(o.id));
+    }
+  }
+
   const jaNoAr = new Set(marketplaceValidas.map((o) => `${o.loja.toLowerCase()}|${o.id_externo}`));
+  // Vagas livres por loja: no total e para as categorias não prioritárias (no máximo FRACAO_MAX_OUTRAS do limite)
   const vagas = new Map();
-  for (const o of marketplaceValidas) vagas.set(o.loja.toLowerCase(), (vagas.get(o.loja.toLowerCase()) ?? 0) + 1);
+  const vagasOutras = new Map();
+  for (const o of marketplaceValidas) {
+    const l = o.loja.toLowerCase();
+    vagas.set(l, (vagas.get(l) ?? 0) + 1);
+    if (!ehPrioritaria(o.categoria)) vagasOutras.set(l, (vagasOutras.get(l) ?? 0) + 1);
+  }
   for (const [loja, n] of vagas) vagas.set(loja, Math.max(0, maximoNoAr(loja, qualidade) - n));
+  const limiteOutras = (loja) => Math.floor(maximoNoAr(loja, qualidade) * FRACAO_MAX_OUTRAS);
+  for (const [loja, n] of vagasOutras) vagasOutras.set(loja, Math.max(0, limiteOutras(loja) - n));
   let recusadasQualidade = 0;
   let semVaga = 0;
 
@@ -111,6 +161,13 @@ async function main() {
       falhas.push(erro.message);
       continue; // uma fonte quebrada não derruba as outras
     }
+
+    // Eletrodomésticos, climatização e eletrônicos para casa primeiro: ficam com as vagas antes das outras
+    const prioridadeDe = (i) => (ehPrioritaria(i.categoria ?? classificar(i.titulo, i.loja)) ? 0 : 1);
+    itens = itens
+      .map((item, ordem) => ({ item, ordem, p: prioridadeDe(item) }))
+      .sort((a, b) => a.p - b.p || a.ordem - b.ordem)
+      .map((x) => x.item);
 
     const linhas = [];
     for (const item of itens) {
@@ -135,6 +192,16 @@ async function main() {
           if (livres <= 0) {
             semVaga++;
             continue;
+          }
+          // Categorias que não são prioridade têm uma cota menor dentro do limite da loja
+          const prioritaria = ehPrioritaria(item.categoria ?? classificar(item.titulo, item.loja));
+          if (!prioritaria) {
+            const livresOutras = vagasOutras.has(loja) ? vagasOutras.get(loja) : limiteOutras(loja);
+            if (livresOutras <= 0) {
+              semVaga++;
+              continue;
+            }
+            vagasOutras.set(loja, livresOutras - 1);
           }
           vagas.set(loja, livres - 1);
         }
@@ -312,10 +379,11 @@ async function main() {
   // As expiradas não são mais apagadas (a página delas continua no ar); só conta as arquivadas
   const limpeza = await limparExpiradas(supabase);
 
-  if (recusadasQualidade || semVaga)
+  if (recusadasQualidade || semVaga || cortadasPorLimite)
     console.log(
       `Shopee/AliExpress: ${recusadasQualidade} recusadas pelo filtro de qualidade, ` +
-        `${semVaga} sem vaga (limite de ofertas no ar da loja).`
+        `${semVaga} sem vaga (limite de ofertas no ar da loja), ` +
+        `${cortadasPorLimite} expiradas porque a loja passou do limite.`
     );
 
   const resumo =
