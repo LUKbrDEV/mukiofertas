@@ -3,7 +3,8 @@
 // Aba "Comandos da VPS" do painel admin (antes ficava no fim da Saúde do robô).
 // Salve como components/admin/ComandosVPS.js.
 //
-// O GitHub Actions está desligado: tudo roda na VPS da Oracle (pasta ~/mukiofertas-robo).
+// O GitHub Actions está desligado: tudo roda na VPS da Hostinger (robôs em ~/mukiofertas-robo, site em ~/mukiofertas-site).
+// O WhatsApp (Evolution API) continua na VPS da Oracle.
 // Cada comando tem um botão Copiar: entre na VPS e cole.
 
 import { useState } from "react";
@@ -22,6 +23,8 @@ export const COMANDOS = [
       { nome: "Registro dos alertas de preço", cmd: "tail -n 40 ~/logs/robo-alertas.log" },
       { nome: "Leitor de canais: está ligado?", cmd: "pm2 status" },
       { nome: "Leitor de canais: registro", cmd: "pm2 logs leitor-telegram --lines 40" },
+      { nome: "Site: registro de erros", cmd: "pm2 logs site --lines 40 --nostream" },
+      { nome: "Registro das publicações do site", cmd: "tail -n 40 ~/logs/site-publicar.log" },
     ],
   },
   {
@@ -36,6 +39,8 @@ export const COMANDOS = [
       { nome: "Só conferir preços", cmd: `${NODE} scripts/conferir-precos.mjs` },
       { nome: "Só postar no Telegram", cmd: `${NODE} scripts/postar-telegram.mjs` },
       { nome: "Reiniciar o leitor de canais", cmd: "pm2 restart leitor-telegram" },
+      { nome: "Publicar o site (depois de um git push)", cmd: "atualizar-site" },
+      { nome: "Reiniciar o site", cmd: "pm2 restart site" },
     ],
   },
   {
@@ -68,7 +73,7 @@ export const COMANDOS = [
     icone: "🔑",
     itens: [
       { nome: "Atualizar o código agora (a coleta já faz git pull sozinha)", cmd: `${PASTA} git pull && npm ci && pm2 restart leitor-telegram` },
-      { nome: "Guardar as chaves novas no robo.env (o robo-na-vps.sh copia ele por cima do .env.robo)", cmd: "cp ~/mukiofertas-robo/.env.robo ~/robo.env" },
+      { nome: "Guardar uma cópia das chaves dos robôs", cmd: "cp ~/mukiofertas-robo/.env.robo ~/robo.env" },
     ],
   },
 ];
@@ -97,7 +102,7 @@ export default function ComandosVPS() {
         <div>
           <h1>Comandos da VPS</h1>
           <p className="adm-sub">
-            Os robôs rodam sozinhos na VPS da Oracle (coleta nos minutos 11 e 41 de cada hora, WhatsApp a cada 10 min,
+            Os robôs e o site rodam na VPS da Hostinger (coleta nos minutos 11 e 41 de cada hora, WhatsApp a cada 10 min,
             leitor de canais sempre ligado no pm2). Use estes comandos só para ver um erro ou rodar algo na hora.
           </p>
         </div>

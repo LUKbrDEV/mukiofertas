@@ -24,7 +24,9 @@ const COMANDOS = {
   kabum: "~/rodar-robo.sh kabum",
   alertas: `${NODE} scripts/avisar-alertas.mjs`,
   leitor: "pm2 restart leitor-telegram",
-  atualizar: "git pull && npm ci && pm2 restart leitor-telegram",
+  atualizar: "git pull --ff-only && npm ci --no-audit --no-fund && pm2 restart leitor-telegram",
+  // publica o site (pasta ~/mukiofertas-site). O script fica na VPS: /usr/local/bin/atualizar-site
+  site: "/usr/local/bin/atualizar-site",
 };
 
 const PASTA = process.cwd(); // o cron entra em ~/mukiofertas-robo antes de rodar
