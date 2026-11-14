@@ -33,10 +33,10 @@ export default async function sitemap() {
     ...atalhos
       .filter((a) => a.href !== "/" && !a.href.startsWith("/categoria/"))
       .map((a) => ({ url: `${base}${a.href}`, changeFrequency: "hourly", priority: 0.8 })),
-    ...["/sobre", "/contato", "/privacidade", "/termos"].map((p) => ({
+    ...["/sobre", "/como-escolhemos", "/contato", "/privacidade", "/termos"].map((p) => ({
       url: `${base}${p}`,
       changeFrequency: "monthly",
-      priority: 0.3,
+      priority: p === "/como-escolhemos" || p === "/sobre" ? 0.6 : 0.3,
     })),
   ].map((p) => ({ ...p, lastModified: agora }));
 

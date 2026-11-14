@@ -24,7 +24,7 @@ import SeloSuperDesconto from "../../../components/SeloSuperDesconto";
 import { ehRelampago } from "../../../lib/relampago.mjs";
 import VotosOferta from "../../../components/VotosOferta";
 import GraficoPreco from "../../../components/GraficoPreco";
-import { buscarHistorico, resumirHistorico } from "../../../lib/historico";
+import { buscarHistoricoProduto, resumirHistorico } from "../../../lib/historico";
 import AnaliseOferta from "../../../components/AnaliseOferta";
 import { guiaDaCategoria } from "../../../data/guias";
 import { deveIndexarOferta } from "../../../lib/indexacao";
@@ -128,8 +128,9 @@ export default async function PaginaOferta({ params }) {
   const oferta = await buscarOfertaPorId(id);
   if (!oferta) notFound();
 
-  const historico = await buscarHistorico(oferta.id);
-  const resumoPreco = resumirHistorico(historico, oferta.preco_atual);
+  // Histórico do PRODUTO (junta as vezes em que ele voltou ao site como oferta nova)
+  const { pontos: historico, vezes: vezesNoSite } = await buscarHistoricoProduto(oferta);
+  const resumoPreco = resumirHistorico(historico, oferta.preco_atual, Date.now(), { vezes: vezesNoSite });
   const mostrarGrafico = resumoPreco && (historico.length >= 2 || resumoPreco.diasDeHistorico >= 1);
 
   const desconto = calcularDesconto(oferta);
@@ -362,7 +363,7 @@ export default async function PaginaOferta({ params }) {
       {expirada && blocoRelacionadas}
 
 
-      <AnaliseOferta oferta={oferta} guia={guia} />
+      <AnaliseOferta oferta={oferta} guia={guia} historico={resumoPreco} />
 
       <SobreProduto oferta={oferta} />
 

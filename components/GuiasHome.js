@@ -15,8 +15,12 @@ const PASSOS = [
     texto: "O robô do site volta à loja de tempos em tempos para conferir a maioria das ofertas. Se o preço subiu, a oferta ganha a tag Expirado e desce para o fim da lista.",
   },
   {
+    titulo: "Histórico de preço",
+    texto: "Guardamos cada mudança de preço. O selo de menor preço só aparece depois de 7 dias acompanhando o produto.",
+  },
+  {
     titulo: "Tiramos o que venceu",
-    texto: "Toda oferta expira em poucos dias e, depois, sai do site. Assim a vitrine fica só com o que ainda está valendo.",
+    texto: "Toda oferta tem prazo. Quando a promoção acaba, ela ganha a tag Expirado e desce para o fim da lista.",
   },
   {
     titulo: "A comunidade avisa",
@@ -67,6 +71,9 @@ export default function GuiasHome({ comoEscolhemos = true }) {
             </li>
           ))}
         </ol>
+        <p style={{ margin: "12px 0 0" }}>
+          <Link href="/como-escolhemos">Veja todas as regras, com os números →</Link>
+        </p>
       </section>
       )}
     </>

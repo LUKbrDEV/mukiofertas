@@ -112,6 +112,25 @@
     .cf-pix { order: 3; width: 100%; font-size: 0.7rem; }
     .cf-botao { height: 36px; margin-top: 2px; border-radius: 9px; font-size: 0.88rem; }
     .cf-pe { display: none; }
+
+    /* Selo da foto (Super desconto, Menor preço, Relâmpago): o canto de cima fica só para ele.
+       O coração desce para o canto de baixo, ao lado da % de desconto, e o selo pode quebrar em 2 linhas. */
+    .cf-selo-topo {
+      max-width: calc(100% - 8px); height: auto; min-height: 20px; padding: 3px 6px;
+      white-space: normal; line-height: 1.15; font-size: 0.62rem;
+    }
+    .cf-coracao { top: auto; bottom: 5px; right: 5px; width: 28px; height: 28px; }
+    .cf-coracao .bd--card { width: 28px; height: 28px; }
+    /* oferta expirada: a tag "Expirado" vai para o canto de cima (o de baixo é do coração) */
+    .cf-expirado { top: 4px; left: 4px; right: auto; bottom: auto; padding: 2px 6px; font-size: 0.62rem; }
+    .cf--expirada .cf-selo-topo { display: none; }
+
+    /* Linha da loja: nome inteiro em cima e o "há 6 horas" embaixo (antes o nome era cortado: "Mercado L...") */
+    .cf-loja { align-items: center; }
+    .cf-loja-txt { flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; gap: 0; line-height: 1.2; }
+    .cf-loja-nome { max-width: 100%; }
+    .cf-quando::before { content: none; }
+    .cf-loja .up { flex: none; }
   }
 
   /* Oferta expirada: foto cinza, tag "Expirado" e o botão leva para a página da oferta (comentários) */

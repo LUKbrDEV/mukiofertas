@@ -9,19 +9,53 @@ import Link from "next/link";
 import { calcularDesconto, formatarPreco, tempoAtras } from "../lib/ofertas";
 import "./guias.css";
 
-function veredito(desconto, expirada) {
+const dataLonga = (ms) =>
+  new Date(ms).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long" });
+
+// Histórico de preço escrito em texto (o Google e os assistentes de IA leem texto, não gráfico).
+// Ex.: "Nos últimos 45 dias, este produto apareceu 3 vezes no MukiOfertas. O menor preço que registramos
+//       foi R$ 189,90, em 2 de novembro, e o maior, R$ 249,90. Hoje ele está no menor preço do período."
+function frasesDoHistorico(h, oferta) {
+  if (!h || h.diasDeHistorico < 1) return [];
+  const dias = Math.max(1, Math.min(90, Math.round(h.diasDeHistorico)));
+  const atual = Number(oferta.preco_atual);
+  const frases = [];
+  const vezes = h.vezes > 1 ? ` e apareceu ${h.vezes} vezes no MukiOfertas` : "";
+  frases.push(`Acompanhamos o preço deste produto na ${oferta.loja} há ${dias} ${dias === 1 ? "dia" : "dias"}${vezes}.`);
+  if (h.maior - h.menor < 0.01) {
+    frases.push(`Nesse período o preço ficou estável em ${formatarPreco(h.menor)}.`);
+    return frases;
+  }
+  frases.push(
+    `O menor preço que registramos foi ${formatarPreco(h.menor)}, em ${dataLonga(h.menorEm)}, e o maior foi ${formatarPreco(h.maior)}, em ${dataLonga(h.maiorEm)}.`
+  );
+  if (oferta.expirada) return frases;
+  if (h.noMenorPreco) frases.push(`Hoje, por ${formatarPreco(atual)}, ele está no menor preço do período.`);
+  else if (h.acimaDoMenor > 0)
+    frases.push(
+      `Hoje ele está ${formatarPreco(h.acimaDoMenor)} acima do menor preço registrado${h.abaixoDoMaior > 0 ? ` e ${h.abaixoDoMaior}% abaixo do maior` : ""}.`
+    );
+  if (h.diasDeHistorico < 7) frases.push("Como o acompanhamento começou há pouco, ainda é cedo para dizer se este é o menor preço de verdade.");
+  return frases;
+}
+
+function veredito(desconto, expirada, h) {
   if (expirada) return { nivel: "encerrada", texto: "Oferta encerrada" };
+  // Menor preço com pelo menos 7 dias de acompanhamento vale mais que a % de desconto informada pela loja
+  if (h?.noMenorPreco && h.diasDeHistorico >= 7)
+    return { nivel: "otimo", texto: `Menor preço em ${Math.min(90, Math.round(h.diasDeHistorico))} dias` };
   if (desconto >= 35) return { nivel: "otimo", texto: "Desconto forte" };
   if (desconto >= 15) return { nivel: "bom", texto: "Bom desconto" };
   if (desconto > 0) return { nivel: "normal", texto: "Desconto pequeno" };
   return { nivel: "normal", texto: "Sem preço anterior informado" };
 }
 
-export default function AnaliseOferta({ oferta, guia }) {
+export default function AnaliseOferta({ oferta, guia, historico = null }) {
   const expirada = oferta.expirada;
   const desconto = calcularDesconto(oferta);
   const economia = desconto > 0 ? Number(oferta.preco_antigo) - Number(oferta.preco_atual) : 0;
-  const v = veredito(desconto, expirada);
+  const v = veredito(desconto, expirada, historico);
+  const textoHistorico = frasesDoHistorico(historico, oferta);
 
   const frases = [];
   if (expirada) {
@@ -63,6 +97,13 @@ export default function AnaliseOferta({ oferta, guia }) {
         </p>
       ))}
 
+      {textoHistorico.length > 0 && (
+        <>
+          <h3 style={{ margin: "14px 0 6px", fontSize: "1rem" }}>Histórico de preço</h3>
+          <p style={{ margin: "0 0 8px" }}>{textoHistorico.join(" ")}</p>
+        </>
+      )}
+
       {!expirada && (
         <>
           <p style={{ margin: "12px 0 0", fontWeight: 700 }}>Antes de comprar, confira:</p>
@@ -82,6 +123,8 @@ export default function AnaliseOferta({ oferta, guia }) {
             Leia o guia: como saber se uma promoção é real →
           </Link>
         )}
+        {" · "}
+        <Link href="/como-escolhemos">Como escolhemos as ofertas</Link>
       </p>
     </section>
   );
