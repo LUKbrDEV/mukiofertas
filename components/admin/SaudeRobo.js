@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { estaExpirada } from "../../lib/ofertas";
-import { HORAS_ENTRE_CONFERENCIAS } from "../../lib/prazos.mjs";
+import { HORAS_ENTRE_CONFERENCIAS, DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL } from "../../lib/prazos.mjs";
 import { buscarTudo, ha, dataHora } from "./util";
 import { problemasDasOfertas } from "./OfertasAtencao";
 import RodarRobos from "./RodarRobos";
@@ -74,27 +74,51 @@ export default function SaudeRobo({ irPara }) {
 
   const carregar = useCallback(async () => {
     setErro("");
-    const [r, statusR] = await Promise.all([
-      buscarTudo(() => supabase.from("ofertas").select("*").order("id")),
+    // Antes baixava a tabela INTEIRA do id mais antigo para o mais novo (com limite de linhas): com a tabela
+    // grande, as ofertas mais novas ficavam de fora e o painel dizia que o Telegram/WhatsApp não postava
+    // havia dias. Agora: só as ofertas que podem estar no site (das mais novas para as mais antigas) e
+    // as datas "última vez" vêm direto do banco (a mais recente de cada coluna).
+    const agoraIso = new Date().toISOString();
+    const corteVisivel = new Date(Date.now() - (DIAS_NO_SITE + DIAS_EXPIRADA_VISIVEL) * 24 * HORA).toISOString();
+    const ultimo = (campo, filtro) => {
+      let q = supabase.from("ofertas").select(campo).not(campo, "is", null);
+      if (filtro) q = filtro(q);
+      return q.order(campo, { ascending: false }).limit(1).maybeSingle();
+    };
+    const [r, statusR, uWhats, uTele, uConf, uAuto, uImport] = await Promise.all([
+      buscarTudo(
+        () =>
+          supabase
+            .from("ofertas")
+            .select("*")
+            .eq("ativa", true)
+            .or(`publicada_em.is.null,publicada_em.gte.${corteVisivel},expires_at.gte.${agoraIso}`)
+            .order("id", { ascending: false }),
+        20000
+      ),
       supabase.from("robo_status").select("*"),
+      ultimo("postada_whatsapp_em"),
+      ultimo("postada_telegram_em"),
+      ultimo("preco_conferido_em"),
+      ultimo("atualizado_em", (q) => q.or("origem.is.null,origem.eq.automatica")),
+      ultimo("publicada_em", (q) => q.eq("origem", "telegram")),
     ]);
     if (r.error) return setErro(`Não foi possível carregar as ofertas: ${r.error.message}`);
 
     const ofertas = r.data;
     const noAr = ofertas.filter((o) => o.ativa && !estaExpirada(o));
-    const maisRecente = (lista, campo) => lista.reduce((m, o) => (o[campo] && (!m || o[campo] > m) ? o[campo] : m), null);
     const execucoes = new Map((statusR.data ?? []).map((s) => [s.script, s]));
     const problemas = problemasDasOfertas(ofertas).tipos.reduce((s, t) => s + t.itens.length, 0);
 
     setDados({
       statusDisponivel: !statusR.error,
       exec: (nome) => execucoes.get(nome),
-      ultimoPostWhatsapp: maisRecente(ofertas, "postada_whatsapp_em"),
+      ultimoPostWhatsapp: uWhats.data?.postada_whatsapp_em ?? null,
       filaWhatsapp: noAr.filter((o) => !o.postada_whatsapp_em).length,
-      ultimaAutomatica: maisRecente(ofertas.filter((o) => (o.origem ?? "automatica") === "automatica"), "atualizado_em"),
-      ultimaConferencia: maisRecente(ofertas, "preco_conferido_em"),
-      ultimaTelegramImportada: maisRecente(ofertas.filter((o) => o.origem === "telegram"), "publicada_em"),
-      ultimoPostTelegram: maisRecente(ofertas, "postada_telegram_em"),
+      ultimaAutomatica: uAuto.data?.atualizado_em ?? null,
+      ultimaConferencia: uConf.data?.preco_conferido_em ?? null,
+      ultimaTelegramImportada: uImport.data?.publicada_em ?? null,
+      ultimoPostTelegram: uTele.data?.postada_telegram_em ?? null,
       filaTelegram: noAr.filter((o) => !o.postada_telegram_em).length,
       noAr: noAr.length,
       problemas,
@@ -150,7 +174,7 @@ export default function SaudeRobo({ irPara }) {
     {
       icone: "📨",
       titulo: "Importação do canal MukiOfertas",
-      como: "Webhook do site (Vercel) · na hora em que a oferta sai no canal",
+      como: "Webhook do site · na hora em que a oferta sai no canal ou chega pelo leitor de canais",
       quando: dados.ultimaTelegramImportada,
       cor: situacao(dados.ultimaTelegramImportada, 12, 48),
       detalhe: "Última oferta que chegou do canal",
@@ -169,11 +193,14 @@ export default function SaudeRobo({ irPara }) {
     {
       icone: "✈️",
       titulo: "Postagem no Telegram",
-      como: "Roda junto com a coleta · a cada 30 min",
-      quando: dados.ultimoPostTelegram,
-      cor: situacao(dados.ultimoPostTelegram, 3, 12),
+      como: "Roda junto com a coleta (minutos 11 e 41 de cada hora) · só vão para o canal as ofertas com desconto bom; as outras ficam só no site",
+      quando: maisNovo(e("postar-telegram")?.ultima_execucao, dados.ultimoPostTelegram),
+      cor: situacao(maisNovo(e("postar-telegram")?.ultima_execucao, dados.ultimoPostTelegram), 1, 3),
+      erro: e("postar-telegram") && !e("postar-telegram").ok,
       extra: `${dados.filaTelegram} na fila`,
-      detalhe: `${dados.filaTelegram} ofertas no ar ainda não postadas no canal`,
+      detalhe:
+        `Último post no canal: ${dados.ultimoPostTelegram ? ha(dados.ultimoPostTelegram) : "nenhum registrado"}` +
+        (e("postar-telegram")?.resumo ? ` · última execução: ${e("postar-telegram").resumo}` : ` · ${dados.filaTelegram} ofertas no ar ainda não postadas`),
     },
     {
       icone: "🟢",

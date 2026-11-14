@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { converterLinkMagalu } from "../lib/afiliado-magalu.mjs";
+import { registrarExecucao } from "../lib/prazos.mjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -99,6 +100,7 @@ async function main() {
 
   if (error) {
     console.error("Erro ao buscar ofertas:", error.message);
+    await registrarExecucao(supabase, "postar-telegram", false, `Erro ao buscar ofertas: ${error.message}`);
     process.exit(1);
   }
 
@@ -108,6 +110,7 @@ async function main() {
     .slice(0, LIMITE_POR_EXECUCAO);
 
   let enviadas = 0;
+  let falhas = 0;
   for (const oferta of pendentes) {
     try {
       await enviar(montarMensagem(oferta));
@@ -117,12 +120,23 @@ async function main() {
         .eq("id", oferta.id);
       enviadas++;
     } catch (erro) {
+      falhas++;
       console.error(`Falha ao postar "${oferta.titulo}":`, erro.message);
     }
     await esperar(PAUSA_ENTRE_MENSAGENS_MS);
   }
 
   console.log(`Telegram: ${enviadas} ofertas enviadas.`);
+  // Registro para a aba Saúde do robô do painel (antes este robô não registrava nada)
+  const semDesconto = (data ?? []).length - (data ?? []).filter((o) => ["manual", "comunidade"].includes(o.origem) || descontoDe(o) >= DESCONTO_MINIMO_TELEGRAM).length;
+  await registrarExecucao(
+    supabase,
+    "postar-telegram",
+    falhas === 0 || enviadas > 0,
+    `${enviadas} enviadas para o canal` +
+      (falhas ? ` · ${falhas} falharam` : "") +
+      (semDesconto ? ` · ${semDesconto} ficaram só no site (desconto abaixo de ${DESCONTO_MINIMO_TELEGRAM}%)` : "")
+  );
 }
 
 main();

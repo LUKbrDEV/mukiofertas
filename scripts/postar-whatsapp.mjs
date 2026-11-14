@@ -86,6 +86,12 @@ function ajuste(chave) {
 }
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+// O rodar-robo.sh encerra o robô à força com 9 min (e ele roda a cada 10 min). Encerrado à força,
+// ele não registrava a execução e o painel mostrava "Parado". Com este limite, ele para de mandar
+// mensagens novas antes disso, registra a execução e o resto da fila vai na próxima rodada.
+const INICIO_EXECUCAO = Date.now();
+const LIMITE_EXECUCAO_MS = 7 * 60 * 1000;
+const tempoRestante = () => LIMITE_EXECUCAO_MS - (Date.now() - INICIO_EXECUCAO);
 
 // ---------- Evolution API ----------
 const base = () => String(process.env.EVOLUTION_URL || "").replace(/\/+$/, "");
@@ -414,7 +420,14 @@ async function main() {
 
   let enviadas = 0;
   const falhas = [];
+  let ficaramParaDepois = 0;
   for (const [i, o] of candidatas.entries()) {
+    // sem tempo para mais uma mensagem (frase + foto + envio): o resto vai na próxima rodada
+    if (!TESTE && tempoRestante() < 60 * 1000) {
+      ficaramParaDepois = candidatas.length - i;
+      console.log(`[whatsapp] Tempo da rodada acabando: ${ficaramParaDepois} ficam para a próxima.`);
+      break;
+    }
     const siteUrl = process.env.SITE_URL || "https://www.mukiofertas.com.br";
     let campos = camposDaOferta(o, { siteUrl });
     let fraseUsada = null;
@@ -426,6 +439,7 @@ async function main() {
         usarIa: ajuste("whatsapp_frase_ia"),
         recentes,
         maxPalavras: ajuste("whatsapp_frase_palavras"),
+        prazoMs: Math.max(5000, Math.min(40000, tempoRestante() - 45000)),
       });
       campos = { ...campos, frase };
       fraseUsada = frase;
@@ -472,7 +486,14 @@ async function main() {
     // intervalo entre as mensagens, variando ±30% para não parecer robô
     if (i < candidatas.length - 1) {
       const s = ajuste("whatsapp_intervalo_segundos");
-      await esperar(Math.round(s * (0.7 + Math.random() * 0.6) * 1000));
+      const pausa = Math.round(s * (0.7 + Math.random() * 0.6) * 1000);
+      // se a pausa comeria o tempo da próxima mensagem, encerra a rodada aqui
+      if (!TESTE && tempoRestante() - pausa < 60 * 1000) {
+        ficaramParaDepois = candidatas.length - i - 1;
+        console.log(`[whatsapp] Tempo da rodada acabando: ${ficaramParaDepois} ficam para a próxima.`);
+        break;
+      }
+      await esperar(pausa);
     }
   }
 
@@ -496,7 +517,10 @@ async function main() {
       `[whatsapp] Frases: ${contagemFrases.ia} da IA, ${contagemFrases.banco} do banco` +
         (contagemFrases.motivos.size ? ` (motivo: ${[...contagemFrases.motivos].join("; ")})` : "")
     );
-  const resumo = `${enviadas} enviadas para o grupo` + (falhas.length ? ` | ${falhas.length} falharam: ${falhas[0]}` : "");
+  const resumo =
+    `${enviadas} enviadas para o grupo` +
+    (ficaramParaDepois ? ` · ${ficaramParaDepois} ficaram para a próxima rodada` : "") +
+    (falhas.length ? ` | ${falhas.length} falharam: ${falhas[0]}` : "");
   console.log(`[whatsapp] ${resumo}`);
   await registrarExecucao(db, "postar-whatsapp", falhas.length === 0 || enviadas > 0, resumo);
 }
