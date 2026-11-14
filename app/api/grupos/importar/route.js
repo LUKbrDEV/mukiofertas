@@ -91,6 +91,7 @@ export async function POST(req) {
   const resultado = await salvarOferta(final, "telegram", {
     imagem: c.imagem || imagem || null,
     aceitarSemDesconto: SEM_PRECO_ANTIGO.has(c.loja),
+    jaNoCanal: false, // oferta de outro canal: entra na fila para postar no SEU canal do Telegram
   });
   const situacao = resultado?.motivo ?? (resultado?.ok ? "publicada" : "erro");
   console.log(`[grupos] ${grupo}: ${c.loja} → ${situacao}`);
