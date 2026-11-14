@@ -6,7 +6,8 @@ import { DIAS_NO_SITE } from "../../lib/prazos.mjs";
 
 export const DIA = 86400000;
 
-export const nomeCategoria = (slug) => categorias.find((c) => c.slug === slug)?.nome ?? slug ?? "—";
+export const nomeCategoria = (slug) =>
+  categorias.find((c) => c.slug === slug)?.nome ?? (slug === "cupons" ? "Cupons" : slug) ?? "—";
 
 export const NOMES_ORIGEM = {
   automatica: "Robô (Lomadee)",

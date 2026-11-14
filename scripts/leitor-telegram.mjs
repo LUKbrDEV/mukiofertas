@@ -40,6 +40,12 @@ const SITE = (process.env.SITE_URL || "https://www.mukiofertas.com.br").replace(
 const ARQUIVO_SESSAO = path.join(os.homedir(), ".mukiofertas-telegram-sessao");
 const BUCKET_FOTOS = "telegram-grupos"; // pasta pública no Supabase Storage (criada sozinha)
 const INTERVALO_ENTRE_ENVIOS_MS = 3000; // uma oferta a cada 3 s para o site
+// Conferência ativa: a cada X segundos o leitor VAI BUSCAR as mensagens novas de cada canal.
+// (Em canais grandes o Telegram nem sempre avisa as mensagens novas na hora para contas comuns;
+//  sem isso, os posts desses canais passavam direto.)
+const CONFERIR_A_CADA_MS = 60 * 1000;
+// true = mostra no log também os posts sem link (ajuda a ver se o canal está chegando)
+const MOSTRAR_POSTS_SEM_LINK = true;
 // Lojas aceitas: as que o site consegue trocar pelo SEU link de afiliado
 // (antes era só a Netshoes, na fase de teste; a variável TELEGRAM_LEITOR_LOJAS no .env.robo ainda manda, se existir)
 const LOJAS_PADRAO = "Netshoes,Mercado Livre,Amazon,Shopee,AliExpress,KaBuM!";
@@ -109,7 +115,18 @@ if (!process.env.TELEGRAM_WEBHOOK_SECRET) {
   process.exit(1);
 }
 
-await client.getDialogs({ limit: 300 }); // carrega os grupos (para reconhecer os ids)
+// Carrega os grupos e canais da conta e separa os que estão na lista
+const dialogos = await client.getDialogs({ limit: 500 });
+const nomeDe = (d) => (d.entity?.username ?? "").toLowerCase();
+const acompanhados = dialogos.filter(
+  (d) => (d.isGroup || d.isChannel) && (escolhidos.includes(String(d.id)) || (nomeDe(d) && escolhidos.includes(nomeDe(d))))
+);
+const naoAchados = escolhidos.filter((e) => !acompanhados.some((d) => String(d.id) === e || nomeDe(d) === e));
+console.log(`Canais encontrados (${acompanhados.length}): ${acompanhados.map((d) => d.title).join(" | ")}`);
+if (naoAchados.length) {
+  console.log(`⚠️ NÃO encontrados na sua conta (${naoAchados.length}): ${naoAchados.join(", ")}`);
+  console.log("   Confira se a conta entrou nesses canais e se o id está certo (rode com --listar).");
+}
 
 const db =
   process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -150,7 +167,7 @@ async function sinalDeVida() {
       script: "leitor-telegram",
       ultima_execucao: new Date().toISOString(),
       ok: true,
-      resumo: `Ligado · ${escolhidos.length} canais · ${contagem.enviadas} ofertas lidas e ${contagem.publicadas} publicadas desde ${contagem.desde.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
+      resumo: `Ligado · ${acompanhados.length} canais · ${contagem.enviadas} ofertas lidas e ${contagem.publicadas} publicadas desde ${contagem.desde.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`,
     })
     .then(() => {}, () => {});
 }
@@ -183,6 +200,32 @@ async function processarFila() {
   trabalhando = false;
 }
 
+// Cada mensagem é tratada uma vez só (ela pode chegar pelo aviso do Telegram E pela conferência ativa)
+const vistas = new Set();
+const ultimoId = new Map(); // id do canal -> id da última mensagem já vista
+function jaVista(msg) {
+  const chave = `${msg.chatId}:${msg.id}`;
+  if (vistas.has(chave)) return true;
+  vistas.add(chave);
+  if (vistas.size > 5000) vistas.delete(vistas.values().next().value);
+  return false;
+}
+
+function tratar(msg, grupo) {
+  if (jaVista(msg)) return;
+  const canal = String(msg.chatId ?? "");
+  if (msg.id > (ultimoId.get(canal) ?? 0)) ultimoId.set(canal, msg.id);
+  const texto = textoCompleto(msg);
+  if (!/https?:\/\//i.test(texto)) {
+    // sem link: conversa ou aviso, não é oferta
+    if (MOSTRAR_POSTS_SEM_LINK) console.log(`${new Date().toLocaleTimeString("pt-BR")} [${grupo}] post sem link (ignorado)`);
+    return;
+  }
+  fila.push({ texto, msg, grupo });
+  processarFila();
+}
+
+// 1) Aviso do Telegram (chega na hora quando o Telegram manda)
 client.addEventHandler(async (event) => {
   const msg = event.message;
   if (!msg) return;
@@ -190,11 +233,37 @@ client.addEventHandler(async (event) => {
   const id = String(msg.chatId ?? "");
   const nome = (chat?.username ?? "").toLowerCase();
   if (!escolhidos.includes(id) && !(nome && escolhidos.includes(nome))) return;
-  const texto = textoCompleto(msg);
-  if (!/https?:\/\//i.test(texto)) return; // sem link: conversa, não é oferta
-  fila.push({ texto, msg, grupo: chat?.title ?? id });
-  processarFila();
+  tratar(msg, chat?.title ?? id);
 }, new NewMessage({}));
+
+// 2) Conferência ativa: busca as mensagens novas de cada canal a cada CONFERIR_A_CADA_MS
+//    (começa da última mensagem de agora: não importa posts antigos)
+for (const d of acompanhados) {
+  try {
+    const [ultima] = await client.getMessages(d.entity, { limit: 1 });
+    ultimoId.set(String(d.id), ultima?.id ?? 0);
+  } catch {
+    ultimoId.set(String(d.id), 0);
+  }
+}
+let conferindo = false;
+async function conferirCanais() {
+  if (conferindo) return;
+  conferindo = true;
+  for (const d of acompanhados) {
+    const desde = ultimoId.get(String(d.id)) ?? 0;
+    try {
+      const msgs = await client.getMessages(d.entity, { limit: 20, minId: desde });
+      const novas = [...msgs].filter((m) => m && m.id > desde).sort((a, b) => a.id - b.id);
+      for (const m of novas) tratar(m, d.title ?? String(d.id));
+    } catch (e) {
+      console.log(`[${d.title}] não consegui conferir: ${e.message}`);
+    }
+    await new Promise((res) => setTimeout(res, 1500)); // um canal por vez, com calma (evita bloqueio do Telegram)
+  }
+  conferindo = false;
+}
+setInterval(conferirCanais, CONFERIR_A_CADA_MS);
 
 sinalDeVida();
 setInterval(sinalDeVida, 15 * 60 * 1000);

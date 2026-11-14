@@ -6,9 +6,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { estaExpirada } from "../../lib/ofertas";
+import { DIAS_NO_SITE, DIAS_EXPIRADA_VISIVEL } from "../../lib/prazos.mjs";
+import { lojaDoNome } from "../../data/lojas";
 import {
   DIA,
   buscarTudo,
+  momentoExpiracao,
   nomeCategoria,
   nomeOrigem,
   diaSP,
@@ -17,6 +20,9 @@ import {
   Barras,
   Colunas,
 } from "./util";
+
+// Nome da loja como aparece no site ("Kabum BR" da Lomadee soma na KaBuM!, etc.)
+const nomeLoja = (nome) => lojaDoNome(nome)?.nome ?? nome;
 
 const COLUNAS =
   "id, titulo, loja, categoria, origem, ativa, expires_at, publicada_em, atualizado_em, preco_atual, preco_antigo, relampago, destaque, imagem, postada_telegram_em";
@@ -38,12 +44,36 @@ export default function Resumo({ irPara }) {
 
   const carregar = useCallback(async () => {
     setErro("");
-    const [ofertasR, porDia, porOferta, porOrigem, pendentesR] = await Promise.all([
-      buscarTudo(() => supabase.from("ofertas").select(COLUNAS).order("id")),
+    // Antes o painel baixava a tabela INTEIRA (do id mais antigo para o mais novo, no máximo 6000 linhas).
+    // Como as ofertas expiradas ficam guardadas, a tabela passou disso e as ofertas MAIS NOVAS ficavam de fora:
+    // os números de "no ar", lojas e categorias saíam errados. Agora:
+    //   - só baixa as ofertas que podem estar no site (no ar ou expiradas ainda visíveis), das mais novas para as mais antigas
+    //   - o total e as ocultas vêm de uma contagem direta no banco (não precisa baixar nada)
+    const agoraIso = new Date().toISOString();
+    const corteVisivel = new Date(Date.now() - (DIAS_NO_SITE + DIAS_EXPIRADA_VISIVEL) * DIA).toISOString();
+    const corte14 = new Date(Date.now() - 14 * DIA).toISOString();
+    const [ofertasR, porDia, porOferta, porOrigem, pendentesR, totalR, ocultasR, novasR] = await Promise.all([
+      buscarTudo(
+        () =>
+          supabase
+            .from("ofertas")
+            .select(COLUNAS)
+            .eq("ativa", true)
+            .or(`publicada_em.is.null,publicada_em.gte.${corteVisivel},expires_at.gte.${agoraIso}`)
+            .order("id", { ascending: false }),
+        20000
+      ),
       supabase.from("cliques_por_dia").select("*").order("dia", { ascending: false }).limit(31),
       supabase.from("cliques_por_oferta").select("*").order("total", { ascending: false }).limit(10),
       supabase.from("cliques_por_origem").select("*"),
       supabase.from("sugestoes").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+      supabase.from("ofertas").select("id", { count: "exact", head: true }),
+      supabase.from("ofertas").select("id", { count: "exact", head: true }).eq("ativa", false),
+      // só a data de entrada das ofertas dos últimos 14 dias (para o gráfico "Ofertas novas por dia")
+      buscarTudo(
+        () => supabase.from("ofertas").select("publicada_em").gte("publicada_em", corte14).order("id", { ascending: false }),
+        30000
+      ),
     ]);
 
     if (ofertasR.error) {
@@ -54,9 +84,13 @@ export default function Resumo({ irPara }) {
 
     const ofertas = ofertasR.data;
     const agora = Date.now();
-    const noAr = ofertas.filter((o) => o.ativa && !estaExpirada(o));
-    const expiradas = ofertas.filter((o) => o.ativa && estaExpirada(o));
-    const ocultas = ofertas.filter((o) => !o.ativa);
+    const noAr = ofertas.filter((o) => !estaExpirada(o));
+    // expiradas que ainda aparecem no site (com a tag "Expirado"); depois disso só a página da oferta continua
+    const expiradas = ofertas.filter((o) => {
+      if (!estaExpirada(o)) return false;
+      const fim = momentoExpiracao(o);
+      return fim === null || fim >= agora - DIAS_EXPIRADA_VISIVEL * DIA;
+    });
 
     // Cliques
     const mapaDias = new Map((porDia.data ?? []).map((l) => [l.dia, l.total]));
@@ -64,18 +98,18 @@ export default function Resumo({ irPara }) {
 
     // Novas ofertas por dia (pela data de publicação)
     const novasPorDia = new Map();
-    for (const o of ofertas) {
+    for (const o of novasR.data ?? []) {
       if (!o.publicada_em) continue;
       const d = diaSP(o.publicada_em);
       novasPorDia.set(d, (novasPorDia.get(d) ?? 0) + 1);
     }
 
     setDados({
-      total: ofertas.length,
+      total: totalR.count ?? 0,
       noAr: noAr.length,
       expiradas: expiradas.length,
-      ocultas: ocultas.length,
-      novas24h: ofertas.filter((o) => o.publicada_em && agora - new Date(o.publicada_em).getTime() < DIA).length,
+      ocultas: ocultasR.count ?? 0,
+      novas24h: (novasR.data ?? []).filter((o) => o.publicada_em && agora - new Date(o.publicada_em).getTime() < DIA).length,
       relampago: noAr.filter((o) => o.relampago).length,
       destaque: noAr.filter((o) => o.destaque).length,
       filaTelegram: noAr.filter((o) => !o.postada_telegram_em).length,
@@ -89,7 +123,7 @@ export default function Resumo({ irPara }) {
       novas14: ultimosDias(14).map((dia) => ({ dia, total: novasPorDia.get(dia) ?? 0 })),
       topOfertas: porOferta.data ?? [],
       origensClique: porOrigem.data ?? [],
-      lojas: contarPor(noAr, (o) => o.loja, 10),
+      lojas: contarPor(noAr, (o) => nomeLoja(o.loja), 12),
       categorias: contarPor(noAr, (o) => nomeCategoria(o.categoria), 12),
       origens: contarPor(noAr, (o) => nomeOrigem(o.origem), 6),
     });
