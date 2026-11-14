@@ -4,11 +4,12 @@ import BannerBlackFriday from "../components/BannerBlackFriday";
 import FaixaLojas from "../components/FaixaLojas";
 import SobreMuki from "../components/SobreMuki";
 import HomeComRanking from "../components/HomeComRanking";
+import CarrosseisHome from "../components/CarrosseisHome";
 import GuiasHome from "../components/GuiasHome";
 import SelosConfianca from "../components/SelosConfianca";
 import { LateralAntes, LateralDepois } from "../components/LateralHome";
 import { buscarLojasComCategorias } from "../lib/ofertas";
-import { inicioDoFeed } from "../lib/feed-home";
+import { inicioDoFeed, carrosseisDaHome } from "../lib/feed-home";
 import { lojasDestaque, lojaDoNome } from "../data/lojas";
 import { categorias } from "../data/ofertas";
 import { guias } from "../data/guias";
@@ -18,7 +19,9 @@ export const revalidate = 300; // refaz a página no máximo a cada 5 minutos
 // Página inicial (visual novo, pensado primeiro para o celular):
 //   1) Black Friday (some sozinha depois da data)
 //   2) Lojas: "Ofertas verificadas das maiores lojas do Brasil" (celular: "Comece pela sua loja")
-//   3) Feed: abas (Meus alertas, Destaques, Recentes, Menor preço, Maior desconto, Com cupom) e departamentos.
+//   3) 5 carrosséis (Melhores do momento, Relâmpago, Maiores descontos, Até R$ 100, Acabaram de chegar),
+//      com setas e passagem automática. Lógica em lib/feed-home.js (carrosseisDaHome); visual em components/CarrosseisHome.js
+//   3b) Feed: abas (Meus alertas, Destaques, Recentes, Menor preço, Maior desconto, Com cupom) e departamentos.
 //      Computador: grade de 4 por linha, com a faixa dos canais depois de 2 linhas.
 //      Celular: linhas por categoria (1 card na tela, arrasta para o lado). Rolagem infinita (rota /api/feed).
 //      A lógica fica em lib/feed-home.js; o feed em components/FeedLinhas.js; o card em components/CardFeed.js.
@@ -72,7 +75,11 @@ function montarLojas(doBanco) {
 }
 
 export default async function Home() {
-  const [feed, contagemLojas] = await Promise.all([inicioDoFeed(), buscarLojasComCategorias()]);
+  const [feed, contagemLojas, carrosseis] = await Promise.all([
+    inicioDoFeed(),
+    buscarLojasComCategorias(),
+    carrosseisDaHome(),
+  ]);
 
   const lojas = montarLojas(contagemLojas);
 
@@ -88,6 +95,8 @@ export default async function Home() {
         antes={<LateralAntes cupons={feed.cuponsDoDia} />}
         extra={<LateralDepois guia={guias[0]} />}
       >
+        <CarrosseisHome carrosseis={carrosseis} />
+
         <FeedLinhas
           abas={feed.abas}
           departamentos={feed.departamentos}
