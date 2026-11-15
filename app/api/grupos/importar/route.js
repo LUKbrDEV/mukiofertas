@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { salvarOferta } from "../../../../lib/salvar-oferta";
 import { extrairOferta, lojaDoLink, linkAfiliadoML } from "../../../../lib/extrair-oferta.mjs";
 import { parseOferta } from "../../../../lib/parse-oferta";
+import { separarCupons, lojaDosCupons, textoDoCupom } from "../../../../lib/cupons-multiplos.mjs";
 import { prepararLinkRakuten } from "../../../../lib/afiliado-rakuten.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { registrarExecucao } from "../../../../lib/prazos.mjs";
@@ -87,6 +88,37 @@ export async function POST(req) {
   const lojaAceita = (loja) => todasAsLojas || lojas.some((l) => String(l).toLowerCase() === String(loja ?? "").toLowerCase());
   const links = [...new Set((String(texto).match(LINK) ?? []).map(limparFim))].filter((l) => !/^https?:\/\/(t\.me|telegram\.me|chat\.whatsapp\.com)\//i.test(l));
   if (!links.length) return NextResponse.json({ ok: true, motivo: "sem_link" });
+
+  // Postagem com VÁRIOS cupons (cada um com código e link): cada cupom vira uma postagem separada,
+  // com o link trocado pelo seu (antes virava uma oferta só, "sem categoria")
+  const variosCupons = separarCupons(texto);
+  if (variosCupons) {
+    const lojaDoTexto = lojaDosCupons(texto);
+    const convertidos = await Promise.all(
+      variosCupons.map(async (cp) => {
+        const lojaCupom = lojaDoLink(cp.link);
+        if (lojaCupom && !lojaAceita(lojaCupom)) return { cp, recusa: "loja_fora_do_filtro" };
+        // cupom do Mercado Livre: vai direto para o link de cupom (não tem anúncio para procurar)
+        if (lojaCupom === "Mercado Livre") return { cp, link: await linkDeCupomML(cp.link), loja: lojaCupom };
+        const c = await converter(cp.link, textoDoCupom(cp, { loja: lojaDoTexto }));
+        return { cp, ...c };
+      })
+    );
+    const contagem = {};
+    for (const item of convertidos) {
+      const r = item.recusa
+        ? { motivo: item.recusa }
+        : await salvarOferta(textoDoCupom(item.cp, { loja: lojaDoTexto || item.loja, link: item.link }), "telegram", {
+            jaNoCanal: false,
+          });
+      const m = r?.motivo ?? (r?.ok ? "salva" : "erro");
+      contagem[m] = (contagem[m] ?? 0) + 1;
+    }
+    const detalhe = `${variosCupons.length} cupons: ${Object.entries(contagem).map(([m, n]) => `${n} ${m}`).join(", ")}`;
+    console.log(`[grupos] ${grupo}: ${detalhe}`);
+    await anotar(true, `${lojaDoTexto || "cupons"} → ${detalhe}`);
+    return NextResponse.json({ ok: true, motivo: "cupons_separados", detalhe, loja: lojaDoTexto || null });
+  }
 
   const principal = links[0];
   // Só Netshoes (teste): link que claramente é de outra loja nem é convertido
