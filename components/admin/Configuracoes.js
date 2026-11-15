@@ -16,6 +16,7 @@ import { PADRAO_QUALIDADE } from "../../lib/qualidade.mjs";
 import { LOJAS_GRANDES, LOJAS_CUPOM_PADRAO } from "../../lib/lojas-cupom.mjs";
 import { lojasDestaque } from "../../data/lojas";
 import { DEPS_PRIORIDADE_PADRAO, DEPS_OCASIONAL_PADRAO, PADRAO_GRUPO } from "../../lib/grupo-whatsapp.mjs";
+import { PADRAO_GRUPO_WHATSAPP, MODELO_GRUPO_PADRAO, MODELO_ABRIR_PADRAO, camposDoGrupo } from "../../lib/compra-em-grupo-whatsapp.mjs";
 
 // Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
 const DEPARTAMENTOS = categorias
@@ -211,9 +212,12 @@ const EXEMPLO_OFERTA = {
 };
 const EXEMPLO_CUPOM = { id: 124, titulo: "10% OFF em SSDs selecionados", loja: "KaBuM!", categoria: "cupons", cupom: "SSD10" };
 const SITE_EXEMPLO = "https://www.mukiofertas.com.br";
+// Exemplo para a prévia das mensagens da compra em grupo
+const EXEMPLO_PRODUTO_GRUPO = { id: "1005012629992095", titulo: "Kit 24 Canetas Ponta Dupla Marcador Permanente", preco_grupo: 4.99, preco_normal: 133.97 };
+const EXEMPLO_GRUPO = { faltam: 1, expira_em: new Date(Date.now() + 18.5 * 3600000).toISOString() };
 
 // Caixa de texto do modelo + prévia de como a mensagem fica no grupo
-function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
+function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar, campos = null }) {
   const texto = valor || padrao;
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, margin: "12px 0" }}>
@@ -245,7 +249,7 @@ function ModeloWhatsApp({ rotulo, valor, padrao, exemplo, aoMudar }) {
             wordBreak: "break-word",
           }}
         >
-          {montarMensagem(texto, camposDaOferta(exemplo, { siteUrl: SITE_EXEMPLO, frase: FRASE_EXEMPLO }))}
+          {montarMensagem(texto, campos ?? camposDaOferta(exemplo, { siteUrl: SITE_EXEMPLO, frase: FRASE_EXEMPLO }))}
         </div>
       </div>
     </div>
@@ -304,6 +308,7 @@ const PADRAO = {
   whatsapp_deps_prioridade: DEPS_PRIORIDADE_PADRAO,
   whatsapp_deps_ocasional: DEPS_OCASIONAL_PADRAO,
   ...PADRAO_GRUPO,
+  ...PADRAO_GRUPO_WHATSAPP, // compra em grupo no WhatsApp
   whatsapp_lojas: [], // vazio = todas
   whatsapp_lojas_nomes: [], // gerado a partir das lojas (usado pelo robô)
   whatsapp_frase_estilo: ESTILO_PADRAO,
@@ -1158,6 +1163,64 @@ export default function Configuracoes() {
           exemplo={EXEMPLO_CUPOM}
           aoMudar={mudar("whatsapp_modelo_cupom")}
         />
+
+        <h3 style={{ margin: "22px 0 4px" }}>👥 Compra em grupo</h3>
+        <p className="adm-sub" style={{ marginTop: 0 }}>
+          Grupos de 3 do AliExpress abertos no site. Vai 1 por vez, no máximo 1 por hora: primeiro os que falta 1 pessoa;
+          &quot;faltam 2&quot; só se foi divulgado há pouco. Grupo que vence em menos de 2 horas não vai. O link leva para a
+          página do produto no site (mostra os grupos abertos e o &quot;Criar meu grupo&quot; com o seu link de afiliado).
+        </p>
+        <div className="adm-chaves">
+          <Chave
+            rotulo="Mandar grupos de compra abertos"
+            ligado={c.whatsapp_grupos_ativo}
+            aoMudar={mudar("whatsapp_grupos_ativo")}
+          />
+          <Chave
+            rotulo="Só grupos em que falta 1 pessoa"
+            dica="Os que fecham mais rápido. Desligado: também vão os de 'faltam 2' divulgados nas últimas 4 horas."
+            ligado={c.whatsapp_grupos_so_falta1}
+            aoMudar={mudar("whatsapp_grupos_so_falta1")}
+          />
+        </div>
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo="Grupos abertos por dia"
+            sufixo="no máximo"
+            min={0}
+            max={24}
+            valor={c.whatsapp_grupos_por_dia}
+            aoMudar={mudar("whatsapp_grupos_por_dia")}
+          />
+          <Numero
+            rotulo={'Extra: "Abra um grupo" por dia'}
+            sufixo="no máximo"
+            min={0}
+            max={10}
+            dica="Produto da lista 'Para abrir grupo' (com preço de grupo), só quando não tem grupo aberto para mandar. 0 = desligado."
+            valor={c.whatsapp_grupos_abrir_por_dia}
+            aoMudar={mudar("whatsapp_grupos_abrir_por_dia")}
+          />
+        </div>
+        <p className="adm-sub" style={{ marginBottom: 0 }}>
+          Campos: {"{titulo} {faltam} {preco} {preco_normal} {desconto} {prazo} {link}"}.
+        </p>
+        <ModeloWhatsApp
+          rotulo="Modelo da mensagem (grupo aberto)"
+          valor={c.whatsapp_modelo_grupo}
+          padrao={MODELO_GRUPO_PADRAO}
+          campos={camposDoGrupo(EXEMPLO_PRODUTO_GRUPO, EXEMPLO_GRUPO, { siteUrl: SITE_EXEMPLO })}
+          aoMudar={mudar("whatsapp_modelo_grupo")}
+        />
+        {Number(c.whatsapp_grupos_abrir_por_dia) > 0 && (
+          <ModeloWhatsApp
+            rotulo='Modelo da mensagem ("abra um grupo")'
+            valor={c.whatsapp_modelo_abrir}
+            padrao={MODELO_ABRIR_PADRAO}
+            campos={camposDoGrupo(EXEMPLO_PRODUTO_GRUPO, null, { siteUrl: SITE_EXEMPLO })}
+            aoMudar={mudar("whatsapp_modelo_abrir")}
+          />
+        )}
 
         <div className="adm-duas-colunas">
           <Numero

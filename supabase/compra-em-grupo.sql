@@ -72,3 +72,9 @@ create policy "cada um ve seus avisos de grupo" on public.grupos_avisos
 -- ===== Parte 3: de onde veio cada produto (lista "Para abrir grupo") =====
 -- telegram = postagem de "grupo de 3" lida pelo robô · comunidade = alguém divulgou · admin = você adicionou
 alter table public.grupos_produtos add column if not exists origem text not null default 'comunidade';
+
+-- ===== Parte 4: envio para o grupo do WhatsApp =====
+-- quando o grupo foi mandado para o WhatsApp (cada grupo vai uma vez só)
+alter table public.grupos_compra add column if not exists postada_whatsapp_em timestamptz;
+-- extra "abra um grupo": quando o produto foi mandado como sugestão para abrir grupo
+alter table public.grupos_produtos add column if not exists abrir_whatsapp_em timestamptz;

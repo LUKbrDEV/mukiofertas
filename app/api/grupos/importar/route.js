@@ -7,7 +7,8 @@
 // (assim o site nunca publica o link de afiliado de outra pessoa).
 import { NextResponse } from "next/server";
 import { salvarOferta } from "../../../../lib/salvar-oferta";
-import { extrairOferta, lojaDoLink } from "../../../../lib/extrair-oferta.mjs";
+import { extrairOferta, lojaDoLink, linkAfiliadoML } from "../../../../lib/extrair-oferta.mjs";
+import { parseOferta } from "../../../../lib/parse-oferta";
 import { prepararLinkRakuten } from "../../../../lib/afiliado-rakuten.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { registrarExecucao } from "../../../../lib/prazos.mjs";
@@ -38,7 +39,24 @@ async function destinoFinal(link) {
   }
 }
 
-async function converter(link) {
+// Postagem que é só um cupom ("Cupom Mercado Livre", "R$ 20 OFF acima de R$ 99", "Código: MELI20")
+const ehPostagemDeCupom = (texto) =>
+  parseOferta(texto)?.categoria === "cupons" || /\bcup(o|õ)(m|ns|es)\b|\bc[oó]digo\s*:/i.test(String(texto ?? ""));
+
+// Cupom do Mercado Livre: o link não é de um produto (página de cupons, campanha, ou a página
+// "social" de outro afiliado). Usa a própria página com o SEU matt_word; se for a página de outro
+// afiliado (/social/...), manda para a central de cupons do Mercado Livre, também com o seu matt_word.
+async function linkDeCupomML(link) {
+  const destino = await destinoFinal(link);
+  try {
+    const u = new URL(destino);
+    const doML = /(^|\.)mercadoli(vre|bre)\.com(\.br)?$/i.test(u.hostname);
+    if (doML && !/^\/social(\/|$)/i.test(u.pathname) && u.pathname !== "/") return linkAfiliadoML(destino);
+  } catch {}
+  return linkAfiliadoML("https://www.mercadolivre.com.br/cupons");
+}
+
+async function converter(link, texto = "") {
   let alvo = link;
   let loja = lojaDoLink(alvo);
 
@@ -53,6 +71,8 @@ async function converter(link) {
   if (CONVERTE_COM_EXTRAIR.has(loja)) {
     const r = await extrairOferta(alvo);
     if (r?.afiliado && r.link_afiliado) return { link: r.link_afiliado, loja, imagem: r.imagem || null };
+    // Cupom do Mercado Livre não tem anúncio no link (antes era recusado como "sem_link_afiliado")
+    if (loja === "Mercado Livre" && ehPostagemDeCupom(texto)) return { link: await linkDeCupomML(alvo), loja };
     return { recusa: "sem_link_afiliado", loja };
   }
   return { recusa: "loja_sem_afiliado", loja: loja ?? new URL(alvo).hostname };
@@ -72,7 +92,7 @@ export async function POST(req) {
   // Só Netshoes (teste): link que claramente é de outra loja nem é convertido
   const lojaRapida = lojaDoLink(principal);
   if (lojaRapida && !lojaAceita(lojaRapida)) return NextResponse.json({ ok: true, motivo: "loja_fora_do_filtro", detalhe: lojaRapida });
-  const c = await converter(principal);
+  const c = await converter(principal, texto);
   if (!c.recusa && !lojaAceita(c.loja)) return NextResponse.json({ ok: true, motivo: "loja_fora_do_filtro", detalhe: c.loja });
   if (c.recusa) {
     console.log(`[grupos] ${grupo}: recusada (${c.recusa}, ${c.loja})`);

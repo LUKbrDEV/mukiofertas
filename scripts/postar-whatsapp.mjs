@@ -44,6 +44,7 @@ function salvarFrasesLocais(lista) {
 }
 import sharp from "sharp";
 import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
+import { PADRAO_GRUPO_WHATSAPP, camposDoGrupo } from "../lib/compra-em-grupo-whatsapp.mjs";
 import { PADRAO_GRUPO, niveisDoGrupo, nivelDaOferta, bonusPorCliques, pontuarParaGrupo } from "../lib/grupo-whatsapp.mjs";
 
 // Valores padrão (o painel admin pode trocar)
@@ -74,6 +75,7 @@ const PADRAO = {
   whatsapp_marca_tamanho: 55, // % da largura da foto
   whatsapp_marca_opacidade: 90, // % (100 = sem transparência) // R$ — só ofertas a partir desse preço (0 = qualquer preço)
   ...PADRAO_GRUPO, // prioridade / "de vez em quando" (lib/grupo-whatsapp.mjs)
+  ...PADRAO_GRUPO_WHATSAPP, // compra em grupo do AliExpress (lib/compra-em-grupo-whatsapp.mjs)
 };
 const HORAS_PARA_TRAS = 12; // só ofertas que entraram no site nas últimas X horas
 
@@ -283,6 +285,99 @@ async function enviarPacoteDeCupons(db, grupo, lojaOk) {
   await db.from("ofertas").update({ postada_whatsapp_em: agora }).in("id", escolhidos.map((c) => c.id));
   console.log(`  ✓ Pacote de cupons ${loja}: ${escolhidos.length} cupons`);
   return { enviados: escolhidos.length };
+}
+
+// ---------- Compra em grupo (grupos de 3 do AliExpress) ----------
+// Manda 1 grupo aberto por vez: primeiro os que falta 1 pessoa; "faltam 2" só se foi divulgado há
+// pouco. Nunca grupo que vence em menos de 2 horas. No máximo 1 por hora e X por dia (painel).
+// Extra opcional: produto da lista "Para abrir grupo" (whatsapp_grupos_abrir_por_dia).
+const HORAS_FALTAM_2_RECENTE = 4;
+const MIN_HORAS_ATE_VENCER = 2;
+
+async function enviarCompraEmGrupo(db, grupoWhats) {
+  if (!ajuste("whatsapp_grupos_ativo") && !ajuste("whatsapp_grupos_abrir_por_dia")) return null;
+  const agora = Date.now();
+  const TRES_HORAS = 3 * 3600000; // meia-noite de Brasília (UTC-3)
+  const meiaNoite = new Date(Math.floor((agora - TRES_HORAS) / 86400000) * 86400000 + TRES_HORAS).toISOString();
+  const umaHora = new Date(agora - 3600000).toISOString();
+
+  const [{ data: enviadosHoje, error: erroGrupos }, { data: abrirHoje }] = await Promise.all([
+    db.from("grupos_compra").select("postada_whatsapp_em").gte("postada_whatsapp_em", meiaNoite).limit(100),
+    db.from("grupos_produtos").select("abrir_whatsapp_em").gte("abrir_whatsapp_em", meiaNoite).limit(100),
+  ]);
+  if (erroGrupos) {
+    console.log("[whatsapp] Compra em grupo: rode o supabase/compra-em-grupo.sql (parte 4) para ligar o envio.");
+    return null;
+  }
+  const todosHoje = [...(enviadosHoje ?? []).map((g) => g.postada_whatsapp_em), ...(abrirHoje ?? []).map((p) => p.abrir_whatsapp_em)];
+  if (todosHoje.some((t) => t >= umaHora)) {
+    console.log("[whatsapp] Compra em grupo: já foi um na última hora.");
+    return null;
+  }
+  const siteUrl = process.env.SITE_URL || "https://www.mukiofertas.com.br";
+  let produto = null;
+  let grupoAberto = null;
+
+  // 1) Grupo aberto
+  if (ajuste("whatsapp_grupos_ativo") && (enviadosHoje?.length ?? 0) < ajuste("whatsapp_grupos_por_dia")) {
+    const { data: grupos } = await db
+      .from("grupos_compra")
+      .select("id, produto_id, link, faltam, criado_em, expira_em")
+      .eq("status", "aberto")
+      .gt("faltam", 0)
+      .is("postada_whatsapp_em", null)
+      .gt("expira_em", new Date(agora + MIN_HORAS_ATE_VENCER * 3600000).toISOString())
+      .order("faltam", { ascending: true })
+      .order("criado_em", { ascending: false })
+      .limit(30);
+    const recente = new Date(agora - HORAS_FALTAM_2_RECENTE * 3600000).toISOString();
+    grupoAberto =
+      (grupos ?? []).find((g) => g.faltam === 1 || (!ajuste("whatsapp_grupos_so_falta1") && g.criado_em >= recente)) ?? null;
+    if (grupoAberto) {
+      const { data } = await db.from("grupos_produtos").select("*").eq("id", grupoAberto.produto_id).maybeSingle();
+      produto = data;
+    }
+  }
+
+  // 2) Extra: produto para abrir grupo (só quando não tem grupo aberto para mandar)
+  if (!produto && (abrirHoje?.length ?? 0) < ajuste("whatsapp_grupos_abrir_por_dia")) {
+    const { data: lista } = await db
+      .from("grupos_produtos")
+      .select("*")
+      .is("abrir_whatsapp_em", null)
+      .not("preco_grupo", "is", null)
+      .order("grupos_criados", { ascending: false })
+      .order("atualizado_em", { ascending: false })
+      .limit(20);
+    produto = (lista ?? [])[0] ?? null;
+  }
+  if (!produto) {
+    console.log("[whatsapp] Compra em grupo: nenhum grupo para mandar agora.");
+    return null;
+  }
+
+  const modelo = grupoAberto ? ajuste("whatsapp_modelo_grupo") : ajuste("whatsapp_modelo_abrir");
+  const texto = montarMensagem(modelo, camposDoGrupo(produto, grupoAberto, { siteUrl }));
+  let foto = ajuste("whatsapp_com_foto") ? produto.imagem : null;
+  if (foto && ajuste("whatsapp_marca_dagua")) {
+    const comMarca = await fotoComMarcaDagua(foto, {
+      posicao: ajuste("whatsapp_marca_posicao"),
+      tamanho: ajuste("whatsapp_marca_tamanho"),
+      opacidade: ajuste("whatsapp_marca_opacidade"),
+    }).catch(() => null);
+    if (comMarca) foto = comMarca;
+  }
+  if (TESTE) {
+    if (foto && !foto.startsWith("http")) writeFileSync("previa-compra-em-grupo.jpg", Buffer.from(foto, "base64"));
+    console.log(`\n----- COMPRA EM GRUPO ${grupoAberto ? "(grupo aberto)" : "(abra um grupo)"} -----\n${texto}`);
+    return { enviados: 0 };
+  }
+  await enviar(grupoWhats, texto, foto);
+  const quando = new Date().toISOString();
+  if (grupoAberto) await db.from("grupos_compra").update({ postada_whatsapp_em: quando }).eq("id", grupoAberto.id);
+  else await db.from("grupos_produtos").update({ abrir_whatsapp_em: quando }).eq("id", produto.id);
+  console.log(`  ✓ Compra em grupo: ${produto.titulo.slice(0, 60)}`);
+  return { enviados: 1 };
 }
 
 // ---------- Robô ----------
@@ -551,6 +646,19 @@ async function main() {
     } catch (e) {
       falhas.push(`pacote de cupons: ${e.message}`);
       console.warn(`[whatsapp] Pacote de cupons falhou: ${e.message}`);
+    }
+  }
+
+  // Compra em grupo (grupos de 3 do AliExpress): 1 por vez, com limite próprio por hora e por dia
+  if (TESTE || tempoRestante() > 90 * 1000) {
+    try {
+      // depois de outras mensagens desta rodada, espera o intervalo normal antes
+      if (enviadas > 0 && !TESTE) await esperar(Math.round(ajuste("whatsapp_intervalo_segundos") * 1000));
+      const r = await enviarCompraEmGrupo(db, grupo);
+      if (r?.enviados) enviadas += 1;
+    } catch (e) {
+      falhas.push(`compra em grupo: ${e.message}`);
+      console.warn(`[whatsapp] Compra em grupo falhou: ${e.message}`);
     }
   }
 
