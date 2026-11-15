@@ -72,6 +72,11 @@ const CSS = `
     overflow: hidden;
   }
   .sobre-produto--uma-coluna { grid-template-columns: minmax(0, 1fr); }
+  .sobre-produto .sobre-aviso {
+    margin: 14px 0 0;
+    font-size: 12px;
+    color: #94a3b8;
+  }
 
   @media (max-width: 900px) {
     .sobre-produto { grid-template-columns: minmax(0, 1fr); padding: 18px; gap: 24px; }
@@ -103,6 +108,11 @@ export default function SobreProduto({ oferta }) {
                 <li key={i}>{topico}</li>
               ))}
             </ul>
+            {oferta?.sobre_ia && (
+              <p className="sobre-aviso">
+                Resumo gerado automaticamente. Confira os detalhes na página da loja.
+              </p>
+            )}
           </div>
         )}
 

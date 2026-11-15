@@ -31,7 +31,19 @@ const vazio = {
   relampago_horas: "6",
   destaque: false,
   telegram: true,
+  sobre: "", // "Sobre o produto": um tópico por linha
+  sobre_ia: false, // mostra o aviso "Resumo gerado automaticamente" na página
 };
+
+// Texto do campo (um tópico por linha) -> lista de tópicos, ou null se estiver vazio
+function topicos(texto) {
+  const lista = String(texto)
+    .split("\n")
+    .map((l) => l.replace(/^\s*[-–•*]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 10);
+  return lista.length ? lista : null;
+}
 
 // Relâmpago com hora para acabar: horas que ainda faltam (para editar uma oferta que já é relâmpago)
 function horasQueFaltam(ate) {
@@ -77,6 +89,8 @@ function iniciar(oferta, sugestao) {
     relampago_horas: horasQueFaltam(oferta.relampago_ate),
     destaque: Boolean(oferta.destaque),
     telegram: false,
+    sobre: Array.isArray(oferta.sobre) ? oferta.sobre.join("\n") : "",
+    sobre_ia: Boolean(oferta.sobre_ia),
   };
 }
 
@@ -157,6 +171,8 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
         : null,
       destaque: f.destaque,
       atualizado_em: new Date().toISOString(),
+      sobre: topicos(f.sobre),
+      sobre_ia: Boolean(topicos(f.sobre)) && f.sobre_ia,
     };
 
     let resposta;
@@ -184,6 +200,12 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
           .update({ status: "aprovada", oferta_id: resposta.data.id })
           .eq("id", sugestao.id);
       }
+    }
+
+    // Banco ainda sem a coluna sobre_ia (supabase/sobre-ia.sql não rodado): avisa em vez de salvar errado
+    if (resposta.error && /sobre_ia/.test(resposta.error.message)) {
+      setSalvando(false);
+      return setErro("Rode o arquivo supabase/sobre-ia.sql no Supabase (uma vez só) e salve de novo.");
     }
 
     setSalvando(false);
@@ -347,6 +369,36 @@ export default function FormOferta({ oferta, sugestao = null, aoSalvar }) {
               maxLength={30}
             />
           </Campo>
+
+          <div className="adm-campo">
+            <span className="adm-rotulo">Sobre o produto</span>
+            <textarea
+              className="adm-input"
+              rows={5}
+              placeholder={"Um tópico por linha. Ex.:\nJogo de ação e aventura em mundo aberto.\nIdeal para fãs de exploração e RPG."}
+              value={f.sobre}
+              onChange={(e) =>
+                // editou o texto à mão: deixa de ser "gerado automaticamente"
+                setF((atual) => ({ ...atual, sobre: e.target.value, sobre_ia: false }))
+              }
+            />
+            <small>
+              Opcional. Aparece na página da oferta. Deixe em branco para esconder a seção.
+              {editando && oferta.sobre_ia && " Este texto foi escrito pela IA: confira e corrija se precisar."}
+            </small>
+            {f.sobre.trim() && (
+              <div className="adm-opcoes" style={{ marginTop: 6 }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={f.sobre_ia}
+                    onChange={(e) => mudar("sobre_ia", e.target.checked)}
+                  />
+                  Mostrar o aviso &quot;Resumo gerado automaticamente&quot;
+                </label>
+              </div>
+            )}
+          </div>
 
           <div className="adm-opcoes">
             <label>

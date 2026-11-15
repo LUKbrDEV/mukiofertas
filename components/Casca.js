@@ -407,6 +407,9 @@ export default function Casca({ departamentos, telegram, children }) {
           <Link href="/privacidade">Política de Privacidade</Link>
           <Link href="/termos">Termos de Uso</Link>
         </nav>
+        <p className="rodape-assinatura" style={{ fontSize: "11px", opacity: 0.6, marginTop: "10px", textAlign: "center", width: "100%" }}>
+          Feito por LukDev
+        </p>
       </footer>
     </>
   );
