@@ -6,6 +6,7 @@ export const atalhos = [
   { href: "/black-friday", nome: "🖤 Black Friday" },
   { href: "/cupons", nome: "Ofertas com cupom" },
   { href: "/cupons-de-desconto", nome: "Cupons" },
+  { href: "/compra-em-grupo", nome: "Compra em grupo" },
   { href: "/guias", nome: "Guias de compra" },
   { href: "/comunidade", nome: "Comunidade" },
 ];

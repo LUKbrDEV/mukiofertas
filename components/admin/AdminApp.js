@@ -8,6 +8,7 @@ import ListaAdmin from "./ListaAdmin";
 import FormOferta from "./FormOferta";
 import ListaSugestoes from "./ListaSugestoes";
 import AdminCupons from "./AdminCupons";
+import AdminCompraEmGrupo from "./AdminCompraEmGrupo";
 import SaudeRobo from "./SaudeRobo";
 import Configuracoes from "./Configuracoes";
 import UsuariosTags from "./UsuariosTags";
@@ -31,6 +32,7 @@ const MENU = [
   { id: "telegram", nome: "Canal do Telegram", icone: "📨", grupo: "Ofertas" },
   { id: "inicial", nome: "Página inicial", icone: "🏠", grupo: "Site" },
   { id: "cupons", nome: "Cupons", icone: "🎟️", grupo: "Site" },
+  { id: "compragrupo", nome: "Compra em grupo", icone: "👥", grupo: "Site" },
   { id: "comunidade", nome: "Sugestões", icone: "💡", grupo: "Comunidade" },
   { id: "avisos", nome: "Avisos e alertas", icone: "🔔", grupo: "Comunidade" },
   { id: "usuarios", nome: "Usuários e tags", icone: "🏆", grupo: "Comunidade" },
@@ -367,6 +369,7 @@ export default function AdminApp() {
         {aba === "comunidade" && <ListaSugestoes aoRevisar={revisar} />}
         {aba === "usuarios" && <UsuariosTags />}
         {aba === "cupons" && <AdminCupons />}
+        {aba === "compragrupo" && <AdminCompraEmGrupo />}
         {aba === "mlfila" && <FilaMercadoLivre />}
         {aba === "robo" && <SaudeRobo irPara={irPara} />}
         {aba === "atencao" && <OfertasAtencao aoEditar={editar} />}
