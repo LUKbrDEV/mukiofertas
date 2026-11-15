@@ -15,6 +15,7 @@ import { PADRAO_VITRINE } from "../../lib/vitrine.mjs";
 import { PADRAO_QUALIDADE } from "../../lib/qualidade.mjs";
 import { LOJAS_GRANDES, LOJAS_CUPOM_PADRAO } from "../../lib/lojas-cupom.mjs";
 import { lojasDestaque } from "../../data/lojas";
+import { DEPS_PRIORIDADE_PADRAO, DEPS_OCASIONAL_PADRAO, PADRAO_GRUPO } from "../../lib/grupo-whatsapp.mjs";
 
 // Departamentos do site (os que não têm "pai"), cada um com as suas subcategorias
 const DEPARTAMENTOS = categorias
@@ -99,6 +100,93 @@ function EscolherVarios({ titulo, dica, opcoes, marcados, aoMudar, semTodos = fa
               onClick={() => alternar(o.id)}
             >
               {o.nome}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Departamentos do grupo do WhatsApp com nível. Cada clique troca:
+// desmarcado → ✅ normal → 🔥 prioridade → 🕐 de vez em quando → desmarcado
+const NIVEIS = {
+  fora: { rotulo: "", estilo: {} },
+  normal: { rotulo: "✅", estilo: {} },
+  prioridade: { rotulo: "🔥", estilo: { background: "#c2410c", borderColor: "#c2410c", color: "#fff" } },
+  ocasional: {
+    rotulo: "🕐",
+    estilo: { background: "#fff7ed", borderColor: "#fb923c", color: "#9a3412", borderStyle: "dashed" },
+  },
+};
+const PROXIMO = { fora: "normal", normal: "prioridade", prioridade: "ocasional", ocasional: "fora" };
+
+// Gera as listas que o robô usa (categorias de cada nível, com as subcategorias)
+function listasDoGrupo(c) {
+  const slugs = (deps) => DEPARTAMENTOS.filter((d) => (deps ?? []).includes(d.slug)).flatMap((d) => d.slugs);
+  return {
+    whatsapp_categorias: slugs(c.whatsapp_departamentos),
+    whatsapp_categorias_prioridade: slugs(c.whatsapp_deps_prioridade),
+    whatsapp_categorias_ocasional: slugs(c.whatsapp_deps_ocasional),
+  };
+}
+
+function EscolherNiveis({ c, setC }) {
+  const marcados = c.whatsapp_departamentos ?? [];
+  const prioridade = c.whatsapp_deps_prioridade ?? [];
+  const ocasional = c.whatsapp_deps_ocasional ?? [];
+  const todos = marcados.length === 0;
+  const nivel = (slug) =>
+    prioridade.includes(slug) ? "prioridade" : ocasional.includes(slug) ? "ocasional" : todos || marcados.includes(slug) ? "normal" : "fora";
+
+  const trocar = (slug) => {
+    const novo = PROXIMO[nivel(slug)];
+    setC((atual) => {
+      const sem = (lista) => (lista ?? []).filter((x) => x !== slug);
+      let deps = atual.whatsapp_departamentos ?? [];
+      if (novo === "fora") deps = deps.length ? sem(deps) : DEPARTAMENTOS.map((d) => d.slug).filter((s) => s !== slug);
+      else if (deps.length && !deps.includes(slug)) deps = [...deps, slug];
+      const prox = {
+        ...atual,
+        whatsapp_departamentos: deps,
+        whatsapp_deps_prioridade: novo === "prioridade" ? [...sem(atual.whatsapp_deps_prioridade), slug] : sem(atual.whatsapp_deps_prioridade),
+        whatsapp_deps_ocasional: novo === "ocasional" ? [...sem(atual.whatsapp_deps_ocasional), slug] : sem(atual.whatsapp_deps_ocasional),
+      };
+      return { ...prox, ...listasDoGrupo(prox) };
+    });
+  };
+
+  return (
+    <div style={{ margin: "14px 0" }}>
+      <strong>Tipos de produto que vão para o grupo</strong>
+      <p className="adm-sub" style={{ margin: "2px 0 8px" }}>
+        Cada clique troca: desmarcado → ✅ normal → 🔥 prioridade (vai na frente) → 🕐 de vez em quando (poucos por
+        dia) → desmarcado. Cada departamento leva junto as subcategorias dele. Roupa e calçado contam como &quot;de vez
+        em quando&quot; pelo título, mesmo em outro departamento (ex.: camiseta em Esporte e Lazer).
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button
+          type="button"
+          className={todos ? "adm-btn adm-btn--primario" : "adm-btn"}
+          onClick={() => setC((atual) => ({ ...atual, whatsapp_departamentos: [], whatsapp_categorias: [] }))}
+          title="Todos os departamentos entram (os níveis 🔥 e 🕐 continuam valendo)"
+        >
+          ✅ Todos
+        </button>
+        {DEPARTAMENTOS.map((d) => {
+          const n = nivel(d.slug);
+          return (
+            <button
+              key={d.slug}
+              type="button"
+              className={n === "normal" ? "adm-btn adm-btn--primario" : "adm-btn"}
+              style={NIVEIS[n].estilo}
+              aria-pressed={n !== "fora"}
+              title={{ fora: "Não vai", normal: "Normal", prioridade: "Prioridade", ocasional: "De vez em quando" }[n]}
+              onClick={() => trocar(d.slug)}
+            >
+              {NIVEIS[n].rotulo && <span style={{ marginRight: 4 }}>{NIVEIS[n].rotulo}</span>}
+              {d.emoji} {d.nome}
             </button>
           );
         })}
@@ -212,6 +300,10 @@ const PADRAO = {
   whatsapp_marca_opacidade: 90,
   whatsapp_departamentos: [], // vazio = todos
   whatsapp_categorias: [], // gerado a partir dos departamentos (usado pelo robô)
+  // níveis do grupo (lib/grupo-whatsapp.mjs): os dois também contam como "marcados"
+  whatsapp_deps_prioridade: DEPS_PRIORIDADE_PADRAO,
+  whatsapp_deps_ocasional: DEPS_OCASIONAL_PADRAO,
+  ...PADRAO_GRUPO,
   whatsapp_lojas: [], // vazio = todas
   whatsapp_lojas_nomes: [], // gerado a partir das lojas (usado pelo robô)
   whatsapp_frase_estilo: ESTILO_PADRAO,
@@ -341,11 +433,14 @@ export default function Configuracoes() {
 
     setSalvando(true);
     const agora = new Date().toISOString();
-    const { error } = await supabase.from("config_site").update({ dados: c, atualizado_em: agora }).eq("id", 1);
+    // listas prontas para o robô do WhatsApp (níveis 🔥/🕐 com as subcategorias)
+    const dados = { ...c, ...listasDoGrupo(c) };
+    const { error } = await supabase.from("config_site").update({ dados, atualizado_em: agora }).eq("id", 1);
     setSalvando(false);
     if (error) return setAviso(`Não foi possível salvar: ${error.message}`);
 
-    setOriginal(c);
+    setC(dados);
+    setOriginal(dados);
     setAtualizadoEm(agora);
     setAviso(
       regrasMudaram
@@ -954,19 +1049,37 @@ export default function Configuracoes() {
           )}
         </div>
 
-        <EscolherVarios
-          titulo="Tipos de produto que vão para o grupo"
-          dica="Clique para marcar ou desmarcar. Nenhum marcado = todos. Cada departamento leva junto as subcategorias dele."
-          opcoes={DEPARTAMENTOS.map((d) => ({ id: d.slug, nome: `${d.emoji} ${d.nome}` }))}
-          marcados={c.whatsapp_departamentos ?? []}
-          aoMudar={(lista) =>
-            setC((atual) => ({
-              ...atual,
-              whatsapp_departamentos: lista,
-              whatsapp_categorias: DEPARTAMENTOS.filter((d) => lista.includes(d.slug)).flatMap((d) => d.slugs),
-            }))
-          }
-        />
+        <EscolherNiveis c={c} setC={setC} />
+        <div className="adm-duas-colunas">
+          <Numero
+            rotulo={'🕐 "De vez em quando": no máximo'}
+            sufixo="por dia"
+            min={0}
+            max={30}
+            dica="Moda, sapatos e o que estiver marcado com 🕐. Vai no máximo 1 por rodada. 0 = nenhum."
+            valor={c.whatsapp_ocasional_por_dia}
+            aoMudar={mudar("whatsapp_ocasional_por_dia")}
+          />
+          <Numero
+            rotulo="🔥 Força da prioridade"
+            sufixo="pontos"
+            min={0}
+            max={100}
+            passo={5}
+            dica="Quanto maior, mais os departamentos 🔥 passam na frente. Desconto vale 1 ponto por %."
+            valor={c.whatsapp_bonus_prioridade}
+            aoMudar={mudar("whatsapp_bonus_prioridade")}
+          />
+          <Numero
+            rotulo="Variedade: no máximo"
+            sufixo="da mesma categoria"
+            min={1}
+            max={10}
+            dica="Por rodada (a cada 30 min)."
+            valor={c.whatsapp_max_mesma_categoria}
+            aoMudar={mudar("whatsapp_max_mesma_categoria")}
+          />
+        </div>
         <EscolherVarios
           titulo="Lojas que vão para o grupo"
           dica="Nenhuma marcada = todas as lojas (inclusive as que não estão nesta lista)."

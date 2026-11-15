@@ -44,6 +44,7 @@ function salvarFrasesLocais(lista) {
 }
 import sharp from "sharp";
 import { tituloDoCupom } from "../lib/titulo-cupom.mjs";
+import { PADRAO_GRUPO, niveisDoGrupo, nivelDaOferta, bonusPorCliques, pontuarParaGrupo } from "../lib/grupo-whatsapp.mjs";
 
 // Valores padrão (o painel admin pode trocar)
 const PADRAO = {
@@ -72,6 +73,7 @@ const PADRAO = {
   whatsapp_marca_posicao: "baixo", // baixo | baixo-direita | baixo-esquerda | topo | topo-direita | centro
   whatsapp_marca_tamanho: 55, // % da largura da foto
   whatsapp_marca_opacidade: 90, // % (100 = sem transparência) // R$ — só ofertas a partir desse preço (0 = qualquer preço)
+  ...PADRAO_GRUPO, // prioridade / "de vez em quando" (lib/grupo-whatsapp.mjs)
 };
 const HORAS_PARA_TRAS = 12; // só ofertas que entraram no site nas últimas X horas
 
@@ -335,7 +337,7 @@ async function main() {
   const desde = new Date(Date.now() - HORAS_PARA_TRAS * 3600000).toISOString();
   const { data, error } = await db
     .from("ofertas")
-    .select("id, titulo, loja, categoria, preco_atual, preco_antigo, cupom, link, imagem, destaque, publicada_em, expires_at, ativa, origem")
+    .select("id, titulo, loja, categoria, preco_atual, preco_antigo, cupom, link, imagem, destaque, publicada_em, expires_at, ativa, origem, cliques, likes, dislikes")
     .eq("ativa", true)
     .is("postada_whatsapp_em", null)
     .gte("publicada_em", desde)
@@ -348,7 +350,10 @@ async function main() {
     Number(o.preco_antigo) > Number(o.preco_atual) ? ((o.preco_antigo - o.preco_atual) / o.preco_antigo) * 100 : 0;
   // Tipos de produto e lojas escolhidos no painel (lista vazia = todos)
   const lista = (chave) => (Array.isArray(CONFIG_ROBO?.[chave]) ? CONFIG_ROBO[chave] : []);
+  // Níveis do painel: prioridade / "de vez em quando" (os dois também contam como "escolhidos")
+  const niveis = niveisDoGrupo(CONFIG_ROBO);
   const categoriasEscolhidas = new Set(lista("whatsapp_categorias"));
+  if (categoriasEscolhidas.size) for (const c of [...niveis.prioridade, ...niveis.ocasional]) categoriasEscolhidas.add(c);
   const lojasEscolhidas = new Set(lista("whatsapp_lojas_nomes").map((n) => String(n).toLowerCase()));
   const tipoOk = (o) => o.categoria === "cupons" || !categoriasEscolhidas.size || categoriasEscolhidas.has(o.categoria);
   const lojaOk = (o) => !lojasEscolhidas.size || lojasEscolhidas.has(String(o.loja).toLowerCase());
@@ -383,11 +388,52 @@ async function main() {
     .filter((o) => o.categoria === "cupons")
     .sort((a, b) => new Date(b.publicada_em ?? 0) - new Date(a.publicada_em ?? 0))
     .slice(0, vagasCupom);
-  const ofertasDaVez = aprovadas
+  // Ordem das ofertas: pontos (lib/grupo-whatsapp.mjs), não só o maior desconto.
+  // Antes era só o desconto, e roupa/sapato com preço "de" inflado (70-80% OFF) passava na frente
+  // de eletrodoméstico e TV.
+  // meia-noite de hoje no horário de Brasília (UTC-3, sem horário de verão)
+  const TRES_HORAS = 3 * 3600000;
+  const desdeMeiaNoite = new Date(Math.floor((Date.now() - TRES_HORAS) / 86400000) * 86400000 + TRES_HORAS).toISOString();
+  const [{ data: enviadasHoje }, { data: cliques30 }] = await Promise.all([
+    db.from("ofertas").select("titulo, categoria").neq("categoria", "cupons").gte("postada_whatsapp_em", desdeMeiaNoite).limit(500),
+    db
+      .from("ofertas")
+      .select("categoria, cliques")
+      .gt("cliques", 0)
+      .gte("publicada_em", new Date(Date.now() - 30 * 86400000).toISOString())
+      .limit(5000),
+  ]);
+  const ocasionaisHoje = (enviadasHoje ?? []).filter((o) => nivelDaOferta(o, niveis) === "ocasional").length;
+  let vagasOcasional = Math.max(0, Math.min(1, ajuste("whatsapp_ocasional_por_dia") - ocasionaisHoje));
+  const bonusCliques = bonusPorCliques(cliques30 ?? []);
+  const maxMesmaCategoria = Math.max(1, ajuste("whatsapp_max_mesma_categoria"));
+
+  const pontuadas = aprovadas
     .filter((o) => o.categoria !== "cupons")
-    // destaques e maiores descontos primeiro
-    .sort((a, b) => Number(b.destaque) - Number(a.destaque) || descontoDe(b) - descontoDe(a))
-    .slice(0, vagas - cuponsDaVez.length);
+    .map((o) => ({ o, ...pontuarParaGrupo(o, { config: CONFIG_ROBO, niveis, bonusCliques }) }))
+    // destaques primeiro, depois os pontos
+    .sort((a, b) => Number(b.o.destaque) - Number(a.o.destaque) || b.pontos - a.pontos);
+  const ofertasDaVez = [];
+  const porCategoria = new Map();
+  for (const { o, nivel } of pontuadas) {
+    if (ofertasDaVez.length >= vagas - cuponsDaVez.length) break;
+    if (nivel === "ocasional") {
+      if (vagasOcasional <= 0) continue;
+      vagasOcasional--;
+    }
+    const n = porCategoria.get(o.categoria) ?? 0;
+    if (n >= maxMesmaCategoria) continue;
+    porCategoria.set(o.categoria, n + 1);
+    ofertasDaVez.push(o);
+  }
+  const contagemNiveis = pontuadas.reduce((m, x) => ((m[x.nivel] = (m[x.nivel] ?? 0) + 1), m), {});
+  console.log(
+    `[whatsapp] Na fila: ${contagemNiveis.prioridade ?? 0} de prioridade, ${contagemNiveis.normal ?? 0} normais, ` +
+      `${contagemNiveis.ocasional ?? 0} "de vez em quando" (${ocasionaisHoje}/${ajuste("whatsapp_ocasional_por_dia")} já enviados hoje).`
+  );
+  if (TESTE)
+    for (const x of pontuadas.slice(0, 15))
+      console.log(`   ${x.pontos.toFixed(1).padStart(6)}  [${x.nivel}] ${x.o.titulo.slice(0, 70)}`);
   // Se não tem oferta para enviar, a vaga sobrando também pode ir para cupons
   const sobra = vagas - cuponsDaVez.length - ofertasDaVez.length;
   const maisCupons = sobra > 0 && vagasCupom > 0
