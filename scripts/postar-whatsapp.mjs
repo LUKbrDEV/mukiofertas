@@ -18,7 +18,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { aplicarConfigDoBanco, CONFIG_ROBO, registrarExecucao } from "../lib/prazos.mjs";
-import { camposDaOferta, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
+import { camposDaOferta, linkDaLoja, montarMensagem, MODELO_PADRAO, MODELO_CUPOM_PADRAO } from "../lib/whatsapp-modelo.mjs";
 import { gerarFrase, ESTILO_PADRAO } from "../lib/frase-ia.mjs";
 import { fotoComMarcaDagua } from "../lib/marca-dagua.mjs";
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
@@ -264,7 +264,7 @@ async function enviarPacoteDeCupons(db, grupo, lojaOk) {
   const site = (process.env.SITE_URL || "https://www.mukiofertas.com.br").replace(/\/+$/, "");
   const linhas = escolhidos.map((c) => {
     const titulo = tituloDoCupom(c.titulo).slice(0, 90);
-    return `🏷️ *${titulo}*: ${c.cupom}\n🔗 ${site}/ir/${c.id}`;
+    return `🏷️ *${titulo}*: ${c.cupom}\n🔗 ${linkDaLoja(c, site)}`;
   });
   const texto = `🚨 *Cupons ${loja}*\n\n${linhas.join("\n\n")}\n\n🚀 Mais ofertas e cupons: ${site}/cupons`;
 
