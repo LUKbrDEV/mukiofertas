@@ -209,8 +209,9 @@ const EXEMPLO_OFERTA = {
   preco_atual: 899.9,
   preco_antigo: 1299.9,
   cupom: "MUKI10",
+  link: "https://www.kabum.com.br/produto/123456", // link de afiliado de exemplo (na mensagem real vai o link da loja)
 };
-const EXEMPLO_CUPOM = { id: 124, titulo: "10% OFF em SSDs selecionados", loja: "KaBuM!", categoria: "cupons", cupom: "SSD10" };
+const EXEMPLO_CUPOM = { id: 124, titulo: "10% OFF em SSDs selecionados", loja: "KaBuM!", categoria: "cupons", cupom: "SSD10", link: "https://www.kabum.com.br/promocao/exemplo" };
 const SITE_EXEMPLO = "https://www.mukiofertas.com.br";
 // Exemplo para a prévia das mensagens da compra em grupo
 const EXEMPLO_PRODUTO_GRUPO = { id: "1005012629992095", titulo: "Kit 24 Canetas Ponta Dupla Marcador Permanente", preco_grupo: 4.99, preco_normal: 133.97 };
