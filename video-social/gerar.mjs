@@ -2,6 +2,8 @@
 //
 //   node gerar.mjs              -> ofertas reais do Supabase + roteiro novo (Gemini) + voz da ElevenLabs
 //   node gerar.mjs --enviar     -> igual, e manda o vídeo pronto no seu Telegram (VIDEO_TELEGRAM_CHAT_ID)
+//                                  e posta sozinho nas redes de PUBLICAR_REDES (instagram,youtube)
+//   node gerar.mjs --sem-postar -> não posta nas redes, mesmo com PUBLICAR_REDES preenchido
 //   node gerar.mjs --sem-voz    -> sem narração (tempos estimados), para ver o visual
 //   node gerar.mjs --teste      -> ofertas de exemplo (não acessa o Supabase)
 //   node gerar.mjs --reserva    -> não usa o Gemini (usa um dos roteiros prontos)
@@ -20,6 +22,7 @@ import { escreverRoteiro } from "./lib/ia-roteiro.mjs";
 import { gerarVoz } from "./lib/voz.mjs";
 import { renderizar, quadros } from "./lib/render.mjs";
 import { enviarVideoTelegram } from "./lib/telegram.mjs";
+import { publicarNasRedes, redesAtivas, resumoPublicacao } from "./lib/publicar.mjs";
 
 const PASTA = path.dirname(fileURLToPath(import.meta.url));
 const SAIDA = path.join(PASTA, "saida");
@@ -133,17 +136,26 @@ async function main() {
   // 5. texto do post, histórico e envio
   const textoPost = roteiro.post || "As melhores promoções, de graça, no WhatsApp e no Telegram. Link na bio! #ofertas #promocao #mukiofertas";
   fs.writeFileSync(`${base}.txt`, textoPost + "\n");
+  if (audio) fs.rmSync(audio, { force: true });
+
+  // posta sozinho no Instagram/YouTube (PUBLICAR_REDES). Vídeo de teste ou sem voz não vai para as redes.
+  let publicado = {};
+  const podePostar = !arg("teste") && !arg("sem-voz") && !arg("sem-postar");
+  if (podePostar && redesAtivas().length) {
+    console.log(`5/5 Postando nas redes (${redesAtivas().join(", ")})...`);
+    publicado = await publicarNasRedes({ arquivo: `${base}.mp4`, textoPost, pastaSaida: SAIDA });
+  }
+
   if (!arg("teste")) {
     for (const o of ofertas) historico.ofertas[String(o.id)] = Date.now();
     historico.ganchos.push(roteiro.cenas[0].legenda);
-    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem });
+    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem, publicado });
     salvarHistorico(historico);
   }
-  if (audio) fs.rmSync(audio, { force: true });
 
   if (arg("enviar")) {
-    console.log("5/5 Enviando para o seu Telegram...");
-    const ok = await enviarVideoTelegram({ arquivo: `${base}.mp4`, legenda: `🎬 Vídeo ${numero} de hoje — texto para o post:\n\n${textoPost}` });
+    console.log("Enviando para o seu Telegram...");
+    const ok = await enviarVideoTelegram({ arquivo: `${base}.mp4`, legenda: `🎬 Vídeo ${numero} de hoje — texto para o post:\n\n${textoPost}${resumoPublicacao(publicado)}` });
     if (ok) console.log("    enviado!");
   }
   limparSaida();
