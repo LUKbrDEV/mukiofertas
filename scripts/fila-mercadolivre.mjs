@@ -268,7 +268,7 @@ async function main() {
     }
   }
 
-  // Limite do ML no ar (lib/limite-lojas.mjs, 500): não publica além das vagas
+  // Limite do ML no ar (painel: Configurações → Lojas → Mercado Livre; padrão 500): não publica além das vagas
   const vagas = await vagasDaLoja(db, "Mercado Livre");
   const maxAgora = Math.min(MAX_PUBLICAR_POR_EXECUCAO, vagas);
   if (vagas !== Infinity) console.log(`[ml] vagas no site: ${vagas} (publica até ${maxAgora} agora)`);

@@ -372,7 +372,7 @@ async function main() {
     .or(`expires_at.is.null,expires_at.gt.${agora}`);
   if (erroExpirar) console.error("Erro ao marcar ofertas como expiradas:", erroExpirar.message);
 
-  // Limite de ofertas no ar por loja (Shopee 300, Amazon 300, Mercado Livre 500: lib/limite-lojas.mjs).
+  // Limite de ofertas no ar por loja (Shopee 300, Amazon 300; Mercado Livre: o do painel, padrão 500. lib/limite-lojas.mjs).
   // Conta todos os nomes da loja ("Shopee", "Shopee Brasil"...), igual à aba do site.
   let resumoLimites = "";
   try {
