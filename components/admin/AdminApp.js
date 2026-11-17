@@ -56,13 +56,9 @@ function SemAcesso({ email }) {
     <MolduraLogin>
       <div className="adm-entrada-form">
         <span className="adm-entrada-selo adm-entrada-selo--alerta">🚫 Sem acesso</span>
-        <h1>Esta conta não é de administrador</h1>
+        <h1>Usuário não autorizado</h1>
         <p className="adm-entrada-sub">
-          A conta <strong>{email}</strong> não tem acesso ao painel admin.
-        </p>
-        <p className="adm-entrada-sub">
-          Se ela deveria ter, coloque este e-mail na lista do passo 1 do arquivo <strong>admin-painel.sql</strong> e
-          rode o arquivo de novo no Supabase.
+          A conta <strong>{email}</strong> não tem permissão para acessar esta área.
         </p>
         <button className="adm-entrada-botao" onClick={() => supabase.auth.signOut()}>
           Sair e entrar com outra conta
