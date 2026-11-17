@@ -96,6 +96,7 @@ export function temposDasCenas(cenas, alinhamento, duracaoAudio, { cauda = 1.2 }
   const fimC = alinhamento.character_end_times_seconds;
   const falas = trechos.map(({ ini, fim }) => ({ falaIni: iniC[ini] ?? 0, falaFim: fimC[fim - 1] ?? duracaoAudio }));
   return cenas.map((c, i) => ({
+    ...c, // campos extras da cena (texto_tela, emoji...) vão para o template
     id: c.id,
     legenda: c.legenda,
     falaIni: falas[i].falaIni,
@@ -118,6 +119,7 @@ export function temposEstimados(cenas, { porCaractere = 0.068, pausa = 0.35, cau
   return {
     duracao: t - pausa + cauda,
     cenas: cenas.map((c, i) => ({
+      ...c,
       id: c.id,
       legenda: c.legenda,
       ...falas[i],

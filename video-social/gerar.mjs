@@ -97,7 +97,7 @@ async function main() {
     ? { origem: "manual", ...JSON.parse(fs.readFileSync(path.resolve(PASTA, valor("roteiro")), "utf8")) }
     : arg("reserva")
       ? { origem: "reserva", ...roteiroReserva(numero, ofertas[0]) }
-      : await escreverRoteiro({ ofertas, lojas, numero, evitar: historico.ganchos, cenas: variacao.cenas, estiloGancho: variacao.gancho });
+      : await escreverRoteiro({ ofertas, lojas, numero, evitar: historico.ganchos, cenas: variacao.cenas, estiloGancho: variacao.gancho, instrucao: variacao.instrucao });
   // roteiro pronto (reserva) e roteiro manual têm as cenas deles
   if (roteiro.origem === "reserva") variacao.formato = "classico";
   if (roteiro.origem === "manual") variacao.formato = "manual";
@@ -156,7 +156,7 @@ async function main() {
   if (!arg("teste")) {
     for (const o of ofertas) historico.ofertas[String(o.id)] = Date.now();
     historico.ganchos.push(roteiro.cenas[0].legenda);
-    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem, formato: variacao.formato, tema, gancho: variacao.gancho, publicado });
+    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem, formato: variacao.formato, tema, gancho: variacao.gancho, assunto: variacao.assunto, publicado });
     salvarHistorico(historico);
   }
 
