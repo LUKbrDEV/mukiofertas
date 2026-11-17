@@ -9,6 +9,7 @@
 //   node gerar.mjs --reserva    -> não usa o Gemini (usa um dos roteiros prontos)
 //   node gerar.mjs --id=123     -> usa uma oferta específica como destaque
 //   node gerar.mjs --id=123 --roteiro=roteiros/ps5-economia.json -> roteiro escrito à mão (só as cenas listadas nele)
+//   node gerar.mjs --formato=top3 --tema=roxo -> força um formato/tema (sem isso, sorteia: lib/variacoes.mjs)
 //
 // O vídeo sai em video-social/saida/ junto com um .txt com o texto para a publicação.
 // O arquivo saida/historico.json guarda as ofertas e ganchos já usados para não repetir.
@@ -19,6 +20,7 @@ import { carregarEnv } from "./lib/env.mjs";
 import { buscarOfertas, tituloCurto } from "./lib/ofertas.mjs";
 import { LOJAS_PADRAO, roteiroReserva, textoCompleto, temposDasCenas, temposEstimados } from "./lib/roteiro.mjs";
 import { escreverRoteiro } from "./lib/ia-roteiro.mjs";
+import { escolherVariacao } from "./lib/variacoes.mjs";
 import { gerarVoz } from "./lib/voz.mjs";
 import { renderizar, quadros } from "./lib/render.mjs";
 import { enviarVideoTelegram } from "./lib/telegram.mjs";
@@ -88,13 +90,18 @@ async function main() {
   console.log(`    destaque: ${ofertas[0].titulo} (R$ ${ofertas[0].preco_atual})`);
   const lojas = lojasDoVideo(ofertas);
 
-  // 2. roteiro
-  console.log("2/5 Escrevendo o roteiro...");
+  // 2. roteiro (formato, tema e estilo do gancho sorteados para variar os vídeos)
+  const variacao = escolherVariacao(historico, { formato: valor("formato"), tema: valor("tema") });
+  console.log(`2/5 Escrevendo o roteiro (formato ${variacao.formato}, tema ${variacao.tema})...`);
   const roteiro = valor("roteiro")
     ? { origem: "manual", ...JSON.parse(fs.readFileSync(path.resolve(PASTA, valor("roteiro")), "utf8")) }
     : arg("reserva")
       ? { origem: "reserva", ...roteiroReserva(numero, ofertas[0]) }
-      : await escreverRoteiro({ ofertas, lojas, numero, evitar: historico.ganchos });
+      : await escreverRoteiro({ ofertas, lojas, numero, evitar: historico.ganchos, cenas: variacao.cenas, estiloGancho: variacao.gancho });
+  // roteiro pronto (reserva) e roteiro manual têm as cenas deles
+  if (roteiro.origem === "reserva") variacao.formato = "classico";
+  if (roteiro.origem === "manual") variacao.formato = "manual";
+  const tema = roteiro.tema ?? variacao.tema;
   console.log(`    gancho: "${roteiro.cenas[0].fala}"`);
 
   // 3. voz
@@ -114,7 +121,7 @@ async function main() {
 
   // dados do template
   const logo = `data:image/png;base64,${fs.readFileSync(path.join(PASTA, "..", "public", "logo-mukiofertas.png")).toString("base64")}`;
-  const dados = { logo, lojas: roteiro.chips ?? lojas, ofertas, cenas, textos: { gancho_titulo: roteiro.gancho_titulo, cta: roteiro.cta, lojas_titulo: roteiro.lojas_titulo }, tema: roteiro.tema };
+  const dados = { logo, lojas: roteiro.chips ?? lojas, ofertas, cenas, textos: { gancho_titulo: roteiro.gancho_titulo, cta: roteiro.cta, lojas_titulo: roteiro.lojas_titulo, ranking_titulo: roteiro.ranking_titulo }, tema };
   fs.writeFileSync(`${base}.json`, JSON.stringify({ roteiro, cenas, ofertas: ofertas.map((o) => ({ ...o, imagem: o.imagem ? "(ok)" : null })) }, null, 2));
 
   if (arg("quadros")) {
@@ -149,7 +156,7 @@ async function main() {
   if (!arg("teste")) {
     for (const o of ofertas) historico.ofertas[String(o.id)] = Date.now();
     historico.ganchos.push(roteiro.cenas[0].legenda);
-    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem, publicado });
+    historico.videos.push({ dia: hojeBR(), arquivo: path.basename(base) + ".mp4", roteiro: roteiro.origem, formato: variacao.formato, tema, gancho: variacao.gancho, publicado });
     salvarHistorico(historico);
   }
 

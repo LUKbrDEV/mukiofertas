@@ -18,6 +18,8 @@
   --tinta: #1c2432;
   --tinta-suave: #5b6678;
   --linha: #dce1e8;
+  --destaque: var(--laranja);          /* cor das palavras em destaque (muda com o tema) */
+  --destaque-claro: var(--laranja-claro);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--azul-noite); }
@@ -38,7 +40,7 @@ body { font-family: "Inter", sans-serif; color: #fff; -webkit-font-smoothing: an
 .centro-x { left: 0; right: 0; text-align: center; }
 
 .titulo { font-weight: 900; line-height: .98; letter-spacing: -2px; text-transform: uppercase; }
-.titulo .l { color: var(--laranja); }
+.titulo .l { color: var(--destaque); }
 .kicker { font-weight: 800; letter-spacing: 6px; font-size: 30px; color: #9fc0ff; }
 
 /* etiqueta de preço */
@@ -124,11 +126,37 @@ body { font-family: "Inter", sans-serif; color: #fff; -webkit-font-smoothing: an
 .linha:last-child { margin-bottom: 0; }
 
 /* cta */
-.gratis { font-weight: 900; font-size: 250px; letter-spacing: -10px; line-height: 1; color: var(--laranja);
+.gratis { font-weight: 900; font-size: 250px; letter-spacing: -10px; line-height: 1; color: var(--destaque);
   text-shadow: 0 12px 0 #b8330a, 0 30px 70px rgba(255,90,31,.6); }
 .btn-cta { display: inline-flex; align-items: center; gap: 20px; background: var(--laranja); color: #fff; font-weight: 900; font-size: 56px;
   padding: 34px 64px; border-radius: 999px; box-shadow: 0 0 0 10px rgba(255,90,31,.25), 0 20px 60px rgba(255,90,31,.5); }
 .confete { position: absolute; width: 18px; height: 30px; border-radius: 4px; }
+
+/* ===== Temas de cor (sorteados em lib/variacoes.mjs; "azul" é o padrão acima) ===== */
+body.tema-noite #palco { background: radial-gradient(120% 70% at 50% 35%, #2b2b40 0%, #13131f 45%, #050508 100%); }
+body.tema-noite .anel { border-color: rgba(255,138,61,.30); box-shadow: 0 0 60px rgba(255,90,31,.25), inset 0 0 60px rgba(255,90,31,.14); }
+body.tema-noite .kicker { color: #ffb38a; }
+body.tema-noite .chip { background: rgba(10,10,18,.6); }
+
+body.tema-verde { --destaque: #ffd23f; --destaque-claro: #ffe27a; }
+body.tema-verde #palco { background: radial-gradient(120% 70% at 50% 35%, #13935f 0%, #075236 45%, #021f15 100%); }
+body.tema-verde .anel { border-color: rgba(120,255,190,.32); box-shadow: 0 0 60px rgba(60,220,140,.3), inset 0 0 60px rgba(60,220,140,.16); }
+body.tema-verde .kicker { color: #bff5d8; }
+body.tema-verde .chip { background: rgba(2,31,21,.55); }
+body.tema-verde .gratis { text-shadow: 0 12px 0 #a07c00, 0 30px 70px rgba(255,210,63,.5); }
+
+body.tema-roxo { --destaque: #ff5fb0; --destaque-claro: #ff8fc8; }
+body.tema-roxo #palco { background: radial-gradient(120% 70% at 50% 35%, #7c3aed 0%, #4c1d95 45%, #18062f 100%); }
+body.tema-roxo .anel { border-color: rgba(216,160,255,.35); box-shadow: 0 0 60px rgba(190,120,255,.32), inset 0 0 60px rgba(190,120,255,.18); }
+body.tema-roxo .kicker { color: #e4ccff; }
+body.tema-roxo .chip { background: rgba(24,6,47,.55); }
+body.tema-roxo .gratis { text-shadow: 0 12px 0 #a3266b, 0 30px 70px rgba(255,95,176,.5); }
+
+/* ranking (cena "ranking": top 3 de hoje) */
+.rank-n { position: absolute; left: -34px; top: -34px; width: 104px; height: 104px; border-radius: 50%; background: var(--laranja); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 60px; border: 6px solid #fff; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.rank-1 .rank-n { background: #ffc533; color: #111; width: 124px; height: 124px; font-size: 72px; left: -44px; top: -44px; }
+.rank-1 { box-shadow: 0 30px 90px rgba(0,0,0,.45), 0 0 0 6px #ffc533; }
 
 /* ===== Tema Black Friday (roteiro com "tema": "blackfriday") ===== */
 body.bf { --ouro: #ffc533; --ouro-escuro: #b07a00; }
@@ -161,7 +189,7 @@ body.bf .carimbo { display: flex; }
 #legenda { position: absolute; left: 60px; right: 60px; top: 1440px; text-align: center; font-weight: 800; font-size: 54px; line-height: 1.25;
   text-shadow: 0 4px 14px rgba(0,0,0,.6); }
 #legenda span { transition: none; }
-#legenda .ativa { color: var(--laranja-claro); }
+#legenda .ativa { color: var(--destaque-claro); }
 </style>
 </head>
 <body>
@@ -211,6 +239,13 @@ body.bf .carimbo { display: flex; }
     </div>
     <div class="onda" id="d-onda"></div>
     <div class="dedo" id="d-dedo">👆</div>
+  </section>
+
+  <!-- top 3 (formatos "top3" e "direto") -->
+  <section class="cena" id="c-ranking">
+    <div class="abs kicker centro-x" id="r-k" style="top:200px;">AS MELHORES DE AGORA</div>
+    <div class="abs centro-x titulo" id="r-t" style="top:260px; font-size:120px;">Top 3 <span class="l">de hoje</span></div>
+    <div id="r-cards"></div>
   </section>
 
   <!-- 6. canais -->
@@ -295,6 +330,7 @@ for (const id of ["m-logo", "t-logo", "t-nlogo", "a-logo"]) $(id).src = D.logo;
 
 const principal = of[0];
 const BF = D.tema === "blackfriday";
+if (!BF && D.tema && D.tema !== "azul") document.body.classList.add(`tema-${D.tema}`);
 if (BF) {
   document.body.classList.add("bf");
   const txt = "BLACK FRIDAY ★ ".repeat(14);
@@ -346,6 +382,11 @@ $("t-nb").textContent = `Nova promoção: ${principal.titulo_curto || principal.
 $("t-nc").textContent = `R$ ${brl(principal.preco_atual)}${principal.cupom ? " · com cupom" : ""} · link direto`;
 
 $("d-card").innerHTML = cardHtml(principal, true, "dc");
+
+// top 3: o nº 1 é a oferta destaque
+$("r-cards").innerHTML = of.slice(0, 3).map((o, i) => cardHtml(o, false, `rk${i}`, `compacto rank-${i + 1}`)).join("");
+of.slice(0, 3).forEach((_, i) => { const n = document.createElement("div"); n.className = "rank-n"; n.textContent = i + 1; $(`rk${i}`).appendChild(n); });
+if (D.textos?.ranking_titulo) { const [r1, r2] = D.textos.ranking_titulo; $("r-t").innerHTML = `${esc(r1)} <span class="l">${esc(r2)}</span>`; }
 
 $("g-carimbo").textContent = `-${pct(principal) || 0}%`;
 
@@ -427,6 +468,20 @@ const anim = {
     const w = prog(t, tIni + .55, .5);
     set("d-onda", { o: w > 0 ? (1 - w) : 0, x: alvoX - 30, y: alvoY - 30, s: 1 + w * 4 });
     $("dc").querySelector(".botao").style.filter = `brightness(${1 + .25 * toque})`;
+  },
+  ranking(t, d) {
+    entra("r-k", t, 0, { dy: 30 });
+    entra("r-t", t, .08, { s0: .8, eas: backOut });
+    // contagem: entra o 3º, depois o 2º e por último o 1º
+    const n = Math.min(3, of.length);
+    for (let k = 0; k < n; k++) {
+      const i = n - 1 - k; // posição na tela (0 = topo)
+      const ini = .3 + k * Math.min(.9, d * .24);
+      const p = backOut(prog(t, ini, .5));
+      const lado = i % 2 ? 1 : -1;
+      const pulso = i === 0 ? 1 + .025 * Math.sin(Math.max(0, t - ini - .5) * 6) * prog(t, ini + .5, .2) : 1;
+      set(`rk${i}`, { o: prog(t, ini, .2), x: lado * 700 * (1 - p), y: 500 + i * 285, s: (i === 0 ? 1.04 : 1) * pulso, r: lado * -4 * (1 - p) });
+    }
   },
   canais(t, d) {
     entra("k-k", t, 0, { dx: -60, dy: 0 });
