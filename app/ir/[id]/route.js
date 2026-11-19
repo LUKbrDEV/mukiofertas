@@ -40,13 +40,16 @@ export async function GET(request, { params }) {
   // Mercado Livre: SÓ o link oficial de afiliado (meli.la, gerado pelo scripts/converter-links-ml.mjs e
   // guardado em affiliate_link). Sem ele, nunca manda para outro link do ML: leva para a página da oferta
   // no site (a oferta já deveria estar escondida pela trava do banco, supabase/ml-so-meli.sql).
+  // Páginas de cupom do ML são a exceção e vão pelo link normal.
   // Magalu: sempre leva para a SUA loja do Influenciador Magalu (mesmo que a oferta tenha o link normal).
   const oficialML = String(oferta.affiliate_link ?? "").trim();
   const ehML = /mercado\s*livre/i.test(oferta.loja ?? "") || /mercadoli(vre|bre)\.com|meli\.la/i.test(oferta.link);
+  // Exceção: páginas de cupom do ML (o gerador não cria meli.la para elas) vão pelo link normal
+  const cupomML = /mercadoli(vre|bre)\.com(\.br)?\/(cupons|sec\/)/i.test(oferta.link);
   let destino;
   if (/^https:\/\/meli\.la\/[A-Za-z0-9]+$/.test(oficialML)) destino = oficialML;
   else if (/^https?:\/\/meli\.la\//i.test(oferta.link)) destino = oferta.link;
-  else if (ehML) return NextResponse.redirect(new URL(`/oferta/${oferta.id}`, request.url), 307);
+  else if (ehML && !cupomML) return NextResponse.redirect(new URL(`/oferta/${oferta.id}`, request.url), 307);
   else destino = converterLinkMagalu(oferta.link);
 
   const cookieClique = `mk_ir_${oferta.id}`;

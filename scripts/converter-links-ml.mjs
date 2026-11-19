@@ -7,7 +7,9 @@
 //  - Este script gera o meli.la no gerador oficial de afiliados e só então LIBERA a oferta no site.
 //    O meli.la fica na coluna "affiliate_link"; o robô continua usando o link do produto (coluna "link")
 //    para conferir preço e buscar detalhes, sem nunca abrir o meli.la (não gera clique falso).
-//  - O que o gerador recusa (anúncio pausado/encerrado, página de cupons, link quebrado) sai do site.
+//  - O que o gerador recusa (anúncio pausado/encerrado, link quebrado) sai do site.
+//  - Exceção: páginas de CUPOM do ML (mercadolivre.com.br/cupons e links de campanha /sec/) continuam no
+//    site com o link normal (o gerador não converte cupom em meli.la). Não são tocadas por este script.
 //  - No fim, faz uma varredura: qualquer oferta do ML ainda no ar sem meli.la é escondida.
 // Roda sozinho no fim de cada execução do robô do ML (fila-mercadolivre.mjs).
 //
@@ -34,34 +36,39 @@ const LIMITE_PADRAO = 300; // ofertas por execução (as mais recentes primeiro)
 const LIMITE_TODAS = 5000;
 const LOJA_ML = "mercado%livre"; // "Mercado Livre", "mercado livre"...
 export const AGUARDANDO = "aguardando"; // escondida esperando o meli.la
+// Páginas de cupom do ML ficam de fora (padrões do filtro "like" do Supabase)
+const CUPONS = ["%mercadolivre.com.br/cupons%", "%mercadolivre.com.br/sec/%"];
+const semCupons = (consulta) => CUPONS.reduce((q, padrao) => q.not("link", "ilike", padrao), consulta);
 
 // Esconde do site toda oferta do ML que ainda está no ar sem meli.la. Devolve quantas escondeu.
 export async function esconderMLSemMeli(db) {
   let escondidas = 0;
   // 1) sem tentativa ainda (affiliate_link vazio): esconde e marca para voltar quando ganhar o meli.la
   {
-    const { data, error } = await db
-      .from("ofertas")
-      .update({ ativa: false, affiliate_link: AGUARDANDO })
-      .ilike("loja", LOJA_ML)
-      .eq("ativa", true)
-      .not("link", "like", "%meli.la/%")
-      .is("affiliate_link", null)
-      .select("id");
+    const { data, error } = await semCupons(
+      db
+        .from("ofertas")
+        .update({ ativa: false, affiliate_link: AGUARDANDO })
+        .ilike("loja", LOJA_ML)
+        .eq("ativa", true)
+        .not("link", "like", "%meli.la/%")
+        .is("affiliate_link", null)
+    ).select("id");
     if (error) throw new Error(`Supabase (esconder pendentes): ${error.message}`);
     escondidas += data?.length ?? 0;
   }
   // 2) recusadas pelo gerador ou com qualquer outro valor que não seja meli.la: só esconde
   {
-    const { data, error } = await db
-      .from("ofertas")
-      .update({ ativa: false })
-      .ilike("loja", LOJA_ML)
-      .eq("ativa", true)
-      .not("link", "like", "%meli.la/%")
-      .not("affiliate_link", "is", null)
-      .not("affiliate_link", "like", "https://meli.la/%")
-      .select("id");
+    const { data, error } = await semCupons(
+      db
+        .from("ofertas")
+        .update({ ativa: false })
+        .ilike("loja", LOJA_ML)
+        .eq("ativa", true)
+        .not("link", "like", "%meli.la/%")
+        .not("affiliate_link", "is", null)
+        .not("affiliate_link", "like", "https://meli.la/%")
+    ).select("id");
     if (error) throw new Error(`Supabase (esconder sem meli.la): ${error.message}`);
     escondidas += data?.length ?? 0;
   }
@@ -79,12 +86,14 @@ export async function converterLinksML(db, { limite = LIMITE_PADRAO, teste = fal
       // Ofertas do ML que ainda não têm meli.la: nunca tentadas (vazio) ou escondidas esperando ("aguardando")
       const ofertas = [];
       for (let de = 0; ofertas.length < limite; de += 1000) {
-        const { data, error } = await db
-          .from("ofertas")
-          .select("id, link, titulo, affiliate_link")
-          .ilike("loja", LOJA_ML)
-          .or(`affiliate_link.is.null,affiliate_link.eq.${AGUARDANDO}`)
-          .like("link", "%mercadoli%")
+        const { data, error } = await semCupons(
+          db
+            .from("ofertas")
+            .select("id, link, titulo, affiliate_link")
+            .ilike("loja", LOJA_ML)
+            .or(`affiliate_link.is.null,affiliate_link.eq.${AGUARDANDO}`)
+            .like("link", "%mercadoli%")
+        )
           .order("publicada_em", { ascending: false })
           .range(de, de + Math.min(999, limite - ofertas.length - 1));
         if (error) throw new Error(`Supabase: ${error.message}`);
