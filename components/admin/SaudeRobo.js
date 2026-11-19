@@ -142,6 +142,7 @@ export default function SaudeRobo({ irPara }) {
   const leitorOferta = e("leitor-grupos");
   const ml = e("fila-mercadolivre");
   const alertas = e("avisar-alertas");
+  const linksML = e("converter-links-ml");
 
   const robos = [
     {
@@ -170,6 +171,15 @@ export default function SaudeRobo({ irPara }) {
       cor: situacao(ml?.ultima_execucao, 1, 3),
       erro: ml && !ml.ok,
       detalhe: ml?.resumo ?? "Ainda não deu sinal de vida (confira se o robo-na-vps.sh roda o fila-mercadolivre.mjs)",
+    },
+    {
+      icone: "🔗",
+      titulo: "Links oficiais do Mercado Livre (meli.la)",
+      como: "Roda no fim de cada execução do Robô do Mercado Livre · troca o link das ofertas pelo meli.la do gerador de afiliados, usando a sua sessão do ML (ML_AFILIADO_COOKIE no .env.robo). Vermelho = sessão expirada: pegue o cookie de novo (passo a passo no topo do scripts/converter-links-ml.mjs)",
+      quando: linksML?.ultima_execucao,
+      cor: situacao(linksML?.ultima_execucao, 1, 3),
+      erro: linksML && !linksML.ok,
+      detalhe: linksML?.resumo ?? "Ainda não rodou (roda junto com o Robô do Mercado Livre)",
     },
     {
       icone: "📨",
