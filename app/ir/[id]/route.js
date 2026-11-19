@@ -29,13 +29,25 @@ export async function GET(request, { params }) {
 
   const { data: oferta } = await supabase
     .from("ofertas")
-    .select("id, link, affiliate_link")
+    .select("id, loja, link, affiliate_link")
     .eq("id", id)
     .maybeSingle();
 
   if (!oferta || !/^https?:\/\//i.test(oferta.link)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
+
+  // Mercado Livre: SÓ o link oficial de afiliado (meli.la, gerado pelo scripts/converter-links-ml.mjs e
+  // guardado em affiliate_link). Sem ele, nunca manda para outro link do ML: leva para a página da oferta
+  // no site (a oferta já deveria estar escondida pela trava do banco, supabase/ml-so-meli.sql).
+  // Magalu: sempre leva para a SUA loja do Influenciador Magalu (mesmo que a oferta tenha o link normal).
+  const oficialML = String(oferta.affiliate_link ?? "").trim();
+  const ehML = /mercado\s*livre/i.test(oferta.loja ?? "") || /mercadoli(vre|bre)\.com|meli\.la/i.test(oferta.link);
+  let destino;
+  if (/^https:\/\/meli\.la\/[A-Za-z0-9]+$/.test(oficialML)) destino = oficialML;
+  else if (/^https?:\/\/meli\.la\//i.test(oferta.link)) destino = oferta.link;
+  else if (ehML) return NextResponse.redirect(new URL(`/oferta/${oferta.id}`, request.url), 307);
+  else destino = converterLinkMagalu(oferta.link);
 
   const cookieClique = `mk_ir_${oferta.id}`;
   const jaContou = Boolean(request.cookies.get(cookieClique));
@@ -47,12 +59,6 @@ export async function GET(request, { params }) {
       // se o registro falhar, o visitante é levado à oferta do mesmo jeito
     }
   }
-
-  // Mercado Livre: o link oficial do gerador de afiliados (meli.la) é o que o ML conta.
-  // Ele fica em affiliate_link (scripts/converter-links-ml.mjs); sem ele, vai o link do produto.
-  // Magalu: sempre leva para a SUA loja do Influenciador Magalu (mesmo que a oferta tenha o link normal).
-  const oficialML = String(oferta.affiliate_link ?? "").trim();
-  const destino = /^https:\/\/meli\.la\/[A-Za-z0-9]+$/.test(oficialML) ? oficialML : converterLinkMagalu(oferta.link);
 
   const resposta = NextResponse.redirect(destino, 307);
   // não guarda o redirecionamento em cache (senão o próximo clique nem passa por aqui)
