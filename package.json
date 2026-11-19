@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "leitor": "node --env-file=.env.robo scripts/leitor-telegram.mjs",
-    "indexnow": "node scripts/indexnow.mjs"
+    "indexnow": "node scripts/indexnow.mjs",
+    "converter-ml": "node --env-file=.env.robo scripts/converter-links-ml.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

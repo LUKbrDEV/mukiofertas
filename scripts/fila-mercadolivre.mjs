@@ -1,6 +1,6 @@
 // Robô do Mercado Livre: procura os MAIS VENDIDOS das categorias, confere o preço "de" e "por"
-// e PUBLICA as boas ofertas direto no site, já com o seu link de afiliado (matt_word/matt_tool,
-// o mesmo que o site usa nas ofertas do Telegram). Passou do limite por execução? O resto vai
+// e PUBLICA as boas ofertas direto no site. No fim de cada execução, o converter-links-ml.mjs troca o
+// link pelo meli.la OFICIAL do gerador de afiliados (o link montado com matt_word/matt_tool não é contado). Passou do limite por execução? O resto vai
 // para a FILA do painel admin (aba "Fila Mercado Livre"), como antes.
 // Salve como scripts/fila-mercadolivre.mjs. A VPS roda junto com a coleta (robo-na-vps.sh).
 //
@@ -29,6 +29,7 @@ import { vagasDaLoja } from "../lib/limite-lojas.mjs";
 import { ehPrioritaria } from "../lib/qualidade.mjs";
 import { linkAfiliadoML } from "../lib/extrair-oferta.mjs";
 import { chaveDaOferta } from "../lib/duplicadas.mjs";
+import { converterLinksML } from "./converter-links-ml.mjs";
 
 // ===== AJUSTES =====
 // PRIORIDADE (o que mais vende): Eletrodomésticos (geladeira, lavadora, fogão, coifa/exaustor, ar e ventilação,
@@ -144,6 +145,7 @@ async function publicar(db, c) {
     preco_atual: c.preco_atual,
     preco_antigo: c.preco_antigo,
     link,
+    affiliate_link: null, // o meli.la oficial é gerado no fim da execução (converter-links-ml.mjs)
     imagem: c.imagem,
     origem: "automatica",
     ativa: true,
@@ -322,6 +324,9 @@ async function main() {
   console.log(`[ml] ${resumo}`);
   if (TESTE) console.log("(teste: nada foi gravado)");
   else await registrarExecucao(db, "fila-mercadolivre", true, resumo);
+
+  // Troca o link das ofertas novas (e das que faltaram) pelo meli.la oficial do gerador de afiliados
+  if (!TESTE) await converterLinksML(db).catch((e) => console.error("[ml-links] Erro:", e.message));
 }
 
 main().catch(async (e) => {

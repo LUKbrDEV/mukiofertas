@@ -237,7 +237,7 @@ async function enviarPacoteDeCupons(db, grupo, lojaOk) {
 
   const { data: cupons, error } = await db
     .from("ofertas")
-    .select("id, titulo, loja, cupom, link, expires_at, publicada_em, categoria")
+    .select("id, titulo, loja, cupom, link, affiliate_link, expires_at, publicada_em, categoria")
     .eq("categoria", "cupons")
     .eq("ativa", true)
     .is("postada_whatsapp_em", null)
@@ -432,7 +432,7 @@ async function main() {
   const desde = new Date(Date.now() - HORAS_PARA_TRAS * 3600000).toISOString();
   const { data, error } = await db
     .from("ofertas")
-    .select("id, titulo, loja, categoria, preco_atual, preco_antigo, cupom, link, imagem, destaque, publicada_em, expires_at, ativa, origem, cliques, likes, dislikes")
+    .select("id, titulo, loja, categoria, preco_atual, preco_antigo, cupom, link, affiliate_link, imagem, destaque, publicada_em, expires_at, ativa, origem, cliques, likes, dislikes")
     .eq("ativa", true)
     .is("postada_whatsapp_em", null)
     .gte("publicada_em", desde)

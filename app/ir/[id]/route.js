@@ -10,7 +10,7 @@ export async function GET(request, { params }) {
 
   const { data: oferta } = await supabase
     .from("ofertas")
-    .select("id, link")
+    .select("id, link, affiliate_link")
     .eq("id", id)
     .maybeSingle();
 
@@ -22,6 +22,12 @@ export async function GET(request, { params }) {
     await supabase.from("cliques").insert({ oferta_id: oferta.id, origem });
   } catch {
     // se o registro falhar, o visitante é levado à oferta do mesmo jeito
+  }
+
+  // Mercado Livre: o link oficial do gerador de afiliados (meli.la) é o que o ML conta.
+  // Ele fica em affiliate_link (scripts/converter-links-ml.mjs); sem ele, vai o link do produto.
+  if (/^https:\/\/meli\.la\/[A-Za-z0-9]+$/.test(String(oferta.affiliate_link ?? "").trim())) {
+    return NextResponse.redirect(oferta.affiliate_link.trim(), 307);
   }
 
   // Magalu: sempre leva para a SUA loja do Influenciador Magalu (mesmo que a oferta tenha o link normal)
