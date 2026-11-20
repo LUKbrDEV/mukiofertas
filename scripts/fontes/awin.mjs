@@ -142,7 +142,29 @@ export function lerCsv(texto, separador = ",") {
   const nomes = cabecalho.map((n) => n.trim().toLowerCase());
   return dados
     .filter((l) => l.length > 1)
-    .map((l) => Object.fromEntries(nomes.map((n, i) => [n, l[i] ?? ""])));
+    .map((l) => formatoAntigo(Object.fromEntries(nomes.map((n, i) => [n, l[i] ?? ""]))));
+}
+
+// Feeds no formato NOVO da Awin (padrão Google Shopping: title, link, image_link, price, sale_price,
+// availability...) viram o formato antigo (product_name, search_price, product_price_old, in_stock...),
+// para o resto do robô funcionar igual. Feed antigo passa direto.
+//   price = preço normal ("61.39 BRL") | sale_price = preço promocional (vazio quando não está em promoção)
+export function formatoAntigo(l) {
+  if (!l || "product_name" in l || !("title" in l)) return l;
+  const promocao = String(l.sale_price ?? "").trim();
+  const disponivel = String(l.availability ?? "").toLowerCase().replace(/[\s-]+/g, "_");
+  return {
+    ...l,
+    aw_product_id: l.id,
+    merchant_product_id: l.id,
+    product_name: l.title,
+    search_price: promocao || l.price,
+    product_price_old: promocao ? l.price : "",
+    merchant_deep_link: l.link,
+    merchant_image_url: l.image_link,
+    in_stock: disponivel ? (/^(in_stock|preorder|backorder)$/.test(disponivel) ? "1" : "0") : "",
+    brand_name: l.brand,
+  };
 }
 
 // Mesma leitura, mas aos poucos: chama aoLinha(objeto) para cada produto e não guarda nada.
@@ -162,7 +184,7 @@ export async function baixarFeedEmPartes(url, aoLinha) {
     if (!nomes) nomes = linha.map((n) => n.trim().toLowerCase());
     else if (linha.length > 1) {
       total++;
-      aoLinha(Object.fromEntries(nomes.map((n, i) => [n, linha[i] ?? ""])));
+      aoLinha(formatoAntigo(Object.fromEntries(nomes.map((n, i) => [n, linha[i] ?? ""]))));
     }
     linha = [];
   };
