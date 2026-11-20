@@ -46,6 +46,8 @@ export const lojasDestaque = [
   { nome: "Netshoes", slug: "netshoes", nomesNoBanco: ["Netshoes", "Netshoes BR"], artigo: "da", logo: "/lojas/netshoes.png", cor: "#5a1e8c" },
   { nome: "Dafiti", slug: "dafiti", nomesNoBanco: ["Dafiti", "Dafiti BR"], artigo: "da", logo: "/lojas/dafiti.png", cor: "#111111" },
   // Terabyte: sem logo por enquanto (aparece com o nome). Para pôr a logo: salve public/lojas/terabyte.png e acrescente logo: "/lojas/terabyte.png"
+  // Soldiers Nutrition: sem logo por enquanto. Para pôr: public/lojas/soldiers.png e logo: "/lojas/soldiers.png"
+  { nome: "Soldiers Nutrition", slug: "soldiers-nutrition", nomesNoBanco: ["Soldiers Nutrition", "Soldiers Nutrition BR", "Soldiers"], artigo: "da", cor: "#1f2a1a" },
   { nome: "Terabyte", slug: "terabyte", nomesNoBanco: ["Terabyte", "TerabyteShop", "Terabyte Shop", "Terabyteshop"], artigo: "da", cor: "#0b1f3a" },
 ];
 

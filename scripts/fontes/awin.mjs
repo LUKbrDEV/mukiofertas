@@ -26,6 +26,7 @@
 //                     (começa com https://productdata.awin.com/datafeed/download/apikey/...)
 //   AWIN_FEED_DAFITI_FEMININO / AWIN_FEED_DAFITI_MASCULINO / AWIN_FEED_DAFITI_KIDS
 //                     os 3 feeds da Dafiti (Create-a-Feed, um para cada)
+//   AWIN_FEED_SOLDIERS  o feed da Soldiers Nutrition (Create-a-Feed)
 // Só uma loja no teste: node --env-file=.env.local scripts/testar-awin.mjs --loja dafiti
 //
 // Feeds "leves" (Dafiti: cerca de 700 mil produtos somando os 3): o catálogo é lido aos poucos,
@@ -53,6 +54,8 @@ const FEEDS = [
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_FEMININO", prefixo: "awn-dft-", leve: true, max: 15, maxPorCategoria: 6, dica: "feminino" },
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_MASCULINO", prefixo: "awn-dft-", leve: true, max: 10, maxPorCategoria: 5, dica: "masculino" },
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_KIDS", prefixo: "awn-dft-", leve: true, max: 8, maxPorCategoria: 4, dica: "infantil" },
+  // Soldiers Nutrition (suplementos): só os produtos com preço "de" e desconto no feed
+  { loja: "Soldiers Nutrition", variavel: "AWIN_FEED_SOLDIERS", prefixo: "awn-sld-", leve: true, max: 10, maxPorCategoria: 5 },
 ];
 const DESCONTO_MINIMO_LEVE = 20; // feed leve: nem guarda na memória o que tiver menos que isso
 const CANDIDATOS_LEVE = 1500; // feed leve: só os X maiores descontos passam pelo classificador (é lento)
@@ -675,7 +678,7 @@ export async function buscar({ forcar = false, apenas = null } = {}) {
           if (o) produtos.push(o);
           if (vistos.size >= CANDIDATOS_LEVE) break;
         }
-        console.log(`[awin] ${feed.loja} (${feed.dica}): ${vistos.size} produtos com os maiores descontos analisados.`);
+        console.log(`[awin] ${feed.loja}${feed.dica ? ` (${feed.dica})` : ""}: ${vistos.size} produtos com os maiores descontos analisados.`);
         linhas = { length: total };
       } else {
         linhas = await baixarFeed(process.env[feed.variavel]);
