@@ -11,6 +11,7 @@ import { extrairOferta, lojaDoLink, linkAfiliadoML } from "../../../../lib/extra
 import { parseOferta } from "../../../../lib/parse-oferta";
 import { separarCupons, lojaDosCupons, textoDoCupom } from "../../../../lib/cupons-multiplos.mjs";
 import { prepararLinkRakuten } from "../../../../lib/afiliado-rakuten.mjs";
+import { converterLinkTerabyte } from "../../../../lib/afiliado-terabyte.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { registrarExecucao } from "../../../../lib/prazos.mjs";
 
@@ -69,6 +70,7 @@ async function converter(link, texto = "") {
     loja = lojaDoLink(alvo);
   }
   if (loja === "Magalu") return { link: alvo, loja }; // o salvar-oferta troca pela sua loja do Influenciador
+  if (loja === "Terabyte") return { link: converterLinkTerabyte(alvo), loja }; // seu link de parceiro (?p=)
   if (CONVERTE_COM_EXTRAIR.has(loja)) {
     const r = await extrairOferta(alvo);
     if (r?.afiliado && r.link_afiliado) return { link: r.link_afiliado, loja, imagem: r.imagem || null };

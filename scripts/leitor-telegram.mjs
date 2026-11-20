@@ -48,7 +48,7 @@ const CONFERIR_A_CADA_MS = 60 * 1000;
 const MOSTRAR_POSTS_SEM_LINK = true;
 // Lojas aceitas: as que o site consegue trocar pelo SEU link de afiliado
 // (antes era só a Netshoes, na fase de teste; a variável TELEGRAM_LEITOR_LOJAS no .env.robo ainda manda, se existir)
-const LOJAS_PADRAO = "Netshoes,Mercado Livre,Amazon,Shopee,AliExpress,KaBuM!";
+const LOJAS_PADRAO = "Netshoes,Mercado Livre,Amazon,Shopee,AliExpress,KaBuM!,Terabyte";
 const LOJAS = (process.env.TELEGRAM_LEITOR_LOJAS || LOJAS_PADRAO).split(",").map((s) => s.trim()).filter(Boolean);
 // ===================
 
