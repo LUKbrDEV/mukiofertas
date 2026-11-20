@@ -81,6 +81,16 @@ async function converter(link, texto = "") {
   return { recusa: "loja_sem_afiliado", loja: loja ?? new URL(alvo).hostname };
 }
 
+// Nome dos canais (ou parte do nome) separados por vírgula: "nerd,outro canal"
+const CANAIS_FOTO_COM_MARCA = new RegExp(
+  (process.env.TELEGRAM_FOTO_COM_MARCA || "nerd")
+    .split(",")
+    .map((n) => n.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .filter(Boolean)
+    .join("|") || "(?!)",
+  "i"
+);
+
 export async function POST(req) {
   if (!process.env.TELEGRAM_WEBHOOK_SECRET || req.headers.get("x-leitor-secret") !== process.env.TELEGRAM_WEBHOOK_SECRET) {
     return NextResponse.json({ ok: false, motivo: "secret_invalido" }, { status: 401 });
@@ -139,11 +149,14 @@ export async function POST(req) {
 
   // Netshoes não manda o preço "de" e bloqueia a leitura da página: entra só com o preço atual
   const SEM_PRECO_ANTIGO = new Set(["Netshoes"]);
-  // Foto: a OFICIAL da loja (API do Mercado Livre, Shopee, AliExpress...) vem primeiro.
-  // A foto da postagem do grupo só entra quando a loja não deu foto (ex.: Amazon), porque quem posta
-  // nos grupos às vezes manda foto tirada no celular.
+  // Foto: 1) a OFICIAL da loja (API do Mercado Livre, Shopee, AliExpress...); 2) a da página do produto;
+  // 3) só em último caso, a foto da postagem do grupo (às vezes tirada no celular ou com marca d'água).
+  // Canais que põem a marca d'água deles na foto (TELEGRAM_FOTO_COM_MARCA, padrão "nerd" = Nerd Ofertas):
+  // a foto da postagem NUNCA é usada.
+  const fotoDoGrupo = imagem && !CANAIS_FOTO_COM_MARCA.test(String(grupo)) ? imagem : null;
   const resultado = await salvarOferta(final, "telegram", {
-    imagem: c.imagem || imagem || null,
+    imagem: c.imagem || null,
+    fotoReserva: fotoDoGrupo,
     aceitarSemDesconto: SEM_PRECO_ANTIGO.has(c.loja),
     jaNoCanal: false, // oferta de outro canal: entra na fila para postar no SEU canal do Telegram
   });
