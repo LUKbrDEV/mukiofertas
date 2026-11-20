@@ -28,14 +28,15 @@ export default function Termos() {
       <p>
         Preços, descontos, cupons e estoques mudam rápido e podem acabar a qualquer momento. As
         informações exibidas no site podem estar desatualizadas ou conter erros. Sempre confira o
-        valor final e as condições na página da loja antes de comprar. Ofertas encerradas ficam
-        marcadas como Expirado.
+        valor final e as condições na página da loja antes de comprar. Ofertas encerradas saem da
+        vitrine.
       </p>
 
       <h2>3. Links de afiliados</h2>
       <p>
         O site pode receber comissão pelas compras feitas através dos links, sem custo adicional
-        para você. Isso não altera o preço que você paga.
+        para você. Isso não altera o preço que você paga. Como Associado da Amazon, o MukiOfertas
+        ganha com compras qualificadas.
       </p>
 
       <h2>4. Conta de usuário</h2>

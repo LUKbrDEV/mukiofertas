@@ -7,6 +7,7 @@ import { buscar as buscarAwin } from "./fontes/awin.mjs";
 import { buscar as buscarRakuten } from "./fontes/rakuten.mjs";
 import { buscar as buscarCupons } from "./fontes/cupons.mjs";
 import { classificar } from "../lib/classificar.mjs";
+import { tituloRuim } from "../lib/titulo-ruim.mjs";
 import {
   regrasDeQualidade,
   motivoDeRecusa,
@@ -179,6 +180,8 @@ async function main() {
         continue;
       }
       if (!item.preco_antigo || item.preco_antigo <= item.preco_atual) continue;
+      // Título que não é nome de produto ("até o miojo"): não entra (lib/titulo-ruim.mjs)
+      if (tituloRuim(item.titulo)) continue;
 
       // Shopee e AliExpress: barato demais ou desconto inflado não entra
       if (motivoDeRecusa(item, qualidade)) {
