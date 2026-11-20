@@ -17,6 +17,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { classificar } from "../../lib/classificar.mjs";
 import { descontoMinimoDa } from "../../lib/prazos.mjs";
+import { converterLinkTerabyte } from "../../lib/afiliado-terabyte.mjs";
 
 // ===== AJUSTES =====
 const DESCONTO_MINIMO = 20; // % só para o diagnóstico; na coleta vale o desconto por categoria (lib/prazos.mjs)
@@ -384,6 +385,13 @@ export async function buscar() {
   for (const c of candidatos) {
     const existente = existentes.get(c.id_externo);
     let link = existente?.link ?? null;
+
+    // Terabyte: a Lomadee só dá os produtos e preços; o link é o SEU link direto do
+    // Programa de Parceiros Terabyte (?p=), que paga melhor que o da Lomadee
+    const enderecoDaLoja = String(c.produto?.url || "");
+    if (/(^|\/\/|\.)terabyteshop\.com\.br\//i.test(enderecoDaLoja)) {
+      link = converterLinkTerabyte(enderecoDaLoja);
+    }
 
     if (!link) {
       if (linksNovos >= MAX_LINKS_NOVOS) continue; // o resto fica para a próxima execução
