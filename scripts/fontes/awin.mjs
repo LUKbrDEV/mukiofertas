@@ -54,8 +54,9 @@ const FEEDS = [
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_FEMININO", prefixo: "awn-dft-", leve: true, max: 15, maxPorCategoria: 6, dica: "feminino" },
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_MASCULINO", prefixo: "awn-dft-", leve: true, max: 10, maxPorCategoria: 5, dica: "masculino" },
   { loja: "Dafiti", variavel: "AWIN_FEED_DAFITI_KIDS", prefixo: "awn-dft-", leve: true, max: 8, maxPorCategoria: 4, dica: "infantil" },
-  // Soldiers Nutrition (suplementos): só os produtos com preço "de" e desconto no feed
-  { loja: "Soldiers Nutrition", variavel: "AWIN_FEED_SOLDIERS", prefixo: "awn-sld-", leve: true, max: 10, maxPorCategoria: 5 },
+  // Soldiers Nutrition (suplementos, feed no formato novo/Google, ~900 produtos): preço promocional do feed
+  // (sale_price) + preço riscado da página + histórico de preço, como a KaBuM!
+  { loja: "Soldiers Nutrition", variavel: "AWIN_FEED_SOLDIERS", prefixo: "awn-sld-", max: 10, maxPorCategoria: 5 },
 ];
 const DESCONTO_MINIMO_LEVE = 20; // feed leve: nem guarda na memória o que tiver menos que isso
 const CANDIDATOS_LEVE = 1500; // feed leve: só os X maiores descontos passam pelo classificador (é lento)
