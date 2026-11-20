@@ -1,15 +1,17 @@
 // Corrige a etiqueta da Amazon nas ofertas que já estão no banco.
 // Salve como scripts/corrigir-tag-amazon.mjs
 //
-// O código usava "mukiofertas-20", que NÃO é a sua etiqueta. A sua (StoreID do Amazon Associados)
-// é "mukiofertas09-20". Este script troca a etiqueta em todas as ofertas da Amazon com link direto.
+// Troca a etiqueta de TODAS as ofertas da Amazon com link direto (amazon.com.br) pela etiqueta
+// atual da conta (AMAZON_TAG_CERTA em lib/extrair-oferta.mjs, hoje "mukiofertas0c-20").
+// Links curtos (amzn.to, amaznlink) são tratados pelo scripts/corrigir-amazon-e-titulos.mjs.
 //
 // Teste (só mostra):  node --env-file=.env.robo scripts/corrigir-tag-amazon.mjs --teste
 // Corrigir:           node --env-file=.env.robo scripts/corrigir-tag-amazon.mjs
 
 import { createClient } from "@supabase/supabase-js";
+import { AMAZON_TAG_CERTA } from "../lib/extrair-oferta.mjs";
 
-const CERTA = process.env.AMAZON_TAG || "mukiofertas09-20";
+const CERTA = AMAZON_TAG_CERTA;
 const TESTE = process.argv.includes("--teste");
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 

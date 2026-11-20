@@ -1,5 +1,5 @@
 // Arruma as ofertas que JÁ estão no site, antes de pedir de novo o Programa de Associados Amazon:
-//   1. Amazon: troca o link pelo link do produto com a SUA tag (mukiofertas09-20).
+//   1. Amazon: troca o link pelo link do produto com a SUA tag (mukiofertas0c-20).
 //      Se não der para achar o produto no link, a oferta sai do site (fica expirada).
 //   2. Qualquer loja: oferta com título que não é nome de produto ("até o miojo") sai do site.
 //
