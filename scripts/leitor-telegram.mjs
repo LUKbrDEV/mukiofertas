@@ -18,6 +18,8 @@
 //   1) Entrar (uma vez):        node --env-file=.env.robo scripts/leitor-telegram.mjs --login
 //   2) Ver ids dos grupos:      node --env-file=.env.robo scripts/leitor-telegram.mjs --listar
 //   3) Rodar (fica ligado):     node --env-file=.env.robo scripts/leitor-telegram.mjs
+//   4) Buscar agora (uma vez):  node --env-file=.env.robo scripts/leitor-telegram.mjs --buscar 30 [--canal <id>]
+//      (pare o leitor do PM2 antes: pm2 stop leitor-telegram — a mesma conta não pode ficar conectada 2 vezes)
 //
 // A sessão (o "login") fica em ~/.mukiofertas-telegram-sessao, FORA do projeto (não vai para o GitHub).
 // Quem tiver esse arquivo entra na sua conta do Telegram: não compartilhe.
@@ -223,6 +225,42 @@ function tratar(msg, grupo) {
   }
   fila.push({ texto, msg, grupo });
   processarFila();
+}
+
+// ---------- Buscar agora (roda uma vez e sai) ----------
+// Pega as últimas postagens dos canais (inclusive as que saíram antes do leitor ligar) e manda para o site.
+// O site ignora o que já está cadastrado (duplicadas), então pode rodar mais de uma vez sem problema.
+//   --buscar 30          últimas 30 postagens de cada canal (padrão 30)
+//   --canal <id ou @nome> só esse canal
+if (process.argv.includes("--buscar")) {
+  const arg = (nome) => {
+    const i = process.argv.indexOf(nome);
+    return i >= 0 ? process.argv[i + 1] : undefined;
+  };
+  const quantas = Math.min(Number(arg("--buscar")) || 30, 100);
+  const soCanal = String(arg("--canal") ?? "").replace(/^@/, "").toLowerCase();
+  const canais = soCanal ? acompanhados.filter((d) => String(d.id) === soCanal || nomeDe(d) === soCanal) : acompanhados;
+  if (!canais.length) {
+    console.log(`Canal "${soCanal}" não está no TELEGRAM_LEITOR_CHATS (ou a conta não entrou nele).`);
+    await client.disconnect();
+    process.exit(1);
+  }
+  for (const d of canais) {
+    try {
+      const msgs = await client.getMessages(d.entity, { limit: quantas });
+      const lista = [...msgs].filter(Boolean).sort((a, b) => a.id - b.id);
+      console.log(`[${d.title}] ${lista.length} postagens lidas`);
+      for (const m of lista) tratar(m, d.title ?? String(d.id));
+    } catch (e) {
+      console.log(`[${d.title}] não consegui ler: ${e.message}`);
+    }
+    await new Promise((res) => setTimeout(res, 1500));
+  }
+  // espera a fila terminar de enviar tudo para o site
+  while (fila.length || trabalhando) await new Promise((res) => setTimeout(res, 1000));
+  console.log(`Busca terminada: ${contagem.enviadas} ofertas enviadas, ${contagem.publicadas} publicadas.`);
+  await client.disconnect();
+  process.exit(0);
 }
 
 // 1) Aviso do Telegram (chega na hora quando o Telegram manda)
