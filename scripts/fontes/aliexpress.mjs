@@ -28,15 +28,15 @@ const PADRAO = {
   aliexpress_ativo: true, // false = não busca nada no AliExpress
   aliexpress_preco_minimo: 50, // R$ — só ofertas acima desse preço
   aliexpress_avaliacao_minima: 90, // % de avaliações positivas
-  aliexpress_vendas_minimas: 50, // vendas recentes do produto
-  aliexpress_por_busca: 20, // produtos pedidos à API em cada busca (máximo da API: 50)
-  aliexpress_max_por_execucao: 20, // ofertas do AliExpress por execução — era 12
+  aliexpress_vendas_minimas: 20, // vendas recentes do produto — era 50
+  aliexpress_por_busca: 50, // produtos pedidos à API em cada busca (máximo da API: 50) — era 20
+  aliexpress_max_por_execucao: 40, // ofertas NOVAS do AliExpress por execução (as que já estão no ar não contam) — era 20
   aliexpress_buscas_tecnologia: 3, // buscas de tecnologia a cada execução
   aliexpress_buscas_outras: 2, // buscas das outras categorias a cada execução
-  aliexpress_max_por_busca: 3, // no máximo X ofertas de cada busca
+  aliexpress_max_por_busca: 6, // no máximo X ofertas novas de cada busca — era 3
   // "Vem do Brasil": só produtos com entrega rápida para o Brasil (enviados de estoque nacional).
   // A API não tem um filtro "vem do Brasil"; o filtro de prazo de entrega é o que chega mais perto.
-  aliexpress_entrega_dias: 7, // só produtos entregues em até X dias (3, 5, 7 ou 10; 0 = qualquer prazo)
+  aliexpress_entrega_dias: 10, // só produtos entregues em até X dias (3, 5, 7 ou 10; 0 = qualquer prazo)
   // "Top seller": usa a lista de produtos mais vendidos/em alta do AliExpress em vez da busca comum
   aliexpress_so_mais_vendidos: true,
 };
@@ -196,12 +196,12 @@ export async function chamarAliExpress(metodo, extras = {}, tentativa = 1) {
 // Prazos de entrega aceitos pela API (dias)
 const PRAZOS_VALIDOS = [3, 5, 7, 10];
 
-async function consultar(metodo, palavra, limite) {
+async function consultar(metodo, palavra, limite, pagina = 1) {
   const dias = ajuste("aliexpress_entrega_dias");
   const prazo = PRAZOS_VALIDOS.find((d) => d >= dias) ?? (dias > 0 ? 10 : undefined);
   const json = await chamarAliExpress(metodo, {
     keywords: palavra,
-    page_no: 1,
+    page_no: pagina,
     page_size: limite,
     sort: "LAST_VOLUME_DESC", // os mais vendidos primeiro
     target_currency: "BRL",
@@ -227,11 +227,11 @@ async function consultar(metodo, palavra, limite) {
 
 let semPermissaoHot = false;
 
-export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_busca")) {
+export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_busca"), pagina = 1) {
   // Top sellers: lista de produtos em alta; se não vier nada, cai na busca comum (também pelos mais vendidos)
   if (ajuste("aliexpress_so_mais_vendidos") && !semPermissaoHot) {
     try {
-      const quentes = await consultar("aliexpress.affiliate.hotproduct.query", palavra, limite);
+      const quentes = await consultar("aliexpress.affiliate.hotproduct.query", palavra, limite, pagina);
       if (quentes.length) return quentes;
     } catch (erro) {
       if (/assinatura|App Key/i.test(erro.message)) throw erro;
@@ -242,7 +242,7 @@ export async function buscarPorPalavra(palavra, limite = ajuste("aliexpress_por_
       }
     }
   }
-  return consultar("aliexpress.affiliate.product.query", palavra, limite);
+  return consultar("aliexpress.affiliate.product.query", palavra, limite, pagina);
 }
 
 const numero = (v) => {
@@ -344,7 +344,7 @@ async function buscarExistentes(ids) {
   for (let i = 0; i < ids.length; i += 200) {
     const { data } = await db
       .from("ofertas")
-      .select("id_externo, publicada_em, link")
+      .select("id_externo, publicada_em, link, ativa, expires_at")
       .eq("loja", "AliExpress")
       .in("id_externo", ids.slice(i, i + 200));
     for (const o of data ?? []) mapa.set(o.id_externo, o);
@@ -368,10 +368,16 @@ export async function buscar({ palavras } = {}) {
   const lista = palavras ?? palavrasDaVez();
   console.log(`[aliexpress] Buscando: ${lista.join(", ")}`);
 
+  // Buscas de prioridade (casa/eletrodomésticos) também pegam a 2ª página de resultados
+  const comPagina2 = new Set(palavras ? [] : rodizio(PALAVRAS_CASA, BUSCAS_CASA_POR_EXECUCAO));
+
   const porPalavra = [];
   for (const palavra of lista) {
     try {
-      const produtos = await buscarPorPalavra(palavra);
+      let produtos = await buscarPorPalavra(palavra);
+      if (comPagina2.has(palavra) && produtos.length >= ajuste("aliexpress_por_busca")) {
+        produtos = produtos.concat(await buscarPorPalavra(palavra, undefined, 2).catch(() => []));
+      }
       const bons = produtos.map(converter).filter(passaNosFiltros);
       console.log(`[aliexpress] "${palavra}": ${produtos.length} produtos, ${bons.length} aprovados nos filtros`);
       porPalavra.push(bons.sort((x, y) => y._desconto - x._desconto || y._vendas - x._vendas));
@@ -382,17 +388,41 @@ export async function buscar({ palavras } = {}) {
     }
   }
 
+  // Quais desses produtos já estão no ar no site
+  const existentes = await buscarExistentes([...new Set(porPalavra.flat().map((o) => o.id_externo))]);
+  const agoraMs = Date.now();
+  const estaNoAr = (o) => {
+    const e = existentes.get(o.id_externo);
+    return Boolean(e && e.ativa !== false && (!e.expires_at || new Date(e.expires_at).getTime() > agoraMs));
+  };
+
   const ids = new Set();
   const modelos = new Set();
   const porLoja = new Map();
-  // Pega as melhores de cada busca, uma de cada vez (assim todas as buscas aparecem),
-  // sem repetir produto/modelo e respeitando o limite por vendedor
   const candidatos = [];
+
+  // 1) As que já estão no ar sempre voltam (só atualizam preço e não expiram por "sumiço"),
+  //    sem gastar a cota de ofertas novas
+  let renovadas = 0;
+  for (const lista of porPalavra) {
+    for (const o of lista) {
+      if (!estaNoAr(o) || ids.has(o.id_externo)) continue;
+      ids.add(o.id_externo);
+      modelos.add(chaveDoModelo(o.titulo));
+      porLoja.set(o._vendedor, (porLoja.get(o._vendedor) ?? 0) + 1);
+      candidatos.push(o);
+      renovadas++;
+    }
+  }
+
+  // 2) Ofertas NOVAS: as melhores de cada busca, uma de cada vez (assim todas as buscas aparecem),
+  //    sem repetir produto/modelo e respeitando o limite por vendedor
+  let novas = 0;
   const usadosPorPalavra = porPalavra.map(() => 0);
-  for (let rodada = 0; rodada < 50 && candidatos.length < MAX_POR_EXECUCAO; rodada++) {
+  for (let rodada = 0; rodada < 50 && novas < MAX_POR_EXECUCAO; rodada++) {
     let pegouAlgum = false;
     porPalavra.forEach((lista, i) => {
-      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && candidatos.length < MAX_POR_EXECUCAO) {
+      while (lista.length && usadosPorPalavra[i] < MAX_POR_PALAVRA && novas < MAX_POR_EXECUCAO) {
         const o = lista.shift();
         const modelo = chaveDoModelo(o.titulo);
         const n = porLoja.get(o._vendedor) ?? 0;
@@ -402,14 +432,15 @@ export async function buscar({ palavras } = {}) {
         porLoja.set(o._vendedor, n + 1);
         candidatos.push(o);
         usadosPorPalavra[i]++;
+        novas++;
         pegouAlgum = true;
         break;
       }
     });
     if (!pegouAlgum) break;
   }
+  console.log(`[aliexpress] ${novas} novas + ${renovadas} que já estavam no ar (atualizadas).`);
 
-  const existentes = await buscarExistentes(candidatos.map((c) => c.id_externo));
   const agora = new Date().toISOString();
 
   const itens = candidatos.map(({ _desconto, _avaliacao, _vendas, _vendedor, ...o }) => {
